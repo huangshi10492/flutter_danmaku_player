@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:fldanplay/model/file_item.dart';
 import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/router.dart';
@@ -57,6 +59,18 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       _refreshMap[uniqueKey] = (_refreshMap[uniqueKey] ?? 0) + 1;
     });
     _refresh();
+  }
+
+  void _scrollToRight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void init() async {
@@ -165,60 +179,63 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          controller: _scrollController,
-          child: Watch((context) {
-            final path = _fileExplorerService.path.watch(context);
-            final parts = path.split('/').where((p) => p.isNotEmpty).toList();
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_scrollController.hasClients &&
-                  _scrollController.position.maxScrollExtent > 0) {
-                _scrollController.jumpTo(
-                  _scrollController.position.maxScrollExtent,
-                );
-              }
-            });
-            final children = <Widget>[
-              FBreadcrumbItem(
-                onPress: () => _fileExplorerService.cd('/'),
-                child: Text(
-                  '根目录',
-                  style: TextStyle(
-                    color: parts.isEmpty
-                        ? context.theme.colors.primary
-                        : context.theme.colors.foreground,
-                  ),
-                ),
-              ),
-            ];
-            var currentPath = '';
-            for (var i = 0; i < parts.length; i++) {
-              final part = parts[i];
-              currentPath += '$part/';
-              final targetPath = currentPath;
-              final isLast = i == parts.length - 1;
-              children.add(
+        ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse},
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            controller: _scrollController,
+            child: Watch((context) {
+              final path = _fileExplorerService.path.watch(context);
+              final parts = path.split('/').where((p) => p.isNotEmpty).toList();
+              final children = <Widget>[
                 FBreadcrumbItem(
-                  onPress: isLast
-                      ? null
-                      : () => _fileExplorerService.cd(targetPath),
+                  onPress: () => _fileExplorerService.cd('/'),
                   child: Text(
-                    part,
+                    '根目录',
                     style: TextStyle(
-                      color: isLast
+                      color: parts.isEmpty
                           ? context.theme.colors.primary
                           : context.theme.colors.foreground,
                     ),
                   ),
                 ),
+              ];
+              var currentPath = '';
+              for (var i = 0; i < parts.length; i++) {
+                final part = parts[i];
+                currentPath += '$part/';
+                final targetPath = currentPath;
+                final isLast = i == parts.length - 1;
+                children.add(
+                  FBreadcrumbItem(
+                    onPress: isLast
+                        ? null
+                        : () {
+                            _fileExplorerService.cd(targetPath);
+                            _scrollToRight();
+                          },
+                    child: Text(
+                      part,
+                      style: TextStyle(
+                        color: isLast
+                            ? context.theme.colors.primary
+                            : context.theme.colors.foreground,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: FBreadcrumb(children: children),
               );
-            }
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: FBreadcrumb(children: children),
-            );
-          }),
+            }),
+          ),
         ),
         Expanded(
           child: Watch(
@@ -318,7 +335,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
               maxLines: 2,
             ),
             subtitle: Text('目录'),
-            onPress: () => {_fileExplorerService.next(file.name)},
+            onPress: () {
+              _fileExplorerService.next(file.name);
+              _scrollToRight();
+            },
           ),
         );
         continue;
