@@ -302,6 +302,13 @@ class VideoPlayerService {
         );
       }
     }
+
+    if (Utils.isDesktop()) {
+      final volume = _configureService.desktopVolume.value;
+      final mpvVolume = (volume * 100).toInt();
+      await pp.setProperty("volume", mpvVolume.toString());
+      _log.info('_setProperty', '设置桌面端音量: $mpvVolume');
+    }
   }
 
   Future<void> _initSession() async {
@@ -391,6 +398,20 @@ class VideoPlayerService {
     await _player.setRate(newSpeed);
     _globalService.speed = newSpeed;
     danmakuService.updateSpeed();
+  }
+
+  Future<void> setVolume(double volume) async {
+    if (!Utils.isDesktop()) return;
+
+    volume = volume.clamp(0.0, 1.0);
+    final mpvVolume = (volume * 100).toInt();
+    try {
+      final pp = _player.platform as NativePlayer;
+      await pp.setProperty("volume", mpvVolume.toString());
+      _log.debug('setVolume', '设置桌面端音量: $mpvVolume');
+    } catch (e, t) {
+      _log.error('setVolume', '设置音量失败', error: e, stackTrace: t);
+    }
   }
 
   /// 切换播放/暂停

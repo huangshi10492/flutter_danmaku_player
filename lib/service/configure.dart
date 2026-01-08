@@ -150,6 +150,10 @@ class ConfigureService {
     key: 'subtitleFontName',
     defaultValue: '',
   );
+  late final Signal<double> desktopVolume = _config(
+    key: 'desktopVolume',
+    defaultValue: 0.9,
+  );
 
   DanmakuSettings getDanmakuSettings() {
     final jsonString = _box.get('danmakuSettings');

@@ -125,6 +125,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 final newVolume = (initialVolume + 0.05).clamp(0.0, 1.0);
                 _uiState.setVolume(newVolume);
                 BrightnessVolumeService.setVolume(newVolume);
+                _playerService.value.setVolume(newVolume);
               }
               // 下方向键被按下
               if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -132,6 +133,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 final newVolume = (initialVolume - 0.05).clamp(0.0, 1.0);
                 _uiState.setVolume(newVolume);
                 BrightnessVolumeService.setVolume(newVolume);
+                _playerService.value.setVolume(newVolume);
               }
               if (event.logicalKey == LogicalKeyboardKey.escape) {
                 windowManager.setFullScreen(false);
@@ -742,6 +744,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     final newVolume = (initialVolume + offset).clamp(0.0, 1.0);
     _uiState.setVolume(newVolume);
     BrightnessVolumeService.setVolume(newVolume);
+    _playerService.value.setVolume(newVolume);
   }
 
   /// 调整播放进度

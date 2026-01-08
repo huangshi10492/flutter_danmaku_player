@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:fldanplay/page/player/indicator.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:flutter_volume_controller/flutter_volume_controller.dart';
+import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -64,7 +66,9 @@ class PlayerUIState {
 
   /// 开始手势操作
   Future<void> startGesture({Duration? initialPosition}) async {
-    await FlutterVolumeController.updateShowSystemUI(false);
+    if (!Utils.isDesktop()) {
+      await FlutterVolumeController.updateShowSystemUI(false);
+    }
     initialVolumeOnPan = currentVolume.value;
     initialBrightnessOnPan = currentBrightness.value;
     initialPositionOnPan = initialPosition;
@@ -77,7 +81,9 @@ class PlayerUIState {
     initialVolumeOnPan = null;
     initialBrightnessOnPan = null;
     initialPositionOnPan = null;
-    await FlutterVolumeController.updateShowSystemUI(true);
+    if (!Utils.isDesktop()) {
+      await FlutterVolumeController.updateShowSystemUI(true);
+    }
   }
 
   /// 开始长按（倍速）
@@ -158,6 +164,7 @@ class PlayerUIState {
 /// 亮度控制服务
 class BrightnessVolumeService {
   static final _log = Logger('BrightnessVolumeService');
+  static final _configureService = GetIt.I<ConfigureService>();
   static double currentBrightness = 0.5;
   static double _systemBrightness = 0.5;
   static double currentVolume = 0.5;
@@ -167,16 +174,18 @@ class BrightnessVolumeService {
       if (!Utils.isDesktop()) {
         _systemBrightness = await ScreenBrightness().system;
         currentBrightness = await ScreenBrightness().application;
+        currentVolume = await FlutterVolumeController.getVolume() ?? 0.5;
+        FlutterVolumeController.addListener((volume) {
+          currentVolume = volume;
+        });
+      } else {
+        currentVolume = _configureService.desktopVolume.value;
       }
-      currentVolume = await FlutterVolumeController.getVolume() ?? 0.5;
-
-      FlutterVolumeController.addListener((volume) {
-        currentVolume = volume;
-      });
     } catch (e, t) {
       _log.error('initialize', '初始化亮度音量服务失败', error: e, stackTrace: t);
       _systemBrightness = 0.5;
       currentBrightness = 0.5;
+      currentVolume = 0.5;
     }
   }
 
@@ -206,11 +215,17 @@ class BrightnessVolumeService {
   static Future<void> setVolume(double volume) async {
     volume = volume.clamp(0.0, 1.0);
     currentVolume = volume;
-    await FlutterVolumeController.setVolume(volume);
+    if (!Utils.isDesktop()) {
+      await FlutterVolumeController.setVolume(volume);
+    } else {
+      _configureService.desktopVolume.value = volume;
+    }
   }
 
   static void dispose() {
     resetToSystemBrightness();
-    FlutterVolumeController.removeListener();
+    if (!Utils.isDesktop()) {
+      FlutterVolumeController.removeListener();
+    }
   }
 }
