@@ -48,45 +48,47 @@ class GeneralSettingsPage extends StatelessWidget {
           direction: .vertical,
           animation: animation,
           title: const Text('选择主题颜色'),
-          body: Wrap(
-            alignment: .center,
-            spacing: 8,
-            runSpacing: 4,
-            children: _themeColorNames.entries.map((entry) {
-              final isSelected = configure.themeColor.value == entry.key;
-              final themeColor = _getThemeColor(entry.key, isDark);
-              return GestureDetector(
-                onTap: () {
-                  configure.themeColor.value = entry.key;
-                },
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? themeColor.withValues(alpha: 0.1)
-                        : null,
-                    borderRadius: .circular(8),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: .center,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: themeColor,
-                          shape: .circle,
+          body: SingleChildScrollView(
+            child: Wrap(
+              alignment: .center,
+              spacing: 8,
+              runSpacing: 4,
+              children: _themeColorNames.entries.map((entry) {
+                final isSelected = configure.themeColor.value == entry.key;
+                final themeColor = _getThemeColor(entry.key, isDark);
+                return GestureDetector(
+                  onTap: () {
+                    configure.themeColor.value = entry.key;
+                  },
+                  child: Container(
+                    width: 70,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? themeColor.withValues(alpha: 0.1)
+                          : null,
+                      borderRadius: .circular(8),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: .center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: themeColor,
+                            shape: .circle,
+                          ),
+                          child: null,
                         ),
-                        child: null,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(entry.value),
-                    ],
+                        const SizedBox(height: 6),
+                        Text(entry.value),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
           actions: [
             FButton(
@@ -123,7 +125,7 @@ class GeneralSettingsPage extends StatelessWidget {
                   },
                   radioOptions: {'跟随系统': '0', '浅色模式': '1', '深色模式': '2'},
                 ),
-                SettingsTile.simpleTile(
+                SettingsTile.navigationTile(
                   title: '主题颜色',
                   details: _getThemeColorName(configure.themeColor.value),
                   onPress: () => _showThemeColorDialog(context, configure),
