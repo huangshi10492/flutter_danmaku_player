@@ -96,7 +96,7 @@ class Anime {
     required this.episodes,
   });
 
-  factory Anime.fromJson(Map<String, dynamic> json) {
+  factory Anime.fromJson(Map<String, dynamic> json, String url) {
     return Anime(
       animeTitle: json['animeTitle'] as String,
       animeId: json['animeId'] as int,
@@ -106,6 +106,7 @@ class Anime {
               e as Map<String, dynamic>,
               json['animeTitle'] as String,
               json['animeId'] as int,
+              url,
             ),
           )
           .toList(),
@@ -113,33 +114,28 @@ class Anime {
   }
 }
 
-/// 弹弹play API 节目信息
 class Episode {
-  /// 节目ID
   final int episodeId;
-
-  /// 动画名称
   final String animeTitle;
-
-  /// 节目标题
   final String episodeTitle;
-
-  /// 番剧ID
   final int animeId;
+  final String url;
 
   const Episode({
     required this.episodeId,
     required this.animeId,
     required this.animeTitle,
     required this.episodeTitle,
+    required this.url,
   });
 
-  factory Episode.fromId(int episodeId, int animeId) {
+  factory Episode.fromId(int episodeId, int animeId, String url) {
     return Episode(
       episodeId: episodeId,
       animeId: animeId,
       animeTitle: '',
       episodeTitle: '',
+      url: url,
     );
   }
 
@@ -147,27 +143,28 @@ class Episode {
     return episodeId > 0 && animeId > 0;
   }
 
-  /// 从JSON创建节目信息
-  factory Episode.fromJson(Map<String, dynamic> json) {
+  factory Episode.fromJson(Map<String, dynamic> json, String url) {
     return Episode(
       episodeId: json['episodeId'] as int,
       animeTitle: json['animeTitle'] as String,
       episodeTitle: json['episodeTitle'] as String,
       animeId: json['animeId'] as int,
+      url: url,
     );
   }
 
-  /// 从搜索API结果创建节目信息
   factory Episode.fromSearchJson(
     Map<String, dynamic> episodeJson,
     String animeTitle,
     int animeId,
+    String url,
   ) {
     return Episode(
       episodeId: episodeJson['episodeId'] as int,
       animeTitle: animeTitle,
       episodeTitle: episodeJson['episodeTitle'] as String,
       animeId: animeId,
+      url: url,
     );
   }
 }

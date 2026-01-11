@@ -1,8 +1,12 @@
 import 'package:fldanplay/model/danmaku.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
+import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
+import 'package:signals_flutter/signals_flutter.dart';
 
 enum _DanmakuSearchState {
   matching,
@@ -29,10 +33,12 @@ class DanmakuMatchDialog extends StatefulWidget {
 class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   final _searchController = TextEditingController();
   final danmakuGetter = DanmakuGetter();
+  final configure = GetIt.I<ConfigureService>();
   _DanmakuSearchState _state = _DanmakuSearchState.matching;
   String _message = '';
   String? _errorMessage;
   List<Anime>? _animes;
+  String _selectedServer = '';
 
   @override
   void initState() {
@@ -71,15 +77,17 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
     if (keyword.isEmpty) {
       return;
     }
+    if (_selectedServer.isEmpty) {
+      showToast(context, title: '请选择服务器');
+      return;
+    }
     setState(() {
       _state = _DanmakuSearchState.searching;
       _animes = null;
       _errorMessage = null;
     });
     try {
-      final animes = await danmakuGetter.danmakuApiUtils.searchEpisodes(
-        keyword,
-      );
+      final animes = await danmakuGetter.search(keyword, _selectedServer);
       setState(() {
         _animes = animes;
         _state = _DanmakuSearchState.search;
@@ -173,7 +181,9 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
               ],
             ),
             const SizedBox(height: 8),
-            _buildSearchBar(context),
+            _buildServerSelector(),
+            const SizedBox(height: 8),
+            _buildSearchBar(),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -188,7 +198,34 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildServerSelector() {
+    return Watch((context) {
+      final serverList = configure.danmakuServerList.value;
+      if (serverList.isEmpty) return const SizedBox.shrink();
+      if (_selectedServer.isEmpty && serverList.isNotEmpty) {
+        _selectedServer = serverList.first;
+      }
+      return FSelect<String>(
+        style: (style) => style.copyWith(
+          selectFieldStyle: textFieldStyle(
+            style.selectFieldStyle,
+            context.theme.colors,
+          ).call,
+        ),
+        control: .lifted(
+          value: _selectedServer,
+          onChange: (v) {
+            setState(() {
+              _selectedServer = v ?? '';
+            });
+          },
+        ),
+        items: {for (var server in serverList) server: server},
+      );
+    });
+  }
+
+  Widget _buildSearchBar() {
     return Row(
       children: [
         Expanded(

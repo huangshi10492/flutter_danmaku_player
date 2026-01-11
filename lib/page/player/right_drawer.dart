@@ -190,8 +190,8 @@ class RightDrawerContent extends StatelessWidget {
 
   Widget _buildDanmakuSearch(BuildContext context) {
     return DanmakuSearchPage(
-      searchEpisodes: (name) async {
-        return playerService.danmakuService.searchEpisodes(name);
+      searchEpisodes: (name, url) async {
+        return playerService.danmakuService.searchEpisodes(name, url);
       },
       onEpisodeSelected: (episode) {
         Navigator.pop(context); // 关闭 sheet

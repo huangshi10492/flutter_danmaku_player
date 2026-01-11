@@ -121,9 +121,9 @@ class ConfigureService {
     key: 'defaultDanmakuEnable',
     defaultValue: true,
   );
-  late final Signal<String> danmakuServiceUrl = _config(
-    key: 'danmakuServiceUrl',
-    defaultValue: 'https://danmaku.huangshi10492.top/huangshi10492',
+  late final Signal<List<String>> danmakuServerList = _config(
+    key: 'danmakuServerList',
+    defaultValue: ['https://danmaku.huangshi10492.top/huangshi10492'],
   );
   // 日志级别配置 (0: DEBUG, 1: INFO, 2: WARNING, 3: ERROR)
   late final Signal<String> logLevel = _config(

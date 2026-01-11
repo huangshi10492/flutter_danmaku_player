@@ -50,7 +50,7 @@ class DanmakuApiUtils {
         },
       );
       final matches = response.data['matches'] as List;
-      return matches.map((match) => Episode.fromJson(match)).toList();
+      return matches.map((match) => Episode.fromJson(match, baseUrl)).toList();
     } on DioException catch (e, t) {
       _logger.dio('matchVideo', e, t, action: '匹配节目');
     } catch (e, t) {
@@ -68,7 +68,7 @@ class DanmakuApiUtils {
       final animes = <Anime>[];
       // 遍历所有番剧，收集所有集数
       for (final anime in response.data['animes'] as List) {
-        animes.add(Anime.fromJson(anime));
+        animes.add(Anime.fromJson(anime, baseUrl));
       }
       return animes;
     } on DioException catch (e, t) {

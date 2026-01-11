@@ -36,7 +36,6 @@ class DanmakuService {
 
   ConfigureService configureService = GetIt.I.get<ConfigureService>();
   GlobalService globalService = GetIt.I.get<GlobalService>();
-  late DanmakuApiUtils danmakuApiUtils;
   final DanmakuGetter danmakuGetter = DanmakuGetter();
 
   final _log = Logger('DanmakuService');
@@ -46,7 +45,7 @@ class DanmakuService {
   Map<int, List<Danmaku>> _other = {};
   final Signal<DanmakuSettings> danmakuSettings = Signal(DanmakuSettings());
   final Signal<bool> danmakuEnabled = Signal(true);
-  final Signal<Episode> episode = Signal(Episode.fromId(0, 0));
+  final Signal<Episode> episode = Signal(Episode.fromId(0, 0, ''));
   final Signal<DanmakuStatus> status = Signal(.none);
   late History history;
   int lastTime = 0;
@@ -56,7 +55,6 @@ class DanmakuService {
   Future<void> init() async {
     final documentsDir = await getApplicationSupportDirectory();
     cacheDir = Directory('${documentsDir.path}/danmaku').path;
-    danmakuApiUtils = DanmakuApiUtils(configureService.danmakuServiceUrl.value);
     danmakuEnabled.value = configureService.defaultDanmakuEnable.value;
     final sittings = configureService.getDanmakuSettings();
     danmakuSettings.value = sittings;
@@ -300,6 +298,7 @@ class DanmakuService {
         animeId: danmakuData.animeId,
         animeTitle: danmakuData.animeTitle ?? '',
         episodeTitle: danmakuData.episodeTitle ?? '',
+        url: danmakuData.from ?? configureService.danmakuServerList.value.first,
       );
       if (now > expireTime) {
         _log.info('_getCachedDanmakus', '弹幕缓存已过期');
@@ -322,8 +321,8 @@ class DanmakuService {
   }
 
   /// 搜索番剧集数
-  Future<List<Anime>> searchEpisodes(String animeName) async {
-    return await danmakuApiUtils.searchEpisodes(animeName);
+  Future<List<Anime>> searchEpisodes(String animeName, String url) async {
+    return await danmakuGetter.search(animeName, url);
   }
 
   /// 选择episodeId并加载弹幕
@@ -332,6 +331,7 @@ class DanmakuService {
     Episode episode,
   ) async {
     try {
+      this.episode.value = episode;
       status.value = .downloading;
       final danmakus = await danmakuGetter.save(uniqueKey, episode);
       status.value = .fromApi;
@@ -377,20 +377,20 @@ class DanmakuService {
 
 class DanmakuGetter {
   final configureService = GetIt.I.get<ConfigureService>();
-  late final DanmakuApiUtils danmakuApiUtils = DanmakuApiUtils(
-    configureService.danmakuServiceUrl.value,
-  );
   final _log = Logger('DanmakuGetter');
 
-  Future<Episode?> getBySearch(String uniqueKey, String name) async {
+  List<String> get serverList => configureService.danmakuServerList.value;
+
+  DanmakuApiUtils _createApiUtils(String serverUrl) {
+    return DanmakuApiUtils(serverUrl);
+  }
+
+  Future<List<Anime>> search(String name, String url) async {
     try {
-      final animes = await danmakuApiUtils.searchEpisodes(name);
-      if (animes.isEmpty) return null;
-      final episodes = animes.first.episodes;
-      if (episodes.isEmpty) return null;
-      return episodes.first;
+      final apiUtils = _createApiUtils(url);
+      return await apiUtils.searchEpisodes(name);
     } catch (e, t) {
-      _log.error('getBySearch', '搜索番剧失败', error: e, stackTrace: t);
+      _log.error('search', '搜索番剧失败', error: e, stackTrace: t);
       throw AppException('搜索番剧失败', e);
     }
   }
@@ -400,22 +400,32 @@ class DanmakuGetter {
     String fileName, {
     String? fileHash,
   }) async {
-    try {
-      final episodes = await danmakuApiUtils.matchVideo(
-        fileName: fileName,
-        fileHash: fileHash,
-      );
-      if (episodes.isEmpty) return null;
-      return episodes.first;
-    } catch (e, t) {
-      _log.error('match', '匹配视频失败', error: e, stackTrace: t);
-      throw AppException('匹配视频失败', e);
+    for (final serverUrl in serverList) {
+      try {
+        _log.info('match', '尝试使用服务器: $serverUrl');
+        final apiUtils = _createApiUtils(serverUrl);
+        final episodes = await apiUtils.matchVideo(
+          fileName: fileName,
+          fileHash: fileHash,
+        );
+        if (episodes.isNotEmpty) {
+          _log.info('match', '在服务器 $serverUrl 找到匹配结果');
+          return episodes.first;
+        }
+        _log.info('match', '服务器 $serverUrl 未找到匹配结果，尝试下一个');
+      } catch (e) {
+        _log.warn('match', '服务器 $serverUrl 匹配失败: $e，尝试下一个');
+        continue;
+      }
     }
+    _log.info('match', '所有服务器均未找到匹配结果');
+    return null;
   }
 
   Future<List<Danmaku>> save(String uniqueKey, Episode episode) async {
     try {
-      final comments = await danmakuApiUtils.getComments(
+      final apiUtils = _createApiUtils(episode.url);
+      final comments = await apiUtils.getComments(
         episode.episodeId,
         sc: configureService.autoLanguage.value,
       );
@@ -438,7 +448,7 @@ class DanmakuGetter {
         animeId: episode.animeId,
         animeTitle: episode.animeTitle,
         episodeTitle: episode.episodeTitle,
-        from: configureService.danmakuServiceUrl.value,
+        from: episode.url,
       );
       await cacheFile.writeAsString(cacheData.toJsonString());
       _log.info('save', '弹幕缓存保存成功， 弹幕数量: ${danmakus.length}');

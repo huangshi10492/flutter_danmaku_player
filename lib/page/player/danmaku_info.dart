@@ -1,5 +1,4 @@
 import 'package:fldanplay/page/player/right_drawer.dart';
-import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/player/player.dart';
@@ -22,7 +21,6 @@ class DanmakuInfoPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final globalService = GetIt.I.get<GlobalService>();
-    final configureService = GetIt.I.get<ConfigureService>();
     return Scaffold(
       body: Watch((context) {
         return ListView(
@@ -56,7 +54,7 @@ class DanmakuInfoPanel extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text('来源: ${configureService.danmakuServiceUrl.value}'),
+                    Text('来源: ${danmakuService.episode.value.url}'),
                     const SizedBox(height: 8),
                     Text('剧名: ${danmakuService.episode.value.animeTitle}'),
                     const SizedBox(height: 8),

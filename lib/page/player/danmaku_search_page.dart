@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/danmaku.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
@@ -6,7 +7,7 @@ import 'package:get_it/get_it.dart';
 
 class DanmakuSearchPage extends StatefulWidget {
   final void Function(Episode episode) onEpisodeSelected;
-  final Future<List<Anime>> Function(String name) searchEpisodes;
+  final Future<List<Anime>> Function(String name, String url) searchEpisodes;
 
   const DanmakuSearchPage({
     super.key,
@@ -21,13 +22,19 @@ class DanmakuSearchPage extends StatefulWidget {
 class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
   final _searchController = TextEditingController();
   final _globalService = GetIt.I.get<GlobalService>();
+  final _configureService = GetIt.I.get<ConfigureService>();
   bool _isLoading = false;
   String? _errorMessage;
   List<Anime>? _animes;
+  String _selectedServer = '';
 
   @override
   void initState() {
     _searchController.text = _globalService.videoName;
+    final serverList = _configureService.danmakuServerList.value;
+    if (serverList.isNotEmpty) {
+      _selectedServer = serverList.first;
+    }
     super.initState();
   }
 
@@ -50,7 +57,7 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
     });
 
     try {
-      final animes = await widget.searchEpisodes(keyword);
+      final animes = await widget.searchEpisodes(keyword, _selectedServer);
       setState(() {
         _animes = animes;
         _isLoading = false;
@@ -68,7 +75,9 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          _buildSearchBar(context),
+          _buildServerSelector(),
+          const SizedBox(height: 8),
+          _buildSearchBar(),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -82,7 +91,21 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context) {
+  Widget _buildServerSelector() {
+    final serverList = _configureService.danmakuServerList.value;
+    if (serverList.isEmpty) return const SizedBox.shrink();
+    return FSelect(
+      control: .lifted(
+        value: _selectedServer,
+        onChange: (v) => setState(() {
+          _selectedServer = v ?? '';
+        }),
+      ),
+      items: {for (var e in serverList) e: e},
+    );
+  }
+
+  Widget _buildSearchBar() {
     return Row(
       children: [
         Expanded(
