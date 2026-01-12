@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:fldanplay/model/history.dart';
@@ -122,9 +123,8 @@ class VideoPlayerService {
     danmakuService = DanmakuService(videoInfo);
     _player = Player(
       configuration: PlayerConfiguration(
-        bufferSize: _configureService.lowMemoryMode.value
-            ? 25 * 1024 * 1024
-            : 500 * 1024 * 1024,
+        bufferSize:
+            pow(2, _configureService.playerMemory.value).round() * 1024 * 1024,
         logLevel: _configureService.playerDebugMode.value
             ? MPVLogLevel.debug
             : MPVLogLevel.error,

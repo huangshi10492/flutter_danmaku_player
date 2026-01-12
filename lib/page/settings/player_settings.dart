@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/settings/radio_settings_section.dart';
@@ -141,13 +143,16 @@ class PlayerSettingsPage extends StatelessWidget {
             SettingsSection(
               title: '其他',
               children: [
-                SettingsTile.switchTile(
-                  title: '低内存模式',
-                  subtitle: '默认缓存500MB，开启后缓存25MB，适用于低内存设备',
-                  switchValue: configure.lowMemoryMode.value,
-                  onBoolChange: (value) {
-                    configure.lowMemoryMode.value = value;
+                SettingsTile.sliderTile(
+                  title: '缓冲区大小',
+                  onSilderChange: (value) {
+                    configure.playerMemory.value = value.round();
                   },
+                  details: '${pow(2, configure.playerMemory.value)}MB',
+                  silderValue: configure.playerMemory.value.toDouble(),
+                  silderMin: 3,
+                  silderMax: 11,
+                  silderDivisions: 8,
                 ),
                 SettingsTile.switchTile(
                   title: '播放器调试模式',

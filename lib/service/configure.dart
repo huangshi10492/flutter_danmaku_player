@@ -81,9 +81,9 @@ class ConfigureService {
     key: 'hardwareDecoder',
     defaultValue: 'auto',
   );
-  late final Signal<bool> lowMemoryMode = _config(
-    key: 'lowMemoryMode',
-    defaultValue: false,
+  late final Signal<int> playerMemory = _config(
+    key: 'playerMemory',
+    defaultValue: 8,
   );
   late final Signal<bool> playerDebugMode = _config(
     key: 'playerDebugMode',
