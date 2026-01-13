@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:fldanplay/service/configure.dart';
@@ -108,19 +109,20 @@ class PlayerSettingsPage extends StatelessWidget {
                 ),
               ],
             ),
-            SettingsSection(
-              title: '音频',
-              children: [
-                SettingsTile.switchTile(
-                  title: '优先使用AudioTrack输出音频',
-                  subtitle: '关闭则优先使用OpenSL ES输出音频',
-                  switchValue: configure.audioTrack.value,
-                  onBoolChange: (value) {
-                    configure.audioTrack.value = value;
-                  },
-                ),
-              ],
-            ),
+            if (Platform.isAndroid)
+              SettingsSection(
+                title: '音频',
+                children: [
+                  SettingsTile.switchTile(
+                    title: '优先使用AudioTrack输出音频',
+                    subtitle: '关闭则优先使用OpenSL ES输出音频',
+                    switchValue: configure.audioTrack.value,
+                    onBoolChange: (value) {
+                      configure.audioTrack.value = value;
+                    },
+                  ),
+                ],
+              ),
             SettingsSection(
               title: '解码',
               children: [

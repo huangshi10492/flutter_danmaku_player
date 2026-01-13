@@ -97,7 +97,6 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         return Column(
           children: [
             SettingsSection(
-              title: '弹幕服务',
               children: [
                 SettingsTile.switchTile(
                   title: '启用弹幕服务',

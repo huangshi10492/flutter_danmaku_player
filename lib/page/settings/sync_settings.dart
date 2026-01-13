@@ -168,15 +168,19 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Watch((context) {
-            return FAlert(
-              title: Text(_getSyncStatusText(sync.syncStatus.value)),
-              subtitle: Text(
-                sync.syncMessage.value ?? '准备同步...',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            );
-          }),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            constraints: BoxConstraints(maxWidth: 1000),
+            child: Watch((context) {
+              return FAlert(
+                title: Text(_getSyncStatusText(sync.syncStatus.value)),
+                subtitle: Text(
+                  sync.syncMessage.value ?? '准备同步...',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );

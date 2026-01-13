@@ -174,7 +174,6 @@ class _FontManagerPageState extends State<FontManagerPage> {
           Watch((context) {
             final currentFont = _configureService.subtitleFontName.value;
             return SettingsSection(
-              title: '字幕字体',
               children: [
                 SettingsTile.simpleTile(
                   title: '当前字体',

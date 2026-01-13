@@ -445,7 +445,7 @@ class _FileExplorerFilterSheetState extends State<FileExplorerFilterSheet> {
             }),
           ),
           displayModeOptions,
-          title: Text('连载状态'),
+          title: Text('内容类型'),
           details: Text(
             displayModeOptions.entries
                 .firstWhere((e) => e.value == displayMode)

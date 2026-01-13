@@ -8,10 +8,8 @@ import 'package:forui/forui.dart';
 class LogViewPage extends StatelessWidget {
   final String fileName;
   const LogViewPage({super.key, required this.fileName});
-  // 导出日志文件
   Future<void> _exportLogFile(File file) async {
     final fileName = file.path.split('/').last;
-    // 让用户选择导出位置
     await FilePicker.platform.saveFile(
       fileName: fileName,
       allowedExtensions: ['log'],

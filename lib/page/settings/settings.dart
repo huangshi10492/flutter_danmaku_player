@@ -1,3 +1,4 @@
+import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +32,7 @@ class SettingsPage extends StatelessWidget {
                 onPress: () => context.push('/settings/player'),
               ),
               FItem(
-                prefix: const Icon(FIcons.captions, size: 24),
+                prefix: const Icon(MyIcon.danmaku, size: 24),
                 title: const Text('弹幕'),
                 subtitle: const Text('弹幕服务配置'),
                 onPress: () => context.push('/settings/danmaku'),

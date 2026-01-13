@@ -34,7 +34,6 @@ class _LogPageState extends State<LogPage> {
       child: Column(
         children: [
           SettingsSection(
-            title: '日志级别',
             children: [
               Watch((context) {
                 return SettingsTile.radioTile(
@@ -69,7 +68,6 @@ class _LogPageState extends State<LogPage> {
                   children: [SettingsTile.simpleTile(title: '暂无日志文件')],
                 );
               }
-              // 按修改时间排序，最新的在前面
               logFiles.sort(
                 (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
               );
