@@ -293,16 +293,10 @@ class VideoPlayerService {
             ? "audiotrack,opensles"
             : "opensles,audiotrack",
       );
-      if (_configureService.subtitleFontName.value.isNotEmpty) {
-        final fontsDir = await getApplicationSupportDirectory();
-        await pp.setProperty("sub-fonts-dir", '${fontsDir.path}/fonts');
-        await pp.setProperty(
-          "sub-font",
-          _configureService.subtitleFontName.value,
-        );
-      }
     }
-
+    final fontsDir = await getApplicationSupportDirectory();
+    await pp.setProperty("sub-fonts-dir", '${fontsDir.path}/fonts');
+    await pp.setProperty("sub-font", _configureService.subtitleFontName.value);
     if (Utils.isDesktop()) {
       final volume = _configureService.desktopVolume.value;
       final mpvVolume = (volume * 100).toInt();
