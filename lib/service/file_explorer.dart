@@ -113,13 +113,19 @@ class FileExplorerService {
     });
   }
 
-  Future<VideoInfo?> selectVideo(int index) async {
-    _logger.info('selectVideo', '选择视频: $index');
-    final list = await files.future;
-    if (index >= list.length || index < 0 || list[index].isFolder) {
-      return null;
+  Future<VideoInfo?> selectVideo(int videoIndex) async {
+    _logger.info('selectVideo', '选择视频: $videoIndex');
+    if (files.value is AsyncData) {
+      final list = files.value.requireValue;
+      for (var file in list) {
+        if (!file.isVideo) continue;
+        if (file.videoIndex == videoIndex) {
+          return getVideoInfo(file.videoIndex, file.path);
+        }
+      }
     }
-    return getVideoInfo(list[index].videoIndex, list[index].path);
+    _logger.warn('selectVideo', '文件列表未加载完成');
+    return null;
   }
 
   VideoInfo getVideoInfo(int index, String path) {
