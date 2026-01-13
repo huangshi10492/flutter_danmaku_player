@@ -204,7 +204,12 @@ class RightDrawerContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHistorySubtitle(History? history) {
+  Widget _buildHistorySubtitle(History? history, int index) {
+    if (videoInfo.videoIndex == index) {
+      return const Row(
+        children: [Icon(Icons.play_arrow, size: 16), Text('正在播放')],
+      );
+    }
     if (history == null) return const Text('未观看');
     return Text(
       '观看进度: ${Utils.formatTime(history.position, history.duration)}',
@@ -218,7 +223,7 @@ class RightDrawerContent extends StatelessWidget {
       widgetList.add(
         FItem(
           title: Text(file.name, maxLines: 2),
-          subtitle: _buildHistorySubtitle(file.history),
+          subtitle: _buildHistorySubtitle(file.history, file.videoIndex),
           onPress: () => {
             onEpisodeSelected(file.videoIndex),
             Navigator.pop(context),
@@ -252,7 +257,7 @@ class RightDrawerContent extends StatelessWidget {
                 : episode.name;
             return FItem(
               title: Text(titleText),
-              subtitle: _buildHistorySubtitle(history),
+              subtitle: _buildHistorySubtitle(history, e.key),
               onPress: () => {onEpisodeSelected(e.key), Navigator.pop(context)},
             );
           }).toList(),
