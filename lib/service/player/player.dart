@@ -16,9 +16,6 @@ import 'package:fldanplay/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image/image.dart' as img;
-import 'dart:ffi';
-import 'package:ffi/ffi.dart';
-import 'package:media_kit/generated/libmpv/bindings.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:path_provider/path_provider.dart';
@@ -248,39 +245,24 @@ class VideoPlayerService {
     }
   }
 
-  void _getChapter() async {
-    final nativePlayer = (_player.platform as NativePlayer);
-    final ctx = nativePlayer.ctx;
-    final mpv = nativePlayer.mpv;
-    final data = calloc<mpv_node>();
-    mpv.mpv_get_property(
-      ctx,
-      "chapter-list".toNativeUtf8().cast(),
-      mpv_format.MPV_FORMAT_NODE,
-      data.cast(),
-    );
+  Future _getChapter() async {
+    var pp = _player.platform as NativePlayer;
     final chapters = <int, String>{};
-    if (data.ref.format == mpv_format.MPV_FORMAT_NODE_ARRAY) {
-      for (int i = 0; i < data.ref.u.list.ref.num; i++) {
-        final decoder = data.ref.u.list.ref.values[i];
-        if (decoder.format == mpv_format.MPV_FORMAT_NODE_MAP) {
-          String name = "";
-          for (int j = 0; j < decoder.u.list.ref.num; j++) {
-            final k = decoder.u.list.ref.keys[j].cast<Utf8>().toDartString();
-            final v = decoder.u.list.ref.values[j];
-            if (k == 'title' && v.format == mpv_format.MPV_FORMAT_STRING) {
-              name = v.u.string.cast<Utf8>().toDartString();
-            }
-            if (k == 'time' && v.format == mpv_format.MPV_FORMAT_DOUBLE) {
-              chapters[v.u.double_.round()] = name;
-            }
-          }
+    try {
+      final chapterListStr = await pp.getProperty(
+        "chapter-list",
+        waitForInitialization: true,
+      );
+      if (chapterListStr.isNotEmpty) {
+        final List res = jsonDecode(chapterListStr);
+        for (var chapter in res) {
+          chapters[chapter['time'].round()] = chapter['title'];
         }
+        this.chapters.value = chapters;
       }
+    } catch (e, t) {
+      _log.error('loadChapters', '加载章节信息失败', error: e, stackTrace: t);
     }
-    this.chapters.value = chapters;
-    mpv.mpv_free_node_contents(data);
-    calloc.free(data);
   }
 
   Future<void> _setProperty() async {

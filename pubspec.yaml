@@ -32,7 +32,6 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  ffi: ^2.1.4
   
   #界面库
   forui: ^0.17.0
