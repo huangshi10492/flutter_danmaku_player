@@ -43,4 +43,9 @@ class StorageService {
   bool exists(String key) {
     return _storageBox.containsKey(key);
   }
+
+  Future<void> beforeBackup() async {
+    await _storageBox.flush();
+    await _storageBox.compact();
+  }
 }

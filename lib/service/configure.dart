@@ -38,6 +38,11 @@ class ConfigureService {
     return signal;
   }
 
+  Future<void> beforeBackup() async {
+    await _box.flush();
+    await _box.compact();
+  }
+
   late final Signal<double> defaultPlaySpeed = _config(
     key: 'defaultPlaySpeed',
     defaultValue: 1.0,

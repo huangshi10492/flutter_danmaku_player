@@ -80,6 +80,7 @@ dependencies:
   url_launcher: ^6.3.2
   window_manager: ^0.5.1
   audio_session: ^0.2.2
+  archive: ^4.0.7
 
 dev_dependencies:
   # flutter_test:

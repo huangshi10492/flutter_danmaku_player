@@ -13,6 +13,7 @@ import 'package:fldanplay/page/settings/log_view.dart';
 import 'package:fldanplay/page/settings/player_settings.dart';
 import 'package:fldanplay/page/settings/settings.dart';
 import 'package:fldanplay/page/settings/font_manager.dart';
+import 'package:fldanplay/page/settings/maintenance_page.dart';
 import 'package:fldanplay/page/settings/sync_settings.dart';
 import 'package:fldanplay/page/stream_media/detail.dart';
 import 'package:fldanplay/page/stream_media/explorer.dart';
@@ -109,6 +110,13 @@ final router = GoRouter(
               ),
             ),
           ],
+        ),
+        GoRoute(
+          path: 'maintenance',
+          pageBuilder: (context, state) => SlideAndExitTransitionPage(
+            key: state.pageKey,
+            child: const MaintenancePage(),
+          ),
         ),
       ],
     ),

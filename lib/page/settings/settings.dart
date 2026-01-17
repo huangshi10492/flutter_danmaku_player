@@ -50,6 +50,12 @@ class SettingsPage extends StatelessWidget {
                 onPress: () => context.push('/settings/webdav'),
               ),
               FItem(
+                prefix: const Icon(FIcons.wrench, size: 24),
+                title: const Text('维护'),
+                subtitle: const Text('数据备份还原、清理'),
+                onPress: () => context.push('/settings/maintenance'),
+              ),
+              FItem(
                 prefix: const Icon(FIcons.logs, size: 24),
                 title: const Text('日志'),
                 subtitle: const Text('设置日志级别、导出日志'),
