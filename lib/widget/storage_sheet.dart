@@ -113,7 +113,7 @@ class SelectStorageTypeSheet extends StatelessWidget {
 class _StorageFormData {
   final Map<String, TextEditingController> controllers = {};
   final Map<String, bool> toggleValues = {};
-  final Map<String, String> selectValues = {};
+  final Map<String, FMultiValueNotifier> selectControllers = {};
 
   void initialize(List<_FieldConfig> configs) {
     dispose();
@@ -126,7 +126,7 @@ class _StorageFormData {
           toggleValues[field.key] = false;
           break;
         case _FieldType.select:
-          selectValues[field.key] = field.options?.values.first ?? '';
+          selectControllers[field.key] = FMultiValueNotifier();
           break;
       }
     }
@@ -151,6 +151,9 @@ class _StorageFormData {
               case 'password':
                 controller.text = storage.password ?? '';
                 break;
+              case 'mediaLibraryId':
+                controller.text = storage.mediaLibraryId ?? '';
+                break;
             }
           }
           break;
@@ -159,13 +162,19 @@ class _StorageFormData {
             case 'isAnonymous':
               toggleValues[field.key] = storage.isAnonymous ?? false;
               break;
+            case 'useRemoteHistory':
+              toggleValues[field.key] = storage.useRemoteHistory ?? false;
+              break;
           }
           break;
         case _FieldType.select:
           switch (field.key) {
             case 'ftpMode':
             case 'smbVersion':
-              selectValues[field.key] = field.options!.values.first;
+              // TODO:
+              selectControllers[field.key]!.value = {
+                field.options!.values.first,
+              };
               break;
           }
           break;
@@ -193,6 +202,9 @@ class _StorageFormData {
               case 'password':
                 storage.password = value.isEmpty ? null : value;
                 break;
+              case 'mediaLibraryId':
+                storage.mediaLibraryId = value.isEmpty ? null : value;
+                break;
             }
           }
           break;
@@ -202,19 +214,24 @@ class _StorageFormData {
             case 'isAnonymous':
               storage.isAnonymous = value;
               break;
+            case 'useRemoteHistory':
+              storage.useRemoteHistory = value;
+              break;
           }
           break;
         case _FieldType.select:
           switch (field.key) {
             case 'ftpMode':
-              selectValues[field.key] =
-                  // _storage.ftpMode ??
-                  field.options!.values.first;
+              // TODO:
+              selectControllers[field.key]!.value = {
+                field.options!.values.first,
+              };
               break;
             case 'smbVersion':
-              selectValues[field.key] =
-                  // _storage.smbVersion ??
-                  field.options!.values.first;
+              // TODO:
+              selectControllers[field.key]!.value = {
+                field.options!.values.first,
+              };
               break;
           }
           break;
@@ -226,9 +243,12 @@ class _StorageFormData {
     for (final controller in controllers.values) {
       controller.dispose();
     }
+    for (final controller in selectControllers.values) {
+      controller.dispose();
+    }
     controllers.clear();
     toggleValues.clear();
-    selectValues.clear();
+    selectControllers.clear();
   }
 }
 
@@ -313,6 +333,8 @@ List<_FieldConfig> _getConfigs(StorageType type) {
         ),
         _FieldConfig('account', '用户名', required: true),
         _FieldConfig('password', '密码', required: true, obscureText: true),
+        _FieldConfig('useRemoteHistory', '使用远程历史', type: _FieldType.toggle),
+        _FieldConfig('mediaLibraryId', '媒体库ID', required: true),
       ];
     case StorageType.emby:
       return [
@@ -325,6 +347,8 @@ List<_FieldConfig> _getConfigs(StorageType type) {
         ),
         _FieldConfig('account', '用户名', required: true),
         _FieldConfig('password', '密码', required: true, obscureText: true),
+        _FieldConfig('useRemoteHistory', '使用远程历史', type: _FieldType.toggle),
+        _FieldConfig('mediaLibraryId', '媒体库ID', required: true),
       ];
   }
 }
@@ -356,7 +380,8 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
   bool _isLoading = false;
 
   List<CollectionItem> _mediaServerLibraries = [];
-  String? _selectedLibraryId;
+  final FMultiValueNotifier _streamMediaLibraryController =
+      FMultiValueNotifier();
   bool _isMediaServerLoggedIn = false;
   String get _title {
     switch (widget.storageType) {
@@ -394,6 +419,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
     setState(() {
       _nameController = TextEditingController(text: _storage.name);
       _uniqueKeyController = TextEditingController(text: _storage.uniqueKey);
+      _streamMediaLibraryController.value = {_storage.mediaLibraryId ?? ''};
       _formData.loadFromStorage(_storage, _fieldConfigs);
     });
   }
@@ -414,16 +440,6 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
       _storage.uniqueKey = _uniqueKeyController.text.trim();
       _storage.storageType = widget.storageType;
       _formData.saveToStorage(_storage, _fieldConfigs);
-      if (widget.storageType == StorageType.jellyfin ||
-          widget.storageType == StorageType.emby) {
-        if (_selectedLibraryId == null) {
-          if (context.mounted) {
-            showToast(context, level: 2, title: '请选择媒体库');
-          }
-          return false;
-        }
-        _storage.mediaLibraryId = _selectedLibraryId;
-      }
       await _storageService.update(_storage);
       if (context.mounted) {
         showToast(context, title: '媒体库保存成功');
@@ -576,11 +592,11 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: FSelectMenuTile.fromMap(
-            selectControl: .lifted(
-              value: {_formData.selectValues[field.key]},
+            selectControl: .managed(
+              controller: _formData.selectControllers[field.key]!,
               onChange: (value) {
                 setState(() {
-                  _formData.selectValues[field.key] = value.last!;
+                  _formData.selectControllers[field.key]!.value = {value.last!};
                 });
               },
             ),
@@ -589,7 +605,9 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
             details: Text(
               field.options!.entries
                   .firstWhere(
-                    (e) => e.value == _formData.selectValues[field.key],
+                    (e) =>
+                        e.value ==
+                        _formData.selectControllers[field.key]!.value.first,
                   )
                   .key,
             ),
@@ -737,11 +755,14 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                       vertical: 6,
                     ),
                     child: FSelectMenuTile.fromMap(
-                      selectControl: .lifted(
-                        value: {_selectedLibraryId},
+                      selectControl: .managed(
+                        controller: _streamMediaLibraryController,
                         onChange: (value) {
+                          if (value.isEmpty) return;
                           setState(() {
-                            _selectedLibraryId = value.last;
+                            _formData.controllers['mediaLibraryId']!.text =
+                                value.last;
+                            _streamMediaLibraryController.value = {value.last};
                           });
                         },
                       ),
@@ -752,10 +773,14 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                       ),
                       title: const Text('选择媒体库'),
                       details: Text(
-                        _selectedLibraryId != null
+                        _formData.controllers['mediaLibraryId']!.text != ''
                             ? _mediaServerLibraries
                                   .firstWhere(
-                                    (lib) => lib.id == _selectedLibraryId,
+                                    (lib) =>
+                                        lib.id ==
+                                        _formData
+                                            .controllers['mediaLibraryId']!
+                                            .text,
                                   )
                                   .name
                             : '请选择媒体库',

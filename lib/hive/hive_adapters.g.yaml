@@ -41,7 +41,7 @@ types:
         index: 6
   Storage:
     typeId: 4
-    nextIndex: 12
+    nextIndex: 13
     fields:
       name:
         index: 0
@@ -65,6 +65,8 @@ types:
         index: 10
       userId:
         index: 11
+      useRemoteHistory:
+        index: 12
   StorageType:
     typeId: 5
     nextIndex: 6

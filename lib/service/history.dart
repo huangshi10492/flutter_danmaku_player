@@ -33,6 +33,10 @@ class HistoryService {
     return _historyBox.get(key);
   }
 
+  Future<void> save(History history) async {
+    await _historyBox.put(history.uniqueKey, history);
+  }
+
   Future<void> clearAllHistories() async {
     await _historyBox.clear();
   }

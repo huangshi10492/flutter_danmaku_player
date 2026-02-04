@@ -132,9 +132,8 @@ class _VideoItemState extends State<VideoItem> {
     if (history != null) {
       final directory = await getApplicationSupportDirectory();
       final file = File('${directory.path}/screenshots/${history.uniqueKey}');
-      if (!await file.exists()) {
-        return _buildEmtpyPrefix();
-      }
+      bool hasLocalImage = false;
+      if (await file.exists()) hasLocalImage = true;
       return LayoutBuilder(
         builder: (context, boxConstraints) {
           final double maxWidth = boxConstraints.maxWidth;
@@ -143,12 +142,20 @@ class _VideoItemState extends State<VideoItem> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image(
-                  image: FileImageEx(file),
-                  fit: BoxFit.fitHeight,
-                  width: maxWidth,
-                  height: maxHeight,
-                  errorBuilder: (context, error, stackTrace) {
+                child: Builder(
+                  builder: (context) {
+                    if (hasLocalImage) {
+                      return Image(
+                        image: FileImageEx(file),
+                        fit: BoxFit.fitHeight,
+                        width: maxWidth,
+                        height: maxHeight,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildEmtpyPrefix();
+                        },
+                      );
+                    }
+                    if (widget.imageUrl != null) return _buildImage();
                     return _buildEmtpyPrefix();
                   },
                 ),
@@ -176,25 +183,27 @@ class _VideoItemState extends State<VideoItem> {
         },
       );
     }
-    if (widget.imageUrl != null) {
-      return LayoutBuilder(
-        builder: (context, boxConstraints) {
-          final double maxWidth = boxConstraints.maxWidth;
-          final double maxHeight = boxConstraints.maxHeight;
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: NetworkImageWidget(
-              url: widget.imageUrl!,
-              headers: widget.headers,
-              maxWidth: maxWidth,
-              maxHeight: maxHeight,
-              errorWidget: _buildEmtpyPrefix(),
-            ),
-          );
-        },
-      );
-    }
+    if (widget.imageUrl != null) return _buildImage();
     return _buildEmtpyPrefix();
+  }
+
+  Widget _buildImage() {
+    return LayoutBuilder(
+      builder: (context, boxConstraints) {
+        final double maxWidth = boxConstraints.maxWidth;
+        final double maxHeight = boxConstraints.maxHeight;
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: NetworkImageWidget(
+            url: widget.imageUrl!,
+            headers: widget.headers,
+            maxWidth: maxWidth,
+            maxHeight: maxHeight,
+            errorWidget: _buildEmtpyPrefix(),
+          ),
+        );
+      },
+    );
   }
 
   @override

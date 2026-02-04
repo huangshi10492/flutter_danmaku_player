@@ -33,7 +33,6 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       .get<StreamMediaExplorerService>();
   final OfflineCacheService _offlineCacheService = GetIt.I
       .get<OfflineCacheService>();
-  final _historyService = GetIt.I.get<HistoryService>();
 
   late TabController _tabController;
   MediaDetail? _mediaDetail;
@@ -93,11 +92,14 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     if (_isPlaying.value) return;
     _isPlaying.value = true;
     try {
+      final historyService = GetIt.I.get<HistoryService>();
       _service.setVideoList(season);
       final videoInfo = _service.getVideoInfo(index);
       if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
         videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
       }
+      final history = _service.getHistory(season.episodes[index]);
+      if (history != null) await historyService.save(history);
       _isPlaying.value = false;
       if (mounted) {
         final location = Uri(path: videoPlayerPath);
@@ -314,7 +316,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     final refreshKey = _refreshMap[uniqueKey]!;
     return VideoItem(
       key: ValueKey(uniqueKey),
-      history: _historyService.getHistoryByPath(episode.id),
+      history: _service.getHistory(episode),
       uniqueKey: uniqueKey,
       refreshKey: refreshKey,
       imageUrl: _service.getImageUrl(episode.id),

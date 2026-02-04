@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/global.dart';
+import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -14,7 +18,6 @@ abstract class StreamMediaExplorerProvider {
   Future<List<CollectionItem>> getUserViews();
   Future<List<MediaItem>> getItems(String parentId, {required Filter filter});
   Future<MediaDetail> getMediaDetail(String itemId);
-  Future<String> getFileName(String itemId);
   Map<String, String> get headers;
   String getImageUrl(String itemId, {String tag = 'Primary'});
   String getStreamUrl(String itemId);
@@ -135,6 +138,33 @@ class StreamMediaExplorerService {
   Future<MediaDetail> getMediaDetail(String itemId) async {
     return provider.value!.getMediaDetail(itemId);
   }
+
+  History? getHistory(EpisodeInfo episode) {
+    final historyService = GetIt.I.get<HistoryService>();
+    final localHistory = historyService.getHistoryByPath(episode.id);
+    if (storage!.useRemoteHistory == null ||
+        storage!.useRemoteHistory == false) {
+      return localHistory;
+    }
+    if (episode.userData == null || episode.userData!.lastPlayedDate == null) {
+      return localHistory;
+    }
+    History? remoteHistory;
+    if (localHistory == null ||
+        localHistory.updateTime <
+            episode.userData!.lastPlayedDate!.millisecondsSinceEpoch) {
+      remoteHistory = History(
+        uniqueKey: CryptoUtils.generateVideoUniqueKey(episode.id),
+        duration: ((episode.runTimeTicks ?? 0) / 10000).round(),
+        position: ((episode.userData!.playbackPositionTicks ?? 0) / 10000)
+            .round(),
+        type: HistoriesType.streamMediaStorage,
+        updateTime: episode.userData!.lastPlayedDate!.millisecondsSinceEpoch,
+        name: episode.name,
+      );
+    }
+    return remoteHistory ?? localHistory;
+  }
 }
 
 class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
@@ -247,23 +277,6 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   @override
-  Future<String> getFileName(String itemId) async {
-    try {
-      final response = await dio.get(getItemsPath(itemId));
-      final List<dynamic>? mediaSources = response.data['MediaSources'];
-      if (mediaSources == null || mediaSources.isEmpty) {
-        throw Exception('MediaSources is null');
-      }
-      return mediaSources.first['Name'] as String;
-    } on DioException catch (e, t) {
-      _logger.dio('getFileName', e, t, action: '获取文件名');
-    } catch (e, t) {
-      _logger.error('getFileName', '获取文件名失败', error: e, stackTrace: t);
-      throw AppException('获取文件名失败', e);
-    }
-  }
-
-  @override
   Dio getDio(String url, {UserInfo? userInfo}) {
     final globalService = GetIt.I.get<GlobalService>();
     String auth =
@@ -347,15 +360,13 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         getItemsPath(),
         queryParameters: {'parentId': seasonId},
       );
-
       List<EpisodeInfo> episodes = [];
       for (var item in response.data['Items']) {
         final episode = EpisodeInfo.fromJson(item);
         episode.fileName = await getFileName(episode.id);
+        episode.userData = await getUserData(episode.id);
         episodes.add(episode);
       }
-
-      // 按集数编号排序
       episodes.sort(
         (a, b) => (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0),
       );
@@ -365,6 +376,34 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     } catch (e, t) {
       _logger.error('getEpisodes', '获取集数信息失败', error: e, stackTrace: t);
       throw AppException('获取集数信息失败', e);
+    }
+  }
+
+  Future<String> getFileName(String itemId) async {
+    try {
+      final response = await dio.get(getItemsPath(itemId));
+      final List<dynamic>? mediaSources = response.data['MediaSources'];
+      if (mediaSources == null || mediaSources.isEmpty) {
+        throw Exception('MediaSources is null');
+      }
+      return mediaSources.first['Name'] as String;
+    } on DioException catch (e, t) {
+      _logger.dio('getFileName', e, t, action: '获取文件名');
+    } catch (e, t) {
+      _logger.error('getFileName', '获取文件名失败', error: e, stackTrace: t);
+      throw AppException('获取文件名失败', e);
+    }
+  }
+
+  Future<UserData> getUserData(String itemId) async {
+    try {
+      final response = await dio.get(getItemsPath(itemId));
+      return UserData.fromJson(response.data['UserData']);
+    } on DioException catch (e, t) {
+      _logger.dio('getUserData', e, t, action: '获取用户数据');
+    } catch (e, t) {
+      _logger.error('getUserData', '获取用户数据失败', error: e, stackTrace: t);
+      throw AppException('获取用户数据失败', e);
     }
   }
 

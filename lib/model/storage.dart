@@ -14,6 +14,7 @@ class Storage extends HiveObject {
   String? mediaLibraryId;
   String? token;
   String? userId;
+  bool? useRemoteHistory;
 
   Storage({
     required this.name,
@@ -27,6 +28,7 @@ class Storage extends HiveObject {
     this.mediaLibraryId,
     this.token,
     this.userId,
+    this.useRemoteHistory,
   });
 
   static Storage create() {
@@ -50,6 +52,7 @@ class Storage extends HiveObject {
     String? mediaLibraryId,
     String? token,
     String? userId,
+    bool? useRemoteHistory,
   }) {
     return Storage(
       name: name ?? this.name,
@@ -63,6 +66,7 @@ class Storage extends HiveObject {
       mediaLibraryId: mediaLibraryId ?? this.mediaLibraryId,
       token: token ?? this.token,
       userId: userId ?? this.userId,
+      useRemoteHistory: useRemoteHistory ?? this.useRemoteHistory,
     );
   }
 }

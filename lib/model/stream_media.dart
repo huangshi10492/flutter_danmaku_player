@@ -162,6 +162,7 @@ class EpisodeInfo {
   final String? seriesName;
   final String? overview;
   final int? runTimeTicks;
+  UserData? userData;
   String fileName;
 
   EpisodeInfo({
@@ -171,6 +172,7 @@ class EpisodeInfo {
     this.seriesName,
     this.overview,
     this.runTimeTicks,
+    this.userData,
     required this.fileName,
   });
 
@@ -190,5 +192,21 @@ class EpisodeInfo {
     if (runTimeTicks == null) return null;
     final minutes = (runTimeTicks! / 10000000 / 60).round();
     return '$minutes分钟';
+  }
+}
+
+class UserData {
+  final int? playbackPositionTicks;
+  final DateTime? lastPlayedDate;
+
+  UserData({this.playbackPositionTicks, this.lastPlayedDate});
+
+  factory UserData.fromJson(Map<String, dynamic> json) {
+    return UserData(
+      playbackPositionTicks: json['PlaybackPositionTicks'],
+      lastPlayedDate: json['LastPlayedDate'] != null
+          ? DateTime.parse(json['LastPlayedDate']).toUtc()
+          : null,
+    );
   }
 }

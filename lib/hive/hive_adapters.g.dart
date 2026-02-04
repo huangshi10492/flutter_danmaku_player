@@ -134,13 +134,14 @@ class StorageAdapter extends TypeAdapter<Storage> {
       mediaLibraryId: fields[9] as String?,
       token: fields[10] as String?,
       userId: fields[11] as String?,
+      useRemoteHistory: fields[12] as bool?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Storage obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -162,7 +163,9 @@ class StorageAdapter extends TypeAdapter<Storage> {
       ..writeByte(10)
       ..write(obj.token)
       ..writeByte(11)
-      ..write(obj.userId);
+      ..write(obj.userId)
+      ..writeByte(12)
+      ..write(obj.useRemoteHistory);
   }
 
   @override
