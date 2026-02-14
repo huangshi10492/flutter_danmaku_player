@@ -7,77 +7,101 @@ FTileStyle tileStyle({
   required FTypography typography,
   required FStyle style,
 }) => FTileStyle(
-  backgroundColor: FWidgetStateMap.all(Colors.transparent),
-  decoration: FWidgetStateMap({
-    WidgetState.disabled: BoxDecoration(
-      color: colors.disable(colors.secondary),
-      borderRadius: style.borderRadius,
-    ),
-    WidgetState.hovered | WidgetState.pressed: BoxDecoration(
-      color: colors.secondary,
-      borderRadius: style.borderRadius,
-    ),
-    WidgetState.any: BoxDecoration(
-      color: Colors.transparent,
-      borderRadius: style.borderRadius,
-    ),
-  }),
-  contentStyle: FItemContentStyle(
-    padding: const EdgeInsetsDirectional.fromSTEB(15, 13, 10, 13),
-    prefixIconStyle: FWidgetStateMap({
-      WidgetState.disabled: IconThemeData(
-        color: colors.disable(colors.primary),
-        size: 18,
-      ),
-      WidgetState.any: IconThemeData(color: colors.primary, size: 18),
-    }),
-    titleTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.base.copyWith(
-        color: colors.disable(colors.primary),
-      ),
-      WidgetState.any: typography.base,
-    }),
-    subtitleTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.xs.copyWith(
-        color: colors.disable(colors.mutedForeground),
-      ),
-      WidgetState.any: typography.xs.copyWith(color: colors.mutedForeground),
-    }),
-    detailsTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.base.copyWith(
-        color: colors.disable(colors.mutedForeground),
-      ),
-      WidgetState.any: typography.base.copyWith(color: colors.mutedForeground),
-    }),
-    suffixIconStyle: FWidgetStateMap({
-      WidgetState.disabled: IconThemeData(
-        color: colors.disable(colors.mutedForeground),
-        size: 18,
-      ),
-      WidgetState.any: IconThemeData(color: colors.mutedForeground, size: 18),
-    }),
+  backgroundColor: .all(Colors.transparent),
+  decoration: FVariants.from(
+    BoxDecoration(color: Colors.transparent, borderRadius: style.borderRadius),
+    variants: {
+      [.hovered, .pressed]: .delta(color: colors.secondary),
+      [.disabled]: .delta(color: colors.disable(colors.secondary)),
+    },
   ),
-  rawItemContentStyle: FRawItemContentStyle(
-    padding: const EdgeInsetsDirectional.fromSTEB(15, 13, 10, 13),
-    prefixIconStyle: FWidgetStateMap({
-      WidgetState.disabled: IconThemeData(
-        color: colors.disable(colors.primary),
-        size: 18,
-      ),
-      WidgetState.any: IconThemeData(color: colors.primary, size: 18),
-    }),
-    childTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.base.copyWith(
-        color: colors.disable(colors.primary),
-      ),
-      WidgetState.any: typography.base,
-    }),
+  contentStyle: _tileContentStyle(
+    colors: colors,
+    typography: typography,
+    prefix: colors.primary,
+    foreground: colors.foreground,
+    mutedForeground: colors.mutedForeground,
+  ),
+  rawItemContentStyle: _rawTileContentStyle(
+    colors: colors,
+    typography: typography,
+    prefix: colors.primary,
+    color: colors.foreground,
   ),
   tappableStyle: style.tappableStyle.copyWith(
-    motion: FTappableMotion.none.call,
-    pressedEnterDuration: Duration.zero,
+    motion: FTappableMotion.none,
+    pressedEnterDuration: .zero,
     pressedExitDuration: const Duration(milliseconds: 25),
   ),
   focusedOutlineStyle: style.focusedOutlineStyle,
-  margin: EdgeInsets.zero,
+  margin: .zero,
+);
+
+FTileContentStyle _tileContentStyle({
+  required FColors colors,
+  required FTypography typography,
+  required Color prefix,
+  required Color foreground,
+  required Color mutedForeground,
+}) {
+  final disabledMutedForeground = colors.disable(mutedForeground);
+  return FTileContentStyle(
+    prefixIconStyle: FVariants.from(
+      IconThemeData(color: prefix, size: 18),
+      variants: {
+        [.disabled]: .delta(color: colors.disable(prefix)),
+      },
+    ),
+    titleTextStyle: FVariants.from(
+      typography.base.copyWith(color: foreground),
+      variants: {
+        [.disabled]: .delta(color: colors.disable(foreground)),
+      },
+    ),
+    subtitleTextStyle: FVariants.from(
+      typography.xs.copyWith(color: mutedForeground),
+      variants: {
+        [.disabled]: .delta(color: disabledMutedForeground),
+      },
+    ),
+    detailsTextStyle: FVariants.from(
+      typography.base.copyWith(color: mutedForeground),
+      variants: {
+        [.disabled]: .delta(color: disabledMutedForeground),
+      },
+    ),
+    suffixIconStyle: FVariants.from(
+      IconThemeData(color: mutedForeground, size: 18),
+      variants: {
+        [.disabled]: .delta(color: disabledMutedForeground),
+      },
+    ),
+    padding: const EdgeInsets.fromLTRB(15, 13, 10, 13),
+    prefixIconSpacing: 10,
+    titleSpacing: 3,
+    middleSpacing: 4,
+    suffixIconSpacing: 5,
+  );
+}
+
+FRawTileContentStyle _rawTileContentStyle({
+  required FColors colors,
+  required FTypography typography,
+  required Color prefix,
+  required Color color,
+}) => FRawTileContentStyle(
+  prefixIconStyle: FVariants.from(
+    IconThemeData(color: prefix, size: 18),
+    variants: {
+      [.disabled]: .delta(color: colors.disable(prefix)),
+    },
+  ),
+  childTextStyle: FVariants(
+    typography.base.copyWith(color: color),
+    variants: {
+      [.disabled]: typography.base.copyWith(color: colors.disable(color)),
+    },
+  ),
+  padding: const EdgeInsets.fromLTRB(15, 13, 10, 13),
+  prefixIconSpacing: 10,
 );

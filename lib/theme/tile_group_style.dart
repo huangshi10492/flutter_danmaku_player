@@ -6,130 +6,131 @@ FTileGroupStyle tileGroupStyle({
   required FColors colors,
   required FTypography typography,
   required FStyle style,
-  bool border = true,
-}) {
-  final tileStyle = _tileStyle(
-    colors: colors,
-    typography: typography,
-    style: style,
-  );
-  return FTileGroupStyle(
-    decoration: BoxDecoration(
-      color: Colors.transparent,
-      border: border ? Border.all(color: colors.border) : null,
-      borderRadius: border ? style.borderRadius : null,
+}) => .new(
+  decoration: BoxDecoration(
+    border: .all(color: colors.border, width: style.borderWidth),
+    borderRadius: style.borderRadius,
+    color: colors.secondary.withAlpha(100),
+  ),
+  dividerColor: .all(colors.border),
+  dividerWidth: style.borderWidth,
+  labelTextStyle: FVariants.from(
+    typography.base.copyWith(
+      color:
+          style.formFieldStyle.labelTextStyle.base.color ?? colors.foreground,
+      fontWeight: .w600,
     ),
-    tileStyle: tileStyle.copyWith(
-      decoration: tileStyle.decoration.map(
-        (d) => d == null
-            ? null
-            : BoxDecoration(
-                color: d.color,
-                image: d.image,
-                boxShadow: d.boxShadow,
-                gradient: d.gradient,
-                backgroundBlendMode: d.backgroundBlendMode,
-                shape: d.shape,
-              ),
+    variants: {
+      [.disabled]: .delta(color: colors.disable(colors.foreground)),
+    },
+  ),
+  tileStyles: FVariants.from(
+    .inherit(colors: colors, typography: typography, style: style).copyWith(
+      backgroundColor: .delta([.all(Colors.transparent)]),
+      decoration: .delta([
+        .all(const .delta(border: null, borderRadius: null)),
+        .base(.delta(color: Colors.transparent)),
+      ]),
+    ),
+    variants: {
+      [.destructive]: .delta(
+        contentStyle: _itemContentStyle(
+          colors: colors,
+          typography: typography,
+          prefix: colors.destructive,
+          foreground: colors.destructive,
+          mutedForeground: colors.destructive,
+        ),
+        rawItemContentStyle: _rawItemContentStyle(
+          colors: colors,
+          typography: typography,
+          prefix: colors.destructive,
+          color: colors.destructive,
+        ),
+      ),
+    },
+  ),
+  descriptionTextStyle: style.formFieldStyle.descriptionTextStyle.apply([
+    .all(
+      .delta(fontSize: typography.xs.fontSize, height: typography.xs.height),
+    ),
+  ]),
+  errorTextStyle: style.formFieldStyle.errorTextStyle.apply([
+    .all(
+      .delta(
+        fontSize: typography.xs.fontSize,
+        height: typography.xs.height,
+        fontWeight: .w400,
       ),
     ),
-    dividerColor: FWidgetStateMap.all(colors.border),
-    dividerWidth: style.borderWidth,
-    labelTextStyle: FWidgetStateMap({
-      WidgetState.any: typography.sm.copyWith(color: colors.mutedForeground),
-    }),
-    descriptionTextStyle: style.formFieldStyle.descriptionTextStyle.map(
-      (s) => typography.xs.copyWith(color: s.color),
+  ]),
+);
+
+FItemContentStyle _itemContentStyle({
+  required FColors colors,
+  required FTypography typography,
+  required Color prefix,
+  required Color foreground,
+  required Color mutedForeground,
+}) {
+  final disabledMutedForeground = colors.disable(mutedForeground);
+  return FItemContentStyle(
+    prefixIconStyle: FVariants.from(
+      IconThemeData(color: prefix, size: 15),
+      variants: {
+        [.disabled]: .delta(color: colors.disable(prefix)),
+      },
     ),
-    errorTextStyle: typography.xs.copyWith(
-      color: style.formFieldStyle.errorTextStyle.color,
+    titleTextStyle: FVariants.from(
+      typography.sm.copyWith(color: foreground),
+      variants: {
+        [.disabled]: .delta(color: colors.disable(foreground)),
+      },
     ),
-    labelPadding: const EdgeInsets.symmetric(vertical: 7.7, horizontal: 14),
-    descriptionPadding: const EdgeInsets.only(top: 7.5),
-    errorPadding: const EdgeInsets.only(top: 5),
-    childPadding: EdgeInsets.zero,
+    subtitleTextStyle: FVariants.from(
+      typography.xs.copyWith(color: mutedForeground),
+      variants: {
+        [.disabled]: .delta(color: disabledMutedForeground),
+      },
+    ),
+    detailsTextStyle: FVariants.from(
+      typography.xs.copyWith(color: mutedForeground),
+      variants: {
+        [.disabled]: .delta(color: disabledMutedForeground),
+      },
+    ),
+    suffixIconStyle: FVariants.from(
+      IconThemeData(color: mutedForeground, size: 15),
+      variants: {
+        [.disabled]: .delta(color: disabledMutedForeground),
+      },
+    ),
+    padding: const .directional(start: 11, top: 7.5, bottom: 7.5, end: 6),
+    prefixIconSpacing: 10,
+    titleSpacing: 3,
+    middleSpacing: 4,
+    suffixIconSpacing: 5,
   );
 }
 
-FTileStyle _tileStyle({
+FRawItemContentStyle _rawItemContentStyle({
   required FColors colors,
   required FTypography typography,
-  required FStyle style,
-}) => FTileStyle(
-  backgroundColor: FWidgetStateMap.all(Color.fromARGB(0, 0, 0, 0)),
-  decoration: FWidgetStateMap({
-    WidgetState.disabled: BoxDecoration(
-      color: colors.disable(colors.secondary),
-      border: Border.all(color: colors.border),
-      borderRadius: style.borderRadius,
-    ),
-    WidgetState.hovered | WidgetState.pressed: BoxDecoration(
-      color: colors.secondary,
-      border: Border.all(color: colors.border),
-      borderRadius: style.borderRadius,
-    ),
-    WidgetState.any: BoxDecoration(
-      color: Color.fromARGB(0, 0, 0, 0),
-      border: Border.all(color: colors.border),
-      borderRadius: style.borderRadius,
-    ),
-  }),
-  contentStyle: FItemContentStyle(
-    padding: const EdgeInsetsDirectional.fromSTEB(15, 13, 10, 13),
-    prefixIconStyle: FWidgetStateMap({
-      WidgetState.disabled: IconThemeData(
-        color: colors.disable(colors.primary),
-        size: 18,
-      ),
-      WidgetState.any: IconThemeData(color: colors.primary, size: 18),
-    }),
-    titleTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.base.copyWith(
-        color: colors.disable(colors.primary),
-      ),
-      WidgetState.any: typography.base,
-    }),
-    subtitleTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.xs.copyWith(
-        color: colors.disable(colors.mutedForeground),
-      ),
-      WidgetState.any: typography.xs.copyWith(color: colors.mutedForeground),
-    }),
-    detailsTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.base.copyWith(
-        color: colors.disable(colors.mutedForeground),
-      ),
-      WidgetState.any: typography.base.copyWith(color: colors.mutedForeground),
-    }),
-    suffixIconStyle: FWidgetStateMap({
-      WidgetState.disabled: IconThemeData(
-        color: colors.disable(colors.mutedForeground),
-        size: 18,
-      ),
-      WidgetState.any: IconThemeData(color: colors.mutedForeground, size: 18),
-    }),
+  required Color prefix,
+  required Color color,
+}) => FRawItemContentStyle(
+  prefixIconStyle: FVariants.from(
+    IconThemeData(color: prefix, size: 15),
+    variants: {
+      [.disabled]: .delta(color: colors.disable(prefix)),
+    },
   ),
-  rawItemContentStyle: FRawItemContentStyle(
-    padding: const EdgeInsetsDirectional.fromSTEB(15, 13, 10, 13),
-    prefixIconStyle: FWidgetStateMap({
-      WidgetState.disabled: IconThemeData(
-        color: colors.disable(colors.primary),
-        size: 18,
-      ),
-      WidgetState.any: IconThemeData(color: colors.primary, size: 18),
-    }),
-    childTextStyle: FWidgetStateMap({
-      WidgetState.disabled: typography.base.copyWith(
-        color: colors.disable(colors.primary),
-      ),
-      WidgetState.any: typography.base,
-    }),
+  childTextStyle: FVariants(
+    typography.sm.copyWith(color: color),
+    variants: {
+      [.disabled]: typography.sm.copyWith(color: colors.disable(color)),
+    },
   ),
-  tappableStyle: style.tappableStyle.copyWith(
-    motion: FTappableMotion.none.call,
-    pressedEnterDuration: Duration.zero,
-    pressedExitDuration: const Duration(milliseconds: 25),
-  ),
-  focusedOutlineStyle: style.focusedOutlineStyle,
-  margin: EdgeInsets.zero,
+  padding: const .directional(start: 15, top: 7.5, bottom: 7.5, end: 10),
+  prefixIconSpacing: 10,
 );

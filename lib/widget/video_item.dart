@@ -221,8 +221,8 @@ class _VideoItemState extends State<VideoItem> {
       progressPercent = (progress * 100).round();
       lastWatchTime = Utils.formatLastWatchTime(widget.history!.updateTime);
     }
-    final subtitleStyle = context.theme.itemStyle.contentStyle.subtitleTextStyle
-        .resolve({});
+    final subtitleStyle =
+        context.theme.itemStyles.base.contentStyle.subtitleTextStyle.base;
     return _PopoverMenu(
       download: widget.onOfflineDownload ?? () {},
       matchDanmaku: () async {
@@ -284,13 +284,9 @@ class _VideoItemState extends State<VideoItem> {
                         const SizedBox(height: 4),
                         FDeterminateProgress(
                           value: progress,
-                          style: (style) => style.copyWith(
-                            motion: (motion) =>
-                                motion.copyWith(duration: Duration.zero),
-                            constraints: style.constraints.copyWith(
-                              minHeight: 4,
-                              maxHeight: 4,
-                            ),
+                          style: .delta(
+                            motion: .delta(duration: Duration.zero),
+                            constraints: .tightFor(height: 4),
                           ),
                         ),
                         Row(

@@ -77,7 +77,7 @@ class _HistoryPageState extends State<HistoryPage> {
             child: const Text('取消'),
           ),
           FButton(
-            style: FButtonStyle.destructive(),
+            variant: .destructive,
             onPress: () {
               Navigator.pop(context);
               _historyService.delete(history: history);
@@ -102,7 +102,7 @@ class _HistoryPageState extends State<HistoryPage> {
             child: const Text('取消'),
           ),
           FButton(
-            style: FButtonStyle.destructive(),
+            variant: .destructive,
             onPress: () {
               Navigator.pop(context);
               _clearAllHistories();
@@ -258,13 +258,13 @@ class _HistoryPageState extends State<HistoryPage> {
                 break;
             }
             return FButton.icon(
-              style: FButtonStyle.ghost(),
+              variant: .ghost,
               onPress: _webDAVSyncService.syncHistories,
               child: Icon(icon, size: 24),
             );
           }),
           FButton.icon(
-            style: FButtonStyle.ghost(),
+            variant: .ghost,
             onPress: _showClearAllConfirmDialog,
             child: const Icon(Icons.clear_all, size: 24),
           ),

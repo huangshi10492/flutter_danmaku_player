@@ -2,18 +2,9 @@ import 'package:fldanplay/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
-FTextFieldStyle textFieldStyle(FTextFieldStyle style, FColors colors) {
-  final disabledTextStyle = style.contentTextStyle.resolve({
-    WidgetState.disabled,
-  });
-  final anyTextStyle = style.contentTextStyle
-      .resolve({})
-      .copyWith(color: colors.foreground);
-  return style.copyWith(
-    contentTextStyle: FWidgetStateMap({
-      WidgetState.disabled: disabledTextStyle,
-      WidgetState.any: anyTextStyle,
-    }),
+FTextFieldStyleDelta textFieldStyle(FColors colors) {
+  return .delta(
+    labelTextStyle: .delta([.base(.delta(fontWeight: FontWeight.normal))]),
   );
 }
 
@@ -23,6 +14,8 @@ FThemeData getTheme(String theme, bool isDark) {
     switch (theme) {
       case 'blue':
         colors = FThemes.blue.dark.colors;
+      case 'neutral':
+        colors = FThemes.neutral.dark.colors;
       case 'zinc':
         colors = FThemes.zinc.dark.colors;
       case 'slate':
@@ -46,6 +39,8 @@ FThemeData getTheme(String theme, bool isDark) {
     switch (theme) {
       case 'blue':
         colors = FThemes.blue.light.colors;
+      case 'neutral':
+        colors = FThemes.neutral.light.colors;
       case 'zinc':
         colors = FThemes.zinc.light.colors;
       case 'slate':
@@ -72,35 +67,31 @@ FThemeData getTheme(String theme, bool isDark) {
       colors: colors,
       defaultFontFamily: Utils.font('packages/forui/Inter')!,
     ),
-  ).copyWith(textFieldStyle: (style) => textFieldStyle(style, colors));
+  ).copyWith(textFieldStyle: textFieldStyle(colors));
 }
 
-FItemGroupStyle rootItemGroupStyle(FItemGroupStyle style) {
-  return style.copyWith(
-    itemStyle: (style) => style.copyWith(
-      contentStyle: (style) => style.copyWith(
-        titleTextStyle: FWidgetStateMap.all(
-          style.titleTextStyle.resolve({}).copyWith(fontSize: 18, height: 1.75),
-        ),
-        prefixIconStyle: FWidgetStateMap.all(
-          style.prefixIconStyle.resolve({}).copyWith(size: 32),
+FItemGroupStyleDelta get rootItemGroupStyle => .delta(
+  itemStyles: .delta([
+    .base(
+      .delta(
+        contentStyle: .delta(
+          titleTextStyle: .delta([.base(.delta(fontSize: 18, height: 1.75))]),
+          prefixIconStyle: .delta([.base(.delta(size: 32))]),
         ),
       ),
     ),
-  );
-}
+  ]),
+);
 
-FItemGroupStyle settingsItemGroupStyle(FItemGroupStyle style) {
-  return style.copyWith(
-    itemStyle: (style) => style.copyWith(
-      contentStyle: (style) => style.copyWith(
-        titleTextStyle: FWidgetStateMap.all(
-          style.titleTextStyle.resolve({}).copyWith(fontSize: 16, height: 1.5),
-        ),
-        prefixIconStyle: FWidgetStateMap.all(
-          style.prefixIconStyle.resolve({}).copyWith(size: 28),
+FItemGroupStyleDelta get settingsItemGroupStyle => .delta(
+  itemStyles: .delta([
+    .base(
+      .delta(
+        contentStyle: .delta(
+          titleTextStyle: .delta([.base(.delta(fontSize: 16, height: 1.5))]),
+          prefixIconStyle: .delta([.base(.delta(size: 28))]),
         ),
       ),
     ),
-  );
-}
+  ]),
+);

@@ -1,7 +1,6 @@
 import 'package:fldanplay/model/danmaku.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
-import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
@@ -106,6 +105,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          SizedBox(height: 16),
           CircularProgressIndicator(),
           SizedBox(height: 16),
           Text('正在匹配弹幕...', style: context.theme.typography.base),
@@ -116,6 +116,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          SizedBox(height: 16),
           CircularProgressIndicator(),
           SizedBox(height: 16),
           Text('正在下载弹幕...', style: context.theme.typography.base),
@@ -126,6 +127,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          SizedBox(height: 16),
           CircularProgressIndicator(),
           SizedBox(height: 16),
           Text('正在保存弹幕...', style: context.theme.typography.base),
@@ -136,6 +138,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          SizedBox(height: 8),
           Text('自动匹配成功', style: context.theme.typography.xl),
           const SizedBox(height: 16),
           Text(_message, style: context.theme.typography.base),
@@ -188,8 +191,8 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: FAccordion(
+                style: .delta(childPadding: .zero),
                 children: _buildBody(),
-                style: (style) => style.copyWith(childPadding: EdgeInsets.zero),
               ),
             ),
           ],
@@ -206,12 +209,6 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
         _selectedServer = serverList.first;
       }
       return FSelect<String>(
-        style: (style) => style.copyWith(
-          selectFieldStyle: textFieldStyle(
-            style.selectFieldStyle,
-            context.theme.colors,
-          ).call,
-        ),
         control: .lifted(
           value: _selectedServer,
           onChange: (v) {
@@ -237,16 +234,17 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
         ),
         const SizedBox(width: 8),
         FButton.icon(
+          style: .delta(iconContentStyle: .delta(padding: .all(8))),
           onPress: _state == _DanmakuSearchState.searching ? () {} : _search,
           child: _state == _DanmakuSearchState.searching
               ? const SizedBox(
-                  width: 25,
-                  height: 25,
+                  width: 22,
+                  height: 22,
                   child: FCircularProgress(),
                 )
               : Icon(
                   Icons.search,
-                  size: 25,
+                  size: 22,
                   color: context.theme.colors.primary,
                 ),
         ),
@@ -290,13 +288,10 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             }
             final episode = anime.episodes[(index / 2).round()];
             return FItem(
-              style: (style) => style.copyWith(
-                margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 0),
-                contentStyle: (style) => style.copyWith(
-                  padding: EdgeInsetsDirectional.symmetric(
-                    vertical: 10,
-                    horizontal: 6,
-                  ),
+              style: .delta(
+                margin: .symmetric(vertical: 2, horizontal: 0),
+                contentStyle: .delta(
+                  padding: .symmetric(vertical: 10, horizontal: 6),
                 ),
               ),
               title: Text(

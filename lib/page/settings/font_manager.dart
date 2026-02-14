@@ -103,12 +103,12 @@ class _FontManagerPageState extends State<FontManagerPage> {
           body: Text('确定要删除字体文件 $fileName 吗？'),
           actions: [
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () => Navigator.pop(context),
               child: Text('取消'),
             ),
             FButton(
-              style: FButtonStyle.destructive(),
+              variant: .destructive,
               onPress: () {
                 Navigator.pop(context);
                 _deleteFont(fileName);
@@ -144,7 +144,7 @@ class _FontManagerPageState extends State<FontManagerPage> {
           ),
           actions: [
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () => Navigator.pop(context),
               child: Text('取消'),
             ),
@@ -199,14 +199,14 @@ class _FontManagerPageState extends State<FontManagerPage> {
                     colors: context.theme.colors,
                     typography: context.theme.typography,
                     style: context.theme.style,
-                  ).call,
+                  ),
                   title: Text(fileName),
                   suffix: Row(
                     mainAxisSize: .min,
                     children: [
                       FButton.icon(
                         onPress: () => _showDeleteConfirmDialog(fileName),
-                        style: FButtonStyle.ghost(),
+                        variant: .ghost,
                         child: const Icon(FIcons.x, color: Colors.red),
                       ),
                     ],

@@ -276,7 +276,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         Padding(
           padding: EdgeInsets.all(16),
           child: FButton.icon(
-            style: FButtonStyle.ghost(),
+            variant: .ghost,
             onPress: () => context.pop(),
             child: const Icon(FIcons.arrowLeft),
           ),
@@ -715,8 +715,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         width: 300,
         height: MediaQuery.of(context).size.height - 60,
         child: FToaster(
-          style: (style) =>
-              style.copyWith(expandBehavior: FToasterExpandBehavior.always),
+          style: .delta(expandBehavior: .always),
           child: Builder(
             builder: (context) {
               _globalService.notificationContext = context;

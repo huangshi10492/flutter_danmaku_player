@@ -29,7 +29,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       builder: (context, style, animation) {
         final controller = TextEditingController(text: currentValue);
         return FDialog(
-          style: style.call,
+          style: style,
           direction: Axis.horizontal,
           animation: animation,
           title: Text(title),
@@ -41,7 +41,7 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               : FTextField(control: .managed(controller: controller)),
           actions: [
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () => Navigator.pop(context),
               child: const Text('取消'),
             ),

@@ -8,20 +8,22 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 const Map<String, String> _themeColorNames = {
-  'blue': '蓝色',
-  'zinc': '灰白色',
-  'slate': '深灰色',
-  'red': '红色',
-  'rose': '玫瑰色',
-  'orange': '橙色',
-  'green': '绿色',
-  'yellow': '黄色',
-  'violet': '紫色',
+  'blue': 'Blue',
+  'neutral': 'Neutral',
+  'zinc': 'Zinc',
+  'slate': 'Slate',
+  'red': 'Red',
+  'rose': 'Rose',
+  'orange': 'Orange',
+  'green': 'Green',
+  'yellow': 'Yellow',
+  'violet': 'Violet',
 };
 
 Color _getThemeColor(String themeKey, bool isDark) {
   final theme = switch (themeKey) {
     'blue' => FThemes.blue,
+    'neutral' => FThemes.neutral,
     'zinc' => FThemes.zinc,
     'slate' => FThemes.slate,
     'red' => FThemes.red,
@@ -44,7 +46,7 @@ class GeneralSettingsPage extends StatelessWidget {
       context: context,
       builder: (context, style, animation) {
         return FDialog(
-          style: style.call,
+          style: style,
           direction: .vertical,
           animation: animation,
           title: const Text('选择主题颜色'),
@@ -92,7 +94,7 @@ class GeneralSettingsPage extends StatelessWidget {
           ),
           actions: [
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () => Navigator.pop(context),
               child: const Text('确定'),
             ),
@@ -103,7 +105,7 @@ class GeneralSettingsPage extends StatelessWidget {
   }
 
   String _getThemeColorName(String colorKey) {
-    return _themeColorNames[colorKey] ?? '蓝色';
+    return _themeColorNames[colorKey] ?? 'Blue';
   }
 
   @override

@@ -42,12 +42,9 @@ class SettingsSection extends StatelessWidget {
                   return children[index ~/ 2];
                 } else {
                   return FDivider(
-                    style: (style) => style.copyWith(
+                    style: .delta(
                       color: colors.border,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 16,
-                      ),
+                      padding: .symmetric(vertical: 0, horizontal: 16),
                     ),
                   );
                 }

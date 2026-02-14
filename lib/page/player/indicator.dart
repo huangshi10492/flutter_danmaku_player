@@ -60,8 +60,8 @@ class StatusIndicator extends StatelessWidget {
       width: 100,
       child: FDeterminateProgress(
         value: value,
-        style: (style) => style.copyWith(
-          motion: (motion) => motion.copyWith(duration: Duration.zero),
+        style: .delta(
+          motion: .delta(duration: .zero),
           constraints: BoxConstraints(minHeight: 8, maxHeight: 8),
         ),
       ),

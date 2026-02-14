@@ -27,7 +27,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
       context: context,
       builder: (context, style, animation) {
         return FDialog(
-          style: style.call,
+          style: style,
           direction: Axis.horizontal,
           animation: animation,
           title: Text('编辑服务器'),
@@ -37,7 +37,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           ),
           actions: [
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () => Navigator.pop(context),
               child: const Text('取消'),
             ),
@@ -142,7 +142,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         colors: context.theme.colors,
         typography: context.theme.typography,
         style: context.theme.style,
-      ).call,
+      ),
       title: FTooltip(
         tipBuilder: (context, controller) => Container(
           constraints: BoxConstraints(
@@ -157,26 +157,26 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
         children: [
           FButton.icon(
             onPress: () => _showServerDialog(index: index),
-            style: FButtonStyle.ghost(),
+            variant: .ghost,
             child: const Icon(FIcons.pencil, size: 22),
           ),
           index == 0
               ? SizedBox.shrink()
               : FButton.icon(
                   onPress: () => _moveServerUp(index),
-                  style: FButtonStyle.ghost(),
+                  variant: .ghost,
                   child: const Icon(FIcons.chevronUp, size: 22),
                 ),
           index >= totalCount - 1
               ? SizedBox.shrink()
               : FButton.icon(
                   onPress: () => _moveServerDown(index),
-                  style: FButtonStyle.ghost(),
+                  variant: .ghost,
                   child: const Icon(FIcons.chevronDown, size: 22),
                 ),
           FButton.icon(
             onPress: () => _deleteServer(index),
-            style: FButtonStyle.ghost(),
+            variant: .ghost,
             child: const Icon(FIcons.x, size: 22, color: Colors.red),
           ),
         ],

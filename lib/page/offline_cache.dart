@@ -49,7 +49,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
             child: const Text('取消'),
           ),
           FButton(
-            style: FButtonStyle.destructive(),
+            variant: .destructive,
             onPress: () {
               Navigator.pop(context);
               _deleteCache(cache);
@@ -124,7 +124,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                   onPress: () => _playCache(cache),
                   suffix: FButton.icon(
                     onPress: () => _showDeleteConfirmDialog(cache),
-                    style: FButtonStyle.ghost(),
+                    variant: .ghost,
                     child: const Icon(FIcons.trash, color: Colors.red),
                   ),
                   subtitle: Column(
@@ -150,12 +150,12 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                       FButton.icon(
                         onPress: () =>
                             _cacheService.resumeDownload(cache.uniqueKey),
-                        style: FButtonStyle.ghost(),
+                        variant: .ghost,
                         child: const Icon(FIcons.rotateCw, size: 20),
                       ),
                     FButton.icon(
                       onPress: () => _showDeleteConfirmDialog(cache),
-                      style: FButtonStyle.ghost(),
+                      variant: .ghost,
                       child: const Icon(FIcons.x, color: Colors.red),
                     ),
                   ],
@@ -176,21 +176,12 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                     const SizedBox(height: 4),
                     cache.downloadedBytes == 0
                         ? FProgress(
-                            style: (style) => style.copyWith(
-                              constraints: style.constraints.copyWith(
-                                minHeight: 6,
-                                maxHeight: 6,
-                              ),
-                            ),
+                            style: .delta(constraints: .tightFor(height: 6)),
                           )
                         : FDeterminateProgress(
-                            style: (style) => style.copyWith(
-                              motion: (motion) =>
-                                  motion.copyWith(duration: Duration.zero),
-                              constraints: style.constraints.copyWith(
-                                minHeight: 6,
-                                maxHeight: 6,
-                              ),
+                            style: .delta(
+                              motion: .delta(duration: .zero),
+                              constraints: .tightFor(height: 6),
                             ),
                             value: cache.downloadedBytes / cache.totalBytes,
                           ),

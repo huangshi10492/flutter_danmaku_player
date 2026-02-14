@@ -27,12 +27,9 @@ class DanmakuInfoPanel extends StatelessWidget {
           padding: EdgeInsets.all(4),
           children: [
             FCard(
-              style: (style) => style.copyWith(
-                contentStyle: (style) => style.copyWith(
-                  subtitleTextStyle: style.subtitleTextStyle.copyWith(
-                    fontSize: 16,
-                    height: 1.4,
-                  ),
+              style: .delta(
+                contentStyle: .delta(
+                  subtitleTextStyle: .delta(fontSize: 16, height: 1.4),
                 ),
               ),
               title: Text('弹幕信息', style: context.theme.typography.xl),
@@ -68,13 +65,13 @@ class DanmakuInfoPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             FButton(
-              style: FButtonStyle.secondary(),
+              variant: .secondary,
               onPress: () => onDrawerChanged(RightDrawerType.danmakuSearch),
               child: const Text('手动搜索获取/更换弹幕'),
             ),
             const SizedBox(height: 8),
             FButton(
-              style: FButtonStyle.secondary(),
+              variant: .secondary,
               onPress: () {
                 Navigator.pop(context);
                 globalService.showNotification('正在匹配弹幕...');
@@ -84,7 +81,7 @@ class DanmakuInfoPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             FButton(
-              style: FButtonStyle.secondary(),
+              variant: .secondary,
               onPress: () {
                 Navigator.pop(context);
                 globalService.showNotification('正在加载弹幕...');

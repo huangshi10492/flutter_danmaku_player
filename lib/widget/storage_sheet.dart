@@ -566,13 +566,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         );
       case _FieldType.toggle:
         return FItem(
-          title: Text(
-            field.label,
-            style: context.theme.typography.base.copyWith(
-              color: context.theme.colors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          title: Text(field.label, style: context.theme.typography.base),
           suffix: Switch(
             value: _formData.toggleValues[field.key] ?? false,
             onChanged: (value) {
@@ -632,7 +626,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     FButton(
-                      style: FButtonStyle.ghost(),
+                      variant: .ghost,
                       onPress: () => Navigator.of(context).pop(),
                       child: const Text('取消'),
                     ),
@@ -640,10 +634,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                       child: Text(
                         _title,
                         textAlign: TextAlign.center,
-                        style: context.theme.typography.lg.copyWith(
-                          color: context.theme.colors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: context.theme.typography.lg,
                       ),
                     ),
                     FButton(
@@ -741,9 +732,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                     vertical: 6,
                   ),
                   child: FButton(
-                    style: _isMediaServerLoggedIn
-                        ? FButtonStyle.secondary()
-                        : FButtonStyle.primary(),
+                    variant: _isMediaServerLoggedIn ? .secondary : null,
                     onPress: _isLoading ? null : _loginToMediaServer,
                     child: Text(_isMediaServerLoggedIn ? '已登录' : '登录并获取媒体库'),
                   ),

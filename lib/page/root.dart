@@ -38,7 +38,7 @@ class RootPageState extends State<RootPage> {
             child: const Text('取消'),
           ),
           FButton(
-            style: FButtonStyle.destructive(),
+            variant: .destructive,
             onPress: () {
               Navigator.pop(context);
               storage.delete();
@@ -55,13 +55,13 @@ class RootPageState extends State<RootPage> {
       context: context,
       builder: (context, style, animation) {
         return FDialog(
-          style: style.call,
+          style: style,
           animation: animation,
           title: const Text('选择视频来源'),
           body: const SizedBox(height: 8),
           actions: [
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () {
                 Navigator.pop(context);
                 _playLocalVideo();
@@ -69,7 +69,7 @@ class RootPageState extends State<RootPage> {
               child: const Text('本地'),
             ),
             FButton(
-              style: FButtonStyle.outline(),
+              variant: .outline,
               onPress: () {
                 Navigator.pop(context);
                 _playNetworkVideo();
@@ -141,7 +141,7 @@ class RootPageState extends State<RootPage> {
             body: FTextField(control: .managed(controller: controller)),
             actions: [
               FButton(
-                style: FButtonStyle.outline(),
+                variant: .outline,
                 onPress: () => Navigator.pop(context),
                 child: const Text('取消'),
               ),
@@ -194,7 +194,7 @@ class RootPageState extends State<RootPage> {
         title: '主页',
         actions: [
           FButton.icon(
-            style: FButtonStyle.ghost(),
+            variant: .ghost,
             child: const Icon(FIcons.settings, size: 24),
             onPress: () => context.push(settingsPath),
           ),

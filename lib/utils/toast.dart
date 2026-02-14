@@ -36,7 +36,7 @@ void showToast(
     description: description != null ? Text(description) : null,
     suffixBuilder: (context, entry) => IntrinsicHeight(
       child: FButton.icon(
-        style: FButtonStyle.ghost(),
+        variant: .ghost,
         onPress: entry.dismiss,
         child: const Icon(FIcons.x),
       ),

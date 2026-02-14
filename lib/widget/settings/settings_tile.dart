@@ -1,4 +1,3 @@
-import 'package:fldanplay/theme/select_menu_tile_style.dart';
 import 'package:fldanplay/theme/tile_style.dart';
 import 'package:forui/forui.dart';
 import 'package:flutter/material.dart';
@@ -146,15 +145,16 @@ class SettingsTile extends StatelessWidget with FTileMixin {
     }
   }
 
+  TextStyle subtitleStyle(BuildContext context) =>
+      context.theme.itemStyles.base.contentStyle.subtitleTextStyle.base;
+
   Widget _buildSimpleTile(BuildContext context) {
-    final subtitleStyle = context.theme.itemStyle.contentStyle.subtitleTextStyle
-        .resolve({});
     return FTile(
       style: tileStyle(
         colors: context.theme.colors,
         typography: context.theme.typography,
         style: context.theme.style,
-      ).call,
+      ),
       title: ConstrainedBox(
         constraints: BoxConstraints(minHeight: 40),
         child: Column(
@@ -166,7 +166,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
                 ? SizedBox()
                 : Text(
                     subtitle!,
-                    style: subtitleStyle,
+                    style: subtitleStyle(context),
                     overflow: TextOverflow.visible,
                   ),
           ],
@@ -179,14 +179,12 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   }
 
   Widget _buildSwitchTile(BuildContext context) {
-    final subtitleStyle = context.theme.itemStyle.contentStyle.subtitleTextStyle
-        .resolve({});
     return FTile(
       style: tileStyle(
         colors: context.theme.colors,
         typography: context.theme.typography,
         style: context.theme.style,
-      ).call,
+      ),
       title: ConstrainedBox(
         constraints: BoxConstraints(minHeight: 40),
         child: Column(
@@ -198,7 +196,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
                 ? SizedBox()
                 : Text(
                     subtitle!,
-                    style: subtitleStyle,
+                    style: subtitleStyle(context),
                     overflow: TextOverflow.visible,
                   ),
           ],
@@ -216,14 +214,12 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   }
 
   Widget _buildSliderTile(BuildContext context) {
-    final subtitleStyle = context.theme.itemStyle.contentStyle.subtitleTextStyle
-        .resolve({});
     return FTile(
       style: tileStyle(
         colors: context.theme.colors,
         typography: context.theme.typography,
         style: context.theme.style,
-      ).call,
+      ),
       title: ConstrainedBox(
         constraints: BoxConstraints(minHeight: 40),
         child: Column(
@@ -246,7 +242,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
                 ? SizedBox()
                 : Text(
                     subtitle!,
-                    style: subtitleStyle,
+                    style: subtitleStyle(context),
                     overflow: TextOverflow.visible,
                   ),
           ],
@@ -264,11 +260,15 @@ class SettingsTile extends StatelessWidget with FTileMixin {
         onChange: (value) => onRadioChange!(value.last!),
       ),
       radioOptions!,
-      style: selectMenuTileStyle(
-        colors: context.theme.colors,
-        typography: context.theme.typography,
-        style: context.theme.style,
-      ).call,
+      style: .delta(
+        tileStyle: .delta(
+          backgroundColor: FVariants.all(Colors.transparent),
+          decoration: .delta([
+            .all(.delta(border: null)),
+            .base(.delta(color: Colors.transparent)),
+          ]),
+        ),
+      ),
       title: Text(title),
       subtitle: subtitle == null
           ? null

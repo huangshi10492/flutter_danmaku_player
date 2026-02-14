@@ -300,9 +300,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                   padding: const EdgeInsets.all(2),
                   child: FFocusedOutline(
                     focused: true,
-                    style: (style) => style.copyWith(
-                      color: context.theme.colors.mutedForeground,
-                    ),
+                    style: .delta(color: context.theme.colors.mutedForeground),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
                       child: Text(tag, style: context.theme.typography.sm),
@@ -327,7 +325,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                     padding: const EdgeInsets.all(4),
                     child: FFocusedOutline(
                       focused: true,
-                      style: (style) => style.copyWith(
+                      style: .delta(
                         color: context.theme.colors.mutedForeground,
                       ),
                       child: Padding(

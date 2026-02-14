@@ -106,7 +106,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
     showFDialog(
       context: context,
       builder: (context, style, animation) => FDialog(
-        style: style.call,
+        style: style,
         animation: animation,
         title: Text(title),
         body: const Text('还原操作将覆盖现有数据，请确保已备份当前数据。还原后需要重启应用。'),
@@ -116,7 +116,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
             child: const Text('取消'),
           ),
           FButton(
-            style: FButtonStyle.destructive(),
+            variant: .destructive,
             onPress: () {
               Navigator.pop(context);
               onConfirm();
@@ -132,7 +132,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
     showFDialog(
       context: context,
       builder: (context, style, animation) => FDialog(
-        style: style.call,
+        style: style,
         animation: animation,
         title: const Text('清理老旧数据'),
         body: Text('将清理$_cleanDaysAgo天前的历史记录及其关联的弹幕缓存和视频缩略图。此操作不可撤销。'),
@@ -142,7 +142,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
             child: const Text('取消'),
           ),
           FButton(
-            style: FButtonStyle.destructive(),
+            variant: .destructive,
             onPress: () {
               Navigator.pop(context);
               _cleanOldData();

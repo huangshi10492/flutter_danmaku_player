@@ -420,7 +420,7 @@ class _FileExplorerFilterSheetState extends State<FileExplorerFilterSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             FButton(
-              style: FButtonStyle.ghost(),
+              variant: .ghost,
               onPress: () {
                 filter = Filter();
                 init();
