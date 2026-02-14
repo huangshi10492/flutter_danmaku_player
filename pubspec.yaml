@@ -43,16 +43,16 @@ dependencies:
   get_it: ^9.2.0 #依赖注入
 
   #数据库
-  hive_ce: ^2.16.0
-  hive_ce_flutter: ^2.3.3
+  hive_ce: ^2.19.3
+  hive_ce_flutter: ^2.3.4
 
   #视频
   media_kit: ^1.2.6
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.7
 
-  go_router: ^17.0.1 #路由
-  dio: ^5.9.0 #网络请求
+  go_router: ^17.1.0 #路由
+  dio: ^5.9.1 #网络请求
   dio_smart_retry: ^7.0.1
   uuid: ^4.5.2
   path: ^1.9.1
@@ -64,7 +64,7 @@ dependencies:
   flutter_volume_controller: ^1.3.4 #音量控制
   canvas_danmaku: ^0.3.1 #弹幕
   screen_brightness: ^2.1.7 #屏幕亮度
-  file_picker: ^10.3.8
+  file_picker: ^10.3.10
   image: ^4.7.2 #图片处理
   string_util_xx: ^0.2.4 #字符串处理
   device_info_plus: ^12.3.0 #设备信息
@@ -76,7 +76,7 @@ dependencies:
   permission_handler: ^12.0.1
   synchronized: ^3.4.0
   cached_network_image: ^3.4.1
-  skeletonizer: ^2.1.2
+  skeletonizer: ^2.1.3
   url_launcher: ^6.3.2
   window_manager: ^0.5.1
   audio_session: ^0.2.2
@@ -92,8 +92,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  hive_ce_generator: ^1.11.0
-  build_runner: ^2.10.4
+  hive_ce_generator: ^1.11.1
+  build_runner: ^2.11.1
   flutter_launcher_icons: ^0.14.4
 
 flutter_launcher_icons:
