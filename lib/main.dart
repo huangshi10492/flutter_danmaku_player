@@ -16,7 +16,6 @@ import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:window_manager/window_manager.dart';
@@ -39,7 +38,6 @@ Future<void> main() async {
 }
 
 Future<void> init() async {
-  await _dataMigration(); // 迁移数据到新目录
   if (Utils.isDesktop()) {
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = WindowOptions(
@@ -68,41 +66,6 @@ Future<void> init() async {
         statusBarColor: Colors.transparent,
       ),
     );
-  }
-}
-
-Future<void> _dataMigration() async {
-  final oldDir = await getApplicationDocumentsDirectory();
-  final newDir = await getApplicationSupportDirectory();
-  final oldHiveDir = Directory('${oldDir.path}/hive');
-  final newHiveDir = Directory('${newDir.path}/hive');
-  if (await newHiveDir.exists() || !await oldHiveDir.exists()) {
-    return;
-  }
-  await _copyDirectory(oldHiveDir, newHiveDir);
-  final oldLogsDir = Directory('${oldDir.path}/logs');
-  final newLogsDir = Directory('${newDir.path}/logs');
-  await _copyDirectory(oldLogsDir, newLogsDir);
-  final oldScreenshotsDir = Directory('${oldDir.path}/screenshots');
-  final newScreenshotsDir = Directory('${newDir.path}/screenshots');
-  await _copyDirectory(oldScreenshotsDir, newScreenshotsDir);
-  final oldDanmakuDir = Directory('${oldDir.path}/danmaku');
-  final newDanmakuDir = Directory('${newDir.path}/danmaku');
-  await _copyDirectory(oldDanmakuDir, newDanmakuDir);
-}
-
-/// 递归复制目录
-Future<void> _copyDirectory(Directory source, Directory destination) async {
-  await destination.create(recursive: true);
-  final files = await source.list(recursive: true).toList();
-  for (final entity in files) {
-    if (entity is File) {
-      final newPath = path.join(destination.path, path.basename(entity.path));
-      await entity.copy(newPath);
-    } else if (entity is Directory) {
-      final newPath = path.join(destination.path, path.basename(entity.path));
-      await _copyDirectory(entity, Directory(newPath));
-    }
   }
 }
 
