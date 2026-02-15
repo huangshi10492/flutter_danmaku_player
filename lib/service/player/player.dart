@@ -50,6 +50,8 @@ enum TimerType {
   history,
   // 弹幕状态更新
   danmaku,
+  // 播放进度上报
+  reportProgress,
 }
 
 /// 播放器状态
@@ -114,6 +116,7 @@ class VideoPlayerService {
       ),
       time: 100,
     ),
+    TimerType.reportProgress: UpdateTimer((_) => _reportProgress(), time: 3000),
   };
 
   VideoPlayerService(this.videoInfo) {
@@ -402,6 +405,7 @@ class VideoPlayerService {
 
   void _onPlayingStateChanged(bool isPlaying) {
     if (_player.state.buffering) return;
+    _globalService.isPlaying.value = isPlaying;
     if (isPlaying) {
       _log.debug('_onPlayingStateChanged', '视频开始播放');
       playerState.value = PlayerState.playing;
@@ -413,6 +417,10 @@ class VideoPlayerService {
       danmakuService.syncWithVideo(false);
       _timerGroup.forEach((_, value) => value.changeTime(isLong: true));
     }
+  }
+
+  Future<void> _reportProgress() async {
+    _globalService.position.value = position.value.inMilliseconds;
   }
 
   void _onCompleted(bool isCompleted) {

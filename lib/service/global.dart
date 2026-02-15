@@ -7,7 +7,8 @@ import 'package:signals/signals_core.dart';
 class GlobalService {
   String videoName = '';
   double speed = 0;
-
+  final Signal<int> position = signal(0);
+  final Signal<bool> isPlaying = signal(false);
   final Signal<Map<String, int>> danmakuCount = signal({
     'BiliBili': 0,
     'Gamer': 0,

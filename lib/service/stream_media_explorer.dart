@@ -27,6 +27,13 @@ abstract class StreamMediaExplorerProvider {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   });
+  Future<void> reportPlaybackStart(String itemId, int position);
+  Future<void> reportPlaybackProgress(
+    String itemId,
+    int position,
+    bool isPaused,
+  );
+  Future<void> reportPlaybackStopped(String itemId, int position);
   void dispose();
 }
 
@@ -52,10 +59,12 @@ class StreamMediaExplorerService {
   final Signal<StreamMediaExplorerProvider?> provider = signal(null);
   final Signal<String> libraryId = signal('');
   Storage? storage;
+  void Function()? _reportEffect;
   List<EpisodeInfo> episodeList = [];
   final _logger = Logger('StreamMediaExplorerService');
   final Signal<Filter> filter = signal(Filter());
   final AsyncSignal<List<MediaItem>> items = asyncSignal(AsyncLoading());
+  final globalService = GetIt.I.get<GlobalService>();
 
   static void register() {
     final service = StreamMediaExplorerService();
@@ -165,6 +174,40 @@ class StreamMediaExplorerService {
     }
     return remoteHistory ?? localHistory;
   }
+
+  Future<void> startPlayback(String itemId) async {
+    if (provider.value == null) return;
+    if (storage?.useRemoteHistory != true) return;
+    try {
+      await provider.value!.reportPlaybackStart(
+        itemId,
+        globalService.position.value,
+      );
+      _reportEffect = effect(() {
+        if (provider.value == null) return;
+        provider.value!.reportPlaybackProgress(
+          itemId,
+          globalService.position.value,
+          !globalService.isPlaying.value,
+        );
+      });
+    } catch (e, t) {
+      _logger.error('startPlayback', '上报播放开始失败', error: e, stackTrace: t);
+    }
+  }
+
+  Future<void> stopPlayback(String itemId) async {
+    if (provider.value == null) return;
+    if (storage?.useRemoteHistory != true) return;
+    final positionTicks = globalService.position.value;
+    try {
+      _reportEffect?.call();
+      _reportEffect = null;
+      await provider.value!.reportPlaybackStopped(itemId, positionTicks);
+    } catch (e, t) {
+      _logger.error('stopPlayback', '上报播放停止失败', error: e, stackTrace: t);
+    }
+  }
 }
 
 class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
@@ -172,6 +215,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   final UserInfo userInfo;
   late String auth;
   late Dio dio;
+  final Map<String, String> _playSessionIds = {};
   late final Logger _logger = Logger(loggerName);
 
   EmbyStreamMediaExplorerProvider(this.url, this.userInfo) {
@@ -248,7 +292,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         detail.seasons = await getSeasons(dio, itemId);
       }
       if (detail.type == MediaType.movie) {
-        final fileName = await getFileName(itemId);
+        final itemInfo = await getItemInfo(itemId);
         detail.seasons = [
           SeasonInfo(
             id: detail.id,
@@ -260,7 +304,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
                 indexNumber: 0,
                 seriesName: detail.name,
                 runTimeTicks: detail.runTimeTicks,
-                fileName: fileName,
+                fileName: itemInfo.fileName,
+                userData: itemInfo.userData,
               ),
             ],
           ),
@@ -363,8 +408,9 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       List<EpisodeInfo> episodes = [];
       for (var item in response.data['Items']) {
         final episode = EpisodeInfo.fromJson(item);
-        episode.fileName = await getFileName(episode.id);
-        episode.userData = await getUserData(episode.id);
+        final itemInfo = await getItemInfo(episode.id);
+        episode.fileName = itemInfo.fileName;
+        episode.userData = itemInfo.userData;
         episodes.add(episode);
       }
       episodes.sort(
@@ -379,31 +425,15 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     }
   }
 
-  Future<String> getFileName(String itemId) async {
+  Future<ItemInfo> getItemInfo(String itemId) async {
     try {
       final response = await dio.get(getItemsPath(itemId));
-      final List<dynamic>? mediaSources = response.data['MediaSources'];
-      if (mediaSources == null || mediaSources.isEmpty) {
-        throw Exception('MediaSources is null');
-      }
-      return mediaSources.first['Name'] as String;
+      return ItemInfo.fromJson(response.data);
     } on DioException catch (e, t) {
-      _logger.dio('getFileName', e, t, action: '获取文件名');
+      _logger.dio('getItemInfo', e, t, action: '获取项目信息');
     } catch (e, t) {
-      _logger.error('getFileName', '获取文件名失败', error: e, stackTrace: t);
-      throw AppException('获取文件名失败', e);
-    }
-  }
-
-  Future<UserData> getUserData(String itemId) async {
-    try {
-      final response = await dio.get(getItemsPath(itemId));
-      return UserData.fromJson(response.data['UserData']);
-    } on DioException catch (e, t) {
-      _logger.dio('getUserData', e, t, action: '获取用户数据');
-    } catch (e, t) {
-      _logger.error('getUserData', '获取用户数据失败', error: e, stackTrace: t);
-      throw AppException('获取用户数据失败', e);
+      _logger.error('getItemInfo', '获取项目信息失败', error: e, stackTrace: t);
+      throw AppException('获取项目信息失败', e);
     }
   }
 
@@ -433,6 +463,126 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     } catch (e, t) {
       _logger.error('downloadVideo', '下载失败', error: e, stackTrace: t);
       return false;
+    }
+  }
+
+  Map<String, dynamic> _buildPlaybackBody(
+    String itemId, {
+    required String playSessionId,
+    required int positionTicks,
+    required bool isPaused,
+  }) {
+    return {
+      'ItemId': itemId,
+      'CanSeek': true,
+      'IsPaused': isPaused,
+      'IsMuted': false,
+      'PlayMethod': 'DirectPlay',
+      'PlaySessionId': playSessionId,
+      'PositionTicks': positionTicks,
+    };
+  }
+
+  Future<String> _getSessionId(String itemId) async {
+    try {
+      final response = await dio.post(
+        '/Items/$itemId/PlaybackInfo',
+        queryParameters: {'UserId': userInfo.userId},
+      );
+      final playSessionId = response.data['PlaySessionId'] as String;
+      _logger.info('getPlaybackInfo', '获取 PlaySessionId: $playSessionId');
+      return playSessionId;
+    } on DioException catch (e, t) {
+      _logger.dio('getPlaybackInfo', e, t, action: '获取播放信息');
+    } catch (e, t) {
+      _logger.error('getPlaybackInfo', '获取播放信息失败', error: e, stackTrace: t);
+      throw AppException('获取播放信息失败', e);
+    }
+  }
+
+  @override
+  Future<void> reportPlaybackStart(String itemId, int position) async {
+    try {
+      final playSessionId = await _getSessionId(itemId);
+      _playSessionIds[itemId] = playSessionId;
+      await dio.post(
+        '/Sessions/Playing',
+        data: _buildPlaybackBody(
+          itemId,
+          playSessionId: playSessionId,
+          positionTicks: position * 10000,
+          isPaused: false,
+        ),
+      );
+      _logger.info('reportPlaybackStart', '上报播放开始: $itemId');
+    } on DioException catch (e, t) {
+      _logger.dio('reportPlaybackStart', e, t, action: '上报播放开始');
+    } catch (e, t) {
+      _logger.error('reportPlaybackStart', '上报播放开始失败', error: e, stackTrace: t);
+    }
+  }
+
+  @override
+  Future<void> reportPlaybackProgress(
+    String itemId,
+    int position,
+    bool isPaused,
+  ) async {
+    try {
+      final playSessionId = _playSessionIds[itemId];
+      if (playSessionId == null) {
+        _logger.warn('reportPlaybackProgress', 'PlaySessionId 为空');
+        return;
+      }
+      await dio.post(
+        '/Sessions/Playing/Progress',
+        data: _buildPlaybackBody(
+          itemId,
+          playSessionId: playSessionId,
+          positionTicks: position * 10000,
+          isPaused: isPaused,
+        ),
+      );
+    } on DioException catch (e, t) {
+      _logger.dio('reportPlaybackProgress', e, t, action: '上报播放进度');
+    } catch (e, t) {
+      _logger.error(
+        'reportPlaybackProgress',
+        '上报播放进度失败',
+        error: e,
+        stackTrace: t,
+      );
+    }
+  }
+
+  @override
+  Future<void> reportPlaybackStopped(String itemId, int position) async {
+    try {
+      final playSessionId = _playSessionIds[itemId];
+      if (playSessionId == null) {
+        _logger.warn('reportPlaybackStopped', 'PlaySessionId 为空');
+        return;
+      }
+      await dio.post(
+        '/Sessions/Playing/Stopped',
+        data: _buildPlaybackBody(
+          itemId,
+          playSessionId: playSessionId,
+          positionTicks: position * 10000,
+          isPaused: true,
+        ),
+      );
+      _playSessionIds.remove(itemId);
+      _logger.info('reportPlaybackStopped', '上报播放停止: $itemId');
+    } on DioException catch (e, t) {
+      _logger.dio('reportPlaybackStopped', e, t, action: '上报播放停止');
+    } catch (e, t) {
+      _logger.error(
+        'reportPlaybackStopped',
+        '上报播放停止失败',
+        error: e,
+        stackTrace: t,
+      );
     }
   }
 

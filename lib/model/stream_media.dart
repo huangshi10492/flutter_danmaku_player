@@ -195,6 +195,24 @@ class EpisodeInfo {
   }
 }
 
+class ItemInfo {
+  final String fileName;
+  final UserData userData;
+
+  ItemInfo({required this.fileName, required this.userData});
+
+  factory ItemInfo.fromJson(Map<String, dynamic> json) {
+    final List<dynamic>? mediaSources = json['MediaSources'];
+    if (mediaSources == null || mediaSources.isEmpty) {
+      throw Exception('MediaSources is null');
+    }
+    return ItemInfo(
+      fileName: mediaSources.first['Name'] ?? '',
+      userData: UserData.fromJson(json['UserData']),
+    );
+  }
+}
+
 class UserData {
   final int? playbackPositionTicks;
   final DateTime? lastPlayedDate;
