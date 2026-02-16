@@ -1,4 +1,3 @@
-import 'package:fldanplay/utils/utils.dart';
 import 'package:forui/forui.dart';
 import 'package:flutter/material.dart';
 
@@ -23,10 +22,7 @@ FThemeData get zincDark {
     border: Color(0x1AFFFFFF),
   );
 
-  final typography = _typography(
-    colors: colors,
-    defaultFontFamily: Utils.font('packages/forui/Inter')!,
-  );
+  final typography = _typography(colors: colors);
   final style = _style(colors: colors, typography: typography);
 
   return FThemeData(colors: colors, typography: typography, style: style);
@@ -34,7 +30,7 @@ FThemeData get zincDark {
 
 FTypography _typography({
   required FColors colors,
-  String defaultFontFamily = 'packages/forui/Inter',
+  String defaultFontFamily = 'MiSans',
 }) => FTypography(
   xs: TextStyle(
     color: colors.foreground,

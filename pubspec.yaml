@@ -128,6 +128,9 @@ flutter:
     - family: IconFont
       fonts:
         - asset: assets/icon.ttf
+    - family: MiSans
+      fonts:
+        - asset: assets/fonts/MiSans-Regular.otf
 
   # assets:
   # To add assets to your application, add an assets section, like this:

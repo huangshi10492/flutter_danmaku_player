@@ -8,13 +8,6 @@ class Utils {
     return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
   }
 
-  static String? font(String? origin) {
-    if (Platform.isWindows) {
-      return 'Microsoft YaHei UI';
-    }
-    return origin;
-  }
-
   /// 格式化时长显示
   static String formatDuration(Duration duration) {
     final hours = duration.inHours;

@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:fldanplay/utils/utils.dart';
 import 'package:flutter/material.dart';
 
 /// 弹幕数据模型
@@ -291,7 +290,7 @@ class DanmakuSettings {
       strokeWidth: strokeWidth,
       massiveMode: false,
       safeArea: true,
-      fontFamily: Utils.font(null),
+      fontFamily: 'MiSans',
     );
   }
 

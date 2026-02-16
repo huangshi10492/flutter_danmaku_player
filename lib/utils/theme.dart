@@ -1,12 +1,5 @@
-import 'package:fldanplay/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
-
-FTextFieldStyleDelta textFieldStyle(FColors colors) {
-  return .delta(
-    labelTextStyle: .delta([.base(.delta(fontWeight: FontWeight.normal))]),
-  );
-}
 
 FThemeData getTheme(String theme, bool isDark) {
   late FColors colors;
@@ -65,9 +58,13 @@ FThemeData getTheme(String theme, bool isDark) {
     colors: colors,
     typography: FTypography.inherit(
       colors: colors,
-      defaultFontFamily: Utils.font('packages/forui/Inter')!,
+      defaultFontFamily: 'MiSans',
     ),
-  ).copyWith(textFieldStyle: textFieldStyle(colors));
+  ).copyWith(
+    textFieldStyle: .delta(
+      labelTextStyle: .delta([.base(.delta(fontWeight: FontWeight.normal))]),
+    ),
+  );
 }
 
 FItemGroupStyleDelta get rootItemGroupStyle => .delta(
