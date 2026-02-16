@@ -6,14 +6,13 @@ import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class FontManagerPage extends StatefulWidget {
   const FontManagerPage({super.key});
@@ -67,6 +66,27 @@ class _FontManagerPageState extends State<FontManagerPage> {
         if (mounted) {
           showToast(context, title: '导入成功', description: '字体文件 $fileName 已导入');
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        showToast(context, level: 3, title: '导入失败', description: e.toString());
+      }
+    }
+  }
+
+  Future<void> _importDefaultFont() async {
+    try {
+      const fileName = 'MiSans-Regular.otf';
+      final byteData = await rootBundle.load('assets/fonts/$fileName');
+      final buffer = byteData.buffer;
+      final targetFile = File('${fontsDir.path}/$fileName');
+      await targetFile.writeAsBytes(
+        buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+      );
+      await _loadFontFiles();
+      _configureService.subtitleFontName.value = 'MiSans-Regular';
+      if (mounted) {
+        showToast(context, title: '导入成功', description: '默认字体 MiSans 已导入并设置');
       }
     } catch (e) {
       if (mounted) {
@@ -227,35 +247,19 @@ class _FontManagerPageState extends State<FontManagerPage> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             constraints: BoxConstraints(maxWidth: 1000),
-            child: FButton(onPress: _importFont, child: const Text('导入字体文件')),
-          ),
-          if (_fontFiles.isEmpty)
-            RichText(
-              text: TextSpan(
-                style: context.theme.typography.base,
-                children: <TextSpan>[
-                  TextSpan(text: '推荐使用'),
-                  TextSpan(
-                    text: 'Noto Sans CJK SC',
-                    style: TextStyle(
-                      color: context.theme.colors.primary,
-                      decoration: TextDecoration.underline,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                        launchUrl(
-                          Uri.parse(
-                            'https://fastly.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf',
-                          ),
-                        );
-                        _configureService.subtitleFontName.value =
-                            'NotoSansCJKsc-Regular';
-                      },
+            child: Column(
+              children: [
+                if (_fontFiles.isEmpty) ...[
+                  FButton(
+                    onPress: _importDefaultFont,
+                    child: const Text('导入MiSans字体'),
                   ),
-                  TextSpan(text: '字体，点击下载字体文件后手动导入。'),
+                  const SizedBox(height: 8),
                 ],
-              ),
+                FButton(onPress: _importFont, child: const Text('导入字体文件')),
+              ],
             ),
+          ),
         ],
       ),
     );
