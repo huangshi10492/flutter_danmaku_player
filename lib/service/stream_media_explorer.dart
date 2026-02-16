@@ -170,6 +170,10 @@ class StreamMediaExplorerService {
         type: HistoriesType.streamMediaStorage,
         updateTime: episode.userData!.lastPlayedDate!.millisecondsSinceEpoch,
         name: episode.name,
+        url: episode.id,
+        storageKey: storage!.uniqueKey,
+        subtitle: '${episode.seriesName} ${episode.indexNumber}',
+        fileName: episode.fileName,
       );
     }
     return remoteHistory ?? localHistory;
