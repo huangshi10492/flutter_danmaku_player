@@ -9,6 +9,7 @@ import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
+import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:fldanplay/widget/video_item.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,6 @@ class _HistoryPageState extends State<HistoryPage> {
   final _streamMediaExplorerService = GetIt.I.get<StreamMediaExplorerService>();
 
   final Map<String, int> _refreshMap = {};
-  final Signal<String?> _error = signal(null);
 
   @override
   void initState() {
@@ -60,7 +60,14 @@ class _HistoryPageState extends State<HistoryPage> {
     try {
       await _historyService.clearAllHistories();
     } catch (e) {
-      _error.value = '清空历史记录失败: $e';
+      if (mounted) {
+        showToast(
+          context,
+          level: 3,
+          title: '清空历史记录失败',
+          description: e.toString(),
+        );
+      }
     }
   }
 
@@ -128,7 +135,7 @@ class _HistoryPageState extends State<HistoryPage> {
     try {
       final url = history.url;
       if (url == null) {
-        _error.value = '视频URL为空';
+        showToast(context, level: 3, title: '播放失败', description: '视频URL为空');
         return;
       }
       late VideoInfo videoInfo;
@@ -150,12 +157,22 @@ class _HistoryPageState extends State<HistoryPage> {
         case HistoriesType.fileStorage:
           final storageKey = history.storageKey;
           if (storageKey == null) {
-            _error.value = '无法从URL中提取媒体库ID';
+            showToast(
+              context,
+              level: 3,
+              title: '播放失败',
+              description: '无法从URL中提取媒体库ID',
+            );
             return;
           }
           final storage = _storageService.get(storageKey);
           if (storage == null) {
-            _error.value = '找不到对应的媒体库';
+            showToast(
+              context,
+              level: 3,
+              title: '播放失败',
+              description: '找不到对应的媒体库',
+            );
             return;
           }
           switch (storage.storageType) {
@@ -168,7 +185,12 @@ class _HistoryPageState extends State<HistoryPage> {
               _fileExplorerService.setProvider(provider, storage);
               break;
             default:
-              _error.value = '不支持的媒体库类型';
+              showToast(
+                context,
+                level: 3,
+                title: '播放失败',
+                description: '不支持的媒体库类型',
+              );
               return;
           }
           videoInfo = await _fileExplorerService.getVideoInfoFromHistory(
@@ -178,12 +200,22 @@ class _HistoryPageState extends State<HistoryPage> {
         case HistoriesType.streamMediaStorage:
           final storageKey = history.storageKey;
           if (storageKey == null) {
-            _error.value = '无法从URL中提取媒体库ID';
+            showToast(
+              context,
+              level: 3,
+              title: '播放失败',
+              description: '无法从URL中提取媒体库ID',
+            );
             return;
           }
           final storage = _storageService.get(storageKey);
           if (storage == null) {
-            _error.value = '找不到对应的媒体库';
+            showToast(
+              context,
+              level: 3,
+              title: '播放失败',
+              description: '找不到对应的媒体库',
+            );
             return;
           }
           switch (storage.storageType) {
@@ -202,7 +234,12 @@ class _HistoryPageState extends State<HistoryPage> {
               _streamMediaExplorerService.setProvider(provider, storage);
               break;
             default:
-              _error.value = '不支持的媒体库类型';
+              showToast(
+                context,
+                level: 3,
+                title: '播放失败',
+                description: '不支持的媒体库类型',
+              );
               return;
           }
           videoInfo = _streamMediaExplorerService.getVideoInfoFromHistory(
@@ -231,7 +268,9 @@ class _HistoryPageState extends State<HistoryPage> {
         context.push(location.toString(), extra: videoInfo);
       }
     } catch (e) {
-      _error.value = '播放视频失败: $e';
+      if (mounted) {
+        showToast(context, level: 3, title: '播放失败', description: e.toString());
+      }
     }
   }
 
