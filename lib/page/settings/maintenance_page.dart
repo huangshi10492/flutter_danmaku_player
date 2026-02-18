@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/maintenance.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
-import 'package:forui/forui.dart';
 
 class MaintenancePage extends StatefulWidget {
   const MaintenancePage({super.key});
@@ -74,83 +74,36 @@ class _MaintenancePageState extends State<MaintenancePage> {
     );
     if (result == null || result.files.single.path == null) return;
     if (!mounted) return;
-    _showRestoreConfirmDialog('还原配置和媒体库', () async {
-      setState(() => _isLoading = true);
-      try {
-        final file = File(result.files.single.path!);
-        await _maintenanceUtils.restoreConfigAndStorage(file);
-        if (mounted) {
-          showToast(
-            context,
-            level: 2,
-            title: '还原成功',
-            description: '请重启应用以使配置生效',
-          );
+    showConfirmDialog(
+      context,
+      title: '还原配置和媒体库',
+      content: '还原操作将覆盖现有数据，请确保已备份当前数据。还原后需要重启应用。',
+      onConfirm: () async {
+        setState(() => _isLoading = true);
+        try {
+          final file = File(result.files.single.path!);
+          await _maintenanceUtils.restoreConfigAndStorage(file);
+          if (mounted) {
+            showToast(
+              context,
+              level: 2,
+              title: '还原成功',
+              description: '请重启应用以使配置生效',
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            showToast(
+              context,
+              level: 3,
+              title: '还原失败',
+              description: e.toString(),
+            );
+          }
+        } finally {
+          setState(() => _isLoading = false);
         }
-      } catch (e) {
-        if (mounted) {
-          showToast(
-            context,
-            level: 3,
-            title: '还原失败',
-            description: e.toString(),
-          );
-        }
-      } finally {
-        setState(() => _isLoading = false);
-      }
-    });
-  }
-
-  void _showRestoreConfirmDialog(String title, VoidCallback onConfirm) {
-    showFDialog(
-      context: context,
-      builder: (context, style, animation) => FDialog(
-        style: style,
-        animation: animation,
-        title: Text(title),
-        body: const Text('还原操作将覆盖现有数据，请确保已备份当前数据。还原后需要重启应用。'),
-        actions: [
-          FButton(
-            onPress: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FButton(
-            variant: .destructive,
-            onPress: () {
-              Navigator.pop(context);
-              onConfirm();
-            },
-            child: const Text('确认还原'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showCleanConfirmDialog() {
-    showFDialog(
-      context: context,
-      builder: (context, style, animation) => FDialog(
-        style: style,
-        animation: animation,
-        title: const Text('清理老旧数据'),
-        body: Text('将清理$_cleanDaysAgo天前的历史记录及其关联的弹幕缓存和视频缩略图。此操作不可撤销。'),
-        actions: [
-          FButton(
-            onPress: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FButton(
-            variant: .destructive,
-            onPress: () {
-              Navigator.pop(context);
-              _cleanOldData();
-            },
-            child: const Text('确认清理'),
-          ),
-        ],
-      ),
+      },
     );
   }
 
@@ -259,7 +212,15 @@ class _MaintenancePageState extends State<MaintenancePage> {
                   SettingsTile.simpleTile(
                     title: '清理老旧历史记录',
                     subtitle: '删除老旧历史及关联的弹幕和缩略图',
-                    onPress: _showCleanConfirmDialog,
+                    onPress: () => showConfirmDialog(
+                      context,
+                      title: '清理老旧数据',
+                      content:
+                          '将清理$_cleanDaysAgo天前的历史记录及其关联的弹幕缓存和视频缩略图。此操作不可撤销。',
+                      onConfirm: _cleanOldData,
+                      confirmText: '清理',
+                      destructive: true,
+                    ),
                   ),
                   SettingsTile.simpleTile(
                     title: '清理孤立缓存文件',

@@ -22,7 +22,7 @@ void showToast(
       );
       break;
     case 3:
-      icon = const Icon(FIcons.circleX, size: 22, color: Colors.red);
+      icon = Icon(FIcons.circleX, size: 20, color: context.theme.colors.error);
       break;
   }
   showFToast(

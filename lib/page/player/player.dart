@@ -81,7 +81,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    _globalService.playerContext = context;
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.black,
@@ -247,7 +246,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(FIcons.circleX, color: Colors.red, size: 64),
+            Icon(FIcons.circleX, color: context.theme.colors.error, size: 64),
             const SizedBox(height: 16),
             Text('视频加载失败', style: context.theme.typography.lg),
             const SizedBox(height: 8),

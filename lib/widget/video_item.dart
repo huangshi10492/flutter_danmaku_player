@@ -229,8 +229,12 @@ class _VideoItemState extends State<VideoItem> {
         if (widget.danmakuMatchDialog == null) return;
         await showFDialog(
           context: context,
-          builder: (context, style, animation) =>
-              FDialog(actions: [], body: widget.danmakuMatchDialog!),
+          builder: (context, style, animation) => FDialog(
+            style: style,
+            animation: animation,
+            actions: [],
+            body: widget.danmakuMatchDialog!,
+          ),
         );
         init();
       },

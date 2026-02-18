@@ -151,7 +151,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 3, 4, 1),
+              padding: const .symmetric(horizontal: 2, vertical: 2),
               child: Text(
                 mediaItem.name,
                 style: context.theme.typography.sm,

@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/storage_sheet.dart';
@@ -25,60 +26,33 @@ class RootPage extends StatefulWidget {
 class RootPageState extends State<RootPage> {
   final _storageService = GetIt.I.get<StorageService>();
 
-  void _showDeleteDialog(Storage storage) {
-    showAdaptiveDialog(
-      context: context,
-      builder: (context) => FDialog(
-        direction: Axis.vertical,
-        title: const Text('删除媒体库'),
-        body: Text('确定要删除媒体库 "${storage.name}" 吗？'),
-        actions: [
-          FButton(
-            onPress: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FButton(
-            variant: .destructive,
-            onPress: () {
-              Navigator.pop(context);
-              storage.delete();
-            },
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showPlayVideoDialog() {
     showFDialog(
       context: context,
-      builder: (context, style, animation) {
-        return FDialog(
-          style: style,
-          animation: animation,
-          title: const Text('选择视频来源'),
-          body: const SizedBox(height: 8),
-          actions: [
-            FButton(
-              variant: .outline,
-              onPress: () {
-                Navigator.pop(context);
-                _playLocalVideo();
-              },
-              child: const Text('本地'),
-            ),
-            FButton(
-              variant: .outline,
-              onPress: () {
-                Navigator.pop(context);
-                _playNetworkVideo();
-              },
-              child: const Text('网络'),
-            ),
-          ],
-        );
-      },
+      builder: (context, style, animation) => FDialog(
+        style: style,
+        animation: animation,
+        title: const Text('选择视频来源'),
+        body: const Text('网络视频只支持http(s)协议'),
+        actions: [
+          FButton(
+            variant: .outline,
+            onPress: () {
+              Navigator.pop(context);
+              _playLocalVideo();
+            },
+            child: const Text('本地'),
+          ),
+          FButton(
+            variant: .outline,
+            onPress: () {
+              Navigator.pop(context);
+              _playNetworkVideo();
+            },
+            child: const Text('网络'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -136,15 +110,15 @@ class RootPageState extends State<RootPage> {
         builder: (context, style, animation) {
           final controller = TextEditingController();
           return FDialog(
+            style: style,
+            animation: animation,
+            direction: .horizontal,
             title: Text('请输入视频URL'),
-            direction: Axis.horizontal,
-            body: FTextField(control: .managed(controller: controller)),
+            body: FTextField(
+              control: .managed(controller: controller),
+              autofocus: true,
+            ),
             actions: [
-              FButton(
-                variant: .outline,
-                onPress: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
               FButton(
                 onPress: () {
                   final url = controller.text.trim();
@@ -170,6 +144,11 @@ class RootPageState extends State<RootPage> {
                   Navigator.pop(context);
                 },
                 child: const Text('确定'),
+              ),
+              FButton(
+                variant: .outline,
+                onPress: () => Navigator.pop(context),
+                child: const Text('取消'),
               ),
             ],
           );
@@ -247,7 +226,14 @@ class RootPageState extends State<RootPage> {
                         },
                       );
                     },
-                    delete: () => _showDeleteDialog(storage),
+                    delete: () => showConfirmDialog(
+                      context,
+                      title: '删除媒体库',
+                      content: '是否删除媒体库"${storage.name}"？',
+                      onConfirm: () => storage.delete(),
+                      confirmText: '删除',
+                      destructive: true,
+                    ),
                     child: (controller) => FItem(
                       prefix: _buildPrefix(storage.storageType),
                       title: Text(storage.name),
@@ -326,7 +312,10 @@ class _PopoverMenuState extends State<_PopoverMenu>
               },
             ),
             FTile(
-              prefix: const Icon(FIcons.trash, color: Colors.red),
+              prefix: Icon(
+                FIcons.trash,
+                color: context.theme.colors.destructive,
+              ),
               title: Text('删除'),
               onPress: () {
                 controller.toggle();

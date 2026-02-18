@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/theme/tile_style.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
@@ -112,35 +113,6 @@ class _FontManagerPageState extends State<FontManagerPage> {
     }
   }
 
-  void _showDeleteConfirmDialog(String fileName) {
-    showFDialog(
-      context: context,
-      builder: (BuildContext context, style, animation) {
-        return FDialog(
-          direction: .horizontal,
-          title: Text('确认删除'),
-          animation: animation,
-          body: Text('确定要删除字体文件 $fileName 吗？'),
-          actions: [
-            FButton(
-              variant: .outline,
-              onPress: () => Navigator.pop(context),
-              child: Text('取消'),
-            ),
-            FButton(
-              variant: .destructive,
-              onPress: () {
-                Navigator.pop(context);
-                _deleteFont(fileName);
-              },
-              child: Text('删除'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _showInputFontNameDialog() {
     final TextEditingController dialogController = TextEditingController();
     dialogController.text = _configureService.subtitleFontName.value;
@@ -151,23 +123,11 @@ class _FontManagerPageState extends State<FontManagerPage> {
           direction: .horizontal,
           title: Text('输入字体名称'),
           animation: animation,
-          body: Column(
-            mainAxisSize: .min,
-            crossAxisAlignment: .start,
-            children: [
-              SizedBox(height: 12),
-              FTextField(
-                control: .managed(controller: dialogController),
-                autofocus: true,
-              ),
-            ],
+          body: FTextField(
+            control: .managed(controller: dialogController),
+            autofocus: true,
           ),
           actions: [
-            FButton(
-              variant: .outline,
-              onPress: () => Navigator.pop(context),
-              child: Text('取消'),
-            ),
             FButton(
               onPress: () {
                 _configureService.subtitleFontName.value = dialogController.text
@@ -175,6 +135,11 @@ class _FontManagerPageState extends State<FontManagerPage> {
                 Navigator.pop(context);
               },
               child: Text('保存'),
+            ),
+            FButton(
+              variant: .outline,
+              onPress: () => Navigator.pop(context),
+              child: Text('取消'),
             ),
           ],
         );
@@ -225,9 +190,20 @@ class _FontManagerPageState extends State<FontManagerPage> {
                     mainAxisSize: .min,
                     children: [
                       FButton.icon(
-                        onPress: () => _showDeleteConfirmDialog(fileName),
+                        onPress: () => showConfirmDialog(
+                          context,
+                          title: '删除字体文件',
+                          content: '是否删除字体文件"$fileName"？',
+                          onConfirm: () => _deleteFont(fileName),
+                          confirmText: '删除',
+                          destructive: true,
+                        ),
                         variant: .ghost,
-                        child: const Icon(FIcons.x, color: Colors.red),
+                        child: Icon(
+                          FIcons.x,
+                          color: context.theme.colors.destructive,
+                          size: 20,
+                        ),
                       ),
                     ],
                   ),

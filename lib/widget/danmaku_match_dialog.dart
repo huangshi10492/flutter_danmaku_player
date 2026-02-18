@@ -144,11 +144,10 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           Text(_message, style: context.theme.typography.base),
           const SizedBox(height: 16),
           FButton(
-            onPress: () {
-              setState(() {
-                _state = _DanmakuSearchState.search;
-              });
-            },
+            variant: .outline,
+            onPress: () => setState(() {
+              _state = _DanmakuSearchState.search;
+            }),
             child: const Text('手动搜索覆盖'),
           ),
           const SizedBox(height: 8),

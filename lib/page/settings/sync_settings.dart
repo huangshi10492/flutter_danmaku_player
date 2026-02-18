@@ -37,20 +37,24 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
               ? FTextField.password(
                   control: .managed(controller: controller),
                   label: null,
+                  autofocus: true,
                 )
-              : FTextField(control: .managed(controller: controller)),
+              : FTextField(
+                  control: .managed(controller: controller),
+                  autofocus: true,
+                ),
           actions: [
-            FButton(
-              variant: .outline,
-              onPress: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
             FButton(
               onPress: () {
                 onSave(controller.text);
                 Navigator.pop(context);
               },
               child: const Text('保存'),
+            ),
+            FButton(
+              variant: .outline,
+              onPress: () => Navigator.pop(context),
+              child: const Text('取消'),
             ),
           ],
         );

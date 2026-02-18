@@ -94,7 +94,6 @@ class GeneralSettingsPage extends StatelessWidget {
           ),
           actions: [
             FButton(
-              variant: .outline,
               onPress: () => Navigator.pop(context),
               child: const Text('确定'),
             ),

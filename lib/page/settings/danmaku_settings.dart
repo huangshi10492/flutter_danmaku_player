@@ -1,5 +1,6 @@
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/theme/tile_style.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
@@ -34,13 +35,9 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           body: FTextField(
             control: .managed(controller: controller),
             hint: '输入服务器地址',
+            autofocus: true,
           ),
           actions: [
-            FButton(
-              variant: .outline,
-              onPress: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
             FButton(
               onPress: () {
                 final url = controller.text.trim();
@@ -58,6 +55,11 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                 Navigator.pop(context);
               },
               child: const Text('保存'),
+            ),
+            FButton(
+              variant: .outline,
+              onPress: () => Navigator.pop(context),
+              child: const Text('取消'),
             ),
           ],
         );
@@ -158,26 +160,37 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           FButton.icon(
             onPress: () => _showServerDialog(index: index),
             variant: .ghost,
-            child: const Icon(FIcons.pencil, size: 22),
+            child: const Icon(FIcons.pencil, size: 20),
           ),
           index == 0
               ? SizedBox.shrink()
               : FButton.icon(
                   onPress: () => _moveServerUp(index),
                   variant: .ghost,
-                  child: const Icon(FIcons.chevronUp, size: 22),
+                  child: const Icon(FIcons.chevronUp, size: 20),
                 ),
           index >= totalCount - 1
               ? SizedBox.shrink()
               : FButton.icon(
                   onPress: () => _moveServerDown(index),
                   variant: .ghost,
-                  child: const Icon(FIcons.chevronDown, size: 22),
+                  child: const Icon(FIcons.chevronDown, size: 20),
                 ),
           FButton.icon(
-            onPress: () => _deleteServer(index),
+            onPress: () => showConfirmDialog(
+              context,
+              title: '删除服务器',
+              content: '是否删除服务器"$server"？',
+              onConfirm: () => _deleteServer(index),
+              confirmText: '删除',
+              destructive: true,
+            ),
             variant: .ghost,
-            child: const Icon(FIcons.x, size: 22, color: Colors.red),
+            child: Icon(
+              FIcons.x,
+              size: 20,
+              color: context.theme.colors.destructive,
+            ),
           ),
         ],
       ),

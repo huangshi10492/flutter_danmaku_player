@@ -9,6 +9,7 @@ import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:fldanplay/widget/video_item.dart';
@@ -69,56 +70,6 @@ class _HistoryPageState extends State<HistoryPage> {
         );
       }
     }
-  }
-
-  void _showDeleteConfirmDialog(History history) {
-    showAdaptiveDialog(
-      context: context,
-      builder: (context) => FDialog(
-        direction: Axis.vertical,
-        title: const Text('删除历史记录'),
-        body: Text('确定要删除 "${_extractFileName(history.url)}" 的观看历史吗？'),
-        actions: [
-          FButton(
-            onPress: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FButton(
-            variant: .destructive,
-            onPress: () {
-              Navigator.pop(context);
-              _historyService.delete(history: history);
-            },
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showClearAllConfirmDialog() {
-    showAdaptiveDialog(
-      context: context,
-      builder: (context) => FDialog(
-        direction: Axis.vertical,
-        title: const Text('清空所有历史记录'),
-        body: const Text('确定要清空所有观看历史吗？此操作不可撤销。'),
-        actions: [
-          FButton(
-            onPress: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FButton(
-            variant: .destructive,
-            onPress: () {
-              Navigator.pop(context);
-              _clearAllHistories();
-            },
-            child: const Text('清空'),
-          ),
-        ],
-      ),
-    );
   }
 
   String _extractFileName(String? url) {
@@ -304,7 +255,14 @@ class _HistoryPageState extends State<HistoryPage> {
           }),
           FButton.icon(
             variant: .ghost,
-            onPress: _showClearAllConfirmDialog,
+            onPress: () => showConfirmDialog(
+              context,
+              title: '清空所有历史记录',
+              content: '是否清空所有观看历史？',
+              onConfirm: _clearAllHistories,
+              confirmText: '清空',
+              destructive: true,
+            ),
             child: const Icon(Icons.clear_all, size: 24),
           ),
         ],
@@ -327,7 +285,14 @@ class _HistoryPageState extends State<HistoryPage> {
                 refreshKey: refreshKey,
                 name: history.name,
                 onPress: () => _playVideo(history),
-                onLongPress: () => _showDeleteConfirmDialog(history),
+                onLongPress: () => showConfirmDialog(
+                  context,
+                  title: '删除历史记录',
+                  content: '是否删除"${history.name}"的观看历史？',
+                  onConfirm: () => _historyService.delete(history: history),
+                  confirmText: '删除',
+                  destructive: true,
+                ),
               );
             },
           );

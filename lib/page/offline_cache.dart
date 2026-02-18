@@ -1,6 +1,7 @@
 import 'package:fldanplay/model/offline_cache.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/offline_cache.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
@@ -37,27 +38,13 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
   }
 
   void _showDeleteConfirmDialog(OfflineCache cache) {
-    showAdaptiveDialog(
-      context: context,
-      builder: (context) => FDialog(
-        direction: Axis.vertical,
-        title: const Text('删除缓存'),
-        body: Text('确定要删除 "${cache.videoInfo.name}" 的离线缓存吗？'),
-        actions: [
-          FButton(
-            onPress: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FButton(
-            variant: .destructive,
-            onPress: () {
-              Navigator.pop(context);
-              _deleteCache(cache);
-            },
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    showConfirmDialog(
+      context,
+      title: '删除缓存',
+      content: '是否删除"${cache.videoInfo.name}"的离线缓存？',
+      onConfirm: () => _deleteCache(cache),
+      confirmText: '删除',
+      destructive: true,
     );
   }
 
@@ -125,7 +112,10 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                   suffix: FButton.icon(
                     onPress: () => _showDeleteConfirmDialog(cache),
                     variant: .ghost,
-                    child: const Icon(FIcons.trash, color: Colors.red),
+                    child: Icon(
+                      FIcons.trash,
+                      color: context.theme.colors.destructive,
+                    ),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +146,10 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                     FButton.icon(
                       onPress: () => _showDeleteConfirmDialog(cache),
                       variant: .ghost,
-                      child: const Icon(FIcons.x, color: Colors.red),
+                      child: Icon(
+                        FIcons.x,
+                        color: context.theme.colors.destructive,
+                      ),
                     ),
                   ],
                 ),
