@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
+
 import 'package:auto_orientation/auto_orientation.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:fldanplay/model/history.dart';
@@ -24,6 +24,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:window_manager/window_manager.dart';
 import 'gesture.dart';
 import 'indicator.dart';
+import 'progress_bar.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final VideoInfo videoInfo;
@@ -305,7 +306,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         return AnimatedPositioned(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          top: showControls ? 0 : -75,
+          top: showControls ? 0 : -150,
           left: 0,
           right: 0,
           child: _buildTopControls(),
@@ -316,7 +317,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         final showControls = _uiState.showControls.value;
         return AnimatedPositioned(
           duration: const Duration(milliseconds: 200),
-          bottom: showControls ? 0 : -75,
+          bottom: showControls ? 0 : -150,
           left: 0,
           right: 0,
           child: _buildBottomControls(),
@@ -509,38 +510,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 // 右侧按钮组
                 Row(
                   children: [
-                    Watch((context) {
-                      final chapters = _playerService.value.chapters.value;
-                      return chapters.isEmpty
-                          ? TextButton.icon(
-                              icon: const Icon(Icons.fast_forward, size: 24),
-                              style: TextButton.styleFrom(
-                                textStyle: const TextStyle(fontSize: 15),
-                              ),
-                              label: Text(
-                                '快进${_configureService.seekOPSeconds.value}秒',
-                              ),
-                              onPressed: () {
-                                _playerService.value.seekRelative(
-                                  Duration(
-                                    seconds:
-                                        _configureService.seekOPSeconds.value,
-                                  ),
-                                );
-                              },
-                            )
-                          : _buildChapter(chapters);
-                    }),
+                    _buildJumpButton(_playerService.value.chapters.value),
                     // 速度控制
                     Watch((context) {
                       final speed = _playerService.value.playbackSpeed.value;
                       return TextButton(
                         onPressed: () =>
                             _showRightDrawer(RightDrawerType.speed),
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 16),
+                        child: Text(
+                          '${speed.toStringAsFixed(2)}X',
+                          style: context.theme.typography.base,
                         ),
-                        child: Text('${speed.toStringAsFixed(2)}X'),
                       );
                     }),
                     // 选集
@@ -582,30 +562,51 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
-  Widget _buildChapter(Map<int, String> chapters) {
-    return Watch((context) {
+  Widget _buildJumpButton(Map<int, String> chapters) {
+    final nextChapterMode = _configureService.jumpButtonMode.value;
+    final secondButton = TextButton(
+      onPressed: () => _playerService.value.seekRelative(
+        Duration(seconds: _configureService.seekOPSeconds.value),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.fast_forward, size: 24),
+          const SizedBox(width: 4),
+          Text(
+            '${_configureService.seekOPSeconds.value}s',
+            style: context.theme.typography.base,
+          ),
+        ],
+      ),
+    );
+    if (chapters.isEmpty || nextChapterMode == 1) {
+      return secondButton;
+    }
+    final nextChapterButton = Watch((context) {
       final position = _playerService.value.position.value;
       String text = "";
-      Duration switchSeconds = Duration.zero;
-      chapters.forEach((key, value) {
-        if (switchSeconds != Duration.zero) return;
-        if (key <= position.inSeconds) {
-          text = value;
+      Duration? nextChapter;
+      for (var chapter in chapters.entries) {
+        if (chapter.key <= position.inSeconds) {
+          text = chapter.value;
         } else {
-          switchSeconds = Duration(seconds: key);
-          text += "(${Utils.formatDuration(switchSeconds)})-> $value";
-          return;
+          text += " -> ${chapter.value}";
+          nextChapter = Duration(seconds: chapter.key);
+          break;
         }
-      });
+      }
       return TextButton(
-        style: TextButton.styleFrom(textStyle: const TextStyle(fontSize: 15)),
-        child: Text(text),
+        child: Text(text, style: context.theme.typography.base),
         onPressed: () {
-          if (switchSeconds == Duration.zero) return;
-          _playerService.value.seekTo(switchSeconds);
+          if (nextChapter == null) return;
+          _playerService.value.seekTo(nextChapter);
         },
       );
     });
+    if (nextChapterMode == 2) {
+      return Row(children: [nextChapterButton, secondButton]);
+    }
+    return nextChapterButton;
   }
 
   /// 构建视频播放器组件
@@ -807,14 +808,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   Widget _buildProgressBar() {
     return Watch((context) {
-      return ProgressBar(
+      return VideoProgressBar(
         progress: _playerService.value.position.value,
         total: _playerService.value.duration,
         buffered: _playerService.value.bufferedPosition.value,
-        thumbRadius: 8,
-        thumbGlowRadius: 18,
-        timeLabelTextStyle: context.theme.typography.sm,
-        timeLabelLocation: TimeLabelLocation.sides,
+        danmakuTrend: _configureService.showDanmakuTrend.value
+            ? _playerService.value.danmakuService.danmakuTrend.value
+            : [],
+        chapters: _configureService.showChapter.value
+            ? _playerService.value.chapters.value
+            : {},
         onSeek: _playerService.value.seekTo,
         onDragStart: (_) => _uiState.updateControlsVisibility(true),
         onDragEnd: () => _uiState.showControlsTemporarily(),

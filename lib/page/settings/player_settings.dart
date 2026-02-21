@@ -90,6 +90,37 @@ class PlayerSettingsPage extends StatelessWidget {
               ],
             ),
             SettingsSection(
+              title: '界面',
+              children: [
+                SettingsTile.switchTile(
+                  title: '显示章节',
+                  switchValue: configure.showChapter.value,
+                  onBoolChange: (value) {
+                    configure.showChapter.value = value;
+                  },
+                ),
+                SettingsTile.switchTile(
+                  title: '显示弹幕趋势',
+                  switchValue: configure.showDanmakuTrend.value,
+                  onBoolChange: (value) {
+                    configure.showDanmakuTrend.value = value;
+                  },
+                ),
+                SettingsTile.radioTile(
+                  title: '下一章节按钮显示模式',
+                  onRadioChange: (value) {
+                    configure.jumpButtonMode.value = int.parse(value);
+                  },
+                  radioOptions: {
+                    '优先显示章节跳转': '0',
+                    '只显示时间跳转': '1',
+                    '同时显示章节和时间跳转': '2',
+                  },
+                  radioValue: configure.jumpButtonMode.value.toString(),
+                ),
+              ],
+            ),
+            SettingsSection(
               title: '语言',
               children: [
                 SettingsTile.radioTile(

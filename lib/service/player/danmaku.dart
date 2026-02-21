@@ -47,9 +47,11 @@ class DanmakuService {
   final Signal<bool> danmakuEnabled = Signal(true);
   final Signal<Episode> episode = Signal(Episode.fromId(0, 0, ''));
   final Signal<DanmakuStatus> status = Signal(.none);
+  final Signal<List<double>> danmakuTrend = Signal([]);
   late History history;
   int lastTime = 0;
   String cacheDir = "";
+  int _durationSeconds = 0;
   late bool danmakuServiceEnable = configureService.danmakuServiceEnable.value;
 
   Future<void> init() async {
@@ -251,6 +253,9 @@ class DanmakuService {
       'Other': other,
     };
     globalService.showNotification('加载弹幕: ${danmakus.length}条');
+    if (_durationSeconds > 0) {
+      computeTrend(_durationSeconds);
+    }
   }
 
   /// 加载弹幕
@@ -365,6 +370,30 @@ class DanmakuService {
       _log.error('refreshDanmaku', '刷新弹幕失败', error: e, stackTrace: t);
       globalService.showNotification('刷新弹幕失败');
     }
+  }
+
+  void computeTrend(int durationSeconds, {int bucketCount = 100}) {
+    _durationSeconds = durationSeconds;
+    if (durationSeconds <= 0) {
+      danmakuTrend.value = [];
+      return;
+    }
+    final bucketSize = durationSeconds / bucketCount;
+    final buckets = List<double>.filled(bucketCount, 0);
+    void countMap(Map<int, List<Danmaku>> map) {
+      for (final entry in map.entries) {
+        final bucketIndex = (entry.key / bucketSize).floor();
+        if (bucketIndex >= 0 && bucketIndex < bucketCount) {
+          buckets[bucketIndex] += entry.value.length;
+        }
+      }
+    }
+
+    countMap(_bili);
+    countMap(_gamer);
+    countMap(_dandan);
+    countMap(_other);
+    danmakuTrend.value = buckets;
   }
 
   void updateDanmakuSettings(DanmakuSettings settings) {

@@ -14,6 +14,7 @@ import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
+import 'package:fldanplay/widget/settings/radio_settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ enum RightDrawerType {
   audioTrack,
   subtitleTrack,
   metadata,
+  playerUI,
 }
 
 class RightDrawerContent extends StatelessWidget {
@@ -90,6 +92,8 @@ class RightDrawerContent extends StatelessWidget {
         return TrackPage(playerService: playerService, isAudio: false);
       case RightDrawerType.metadata:
         return _buildMetadataPanel(context);
+      case RightDrawerType.playerUI:
+        return _buildPlayerUI(context);
     }
   }
 
@@ -175,6 +179,11 @@ class RightDrawerContent extends StatelessWidget {
                 prefix: const Icon(FIcons.closedCaption, size: 20),
                 title: Text('字幕选择', style: context.theme.typography.base),
                 onPress: () => onDrawerChanged(RightDrawerType.subtitleTrack),
+              ),
+              FItem(
+                prefix: const Icon(FIcons.wrench, size: 20),
+                title: Text('播放器界面设置', style: context.theme.typography.base),
+                onPress: () => onDrawerChanged(RightDrawerType.playerUI),
               ),
               FItem(
                 prefix: const Icon(FIcons.info, size: 20),
@@ -300,6 +309,51 @@ class RightDrawerContent extends StatelessWidget {
         const SizedBox(height: 8),
         SelectableText(playerService.audioParams.toString()),
       ],
+    );
+  }
+
+  Widget _buildPlayerUI(BuildContext context) {
+    return Scaffold(
+      body: Watch((context) {
+        final configure = GetIt.I.get<ConfigureService>();
+        return ListView(
+          padding: const EdgeInsets.all(4),
+          children: [
+            SettingsSection(
+              children: [
+                SettingsTile.switchTile(
+                  title: '显示章节',
+                  switchValue: configure.showChapter.value,
+                  onBoolChange: (value) {
+                    configure.showChapter.value = value;
+                  },
+                ),
+                SettingsTile.switchTile(
+                  title: '显示弹幕趋势',
+                  switchValue: configure.showDanmakuTrend.value,
+                  onBoolChange: (value) {
+                    configure.showDanmakuTrend.value = value;
+                  },
+                ),
+              ],
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Text(
+                '下一章节按钮显示模式',
+                style: TextStyle(color: context.theme.colors.mutedForeground),
+              ),
+            ),
+            RadioSettingsSection(
+              options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
+              value: configure.jumpButtonMode.value.toString(),
+              onChange: (value) {
+                configure.jumpButtonMode.value = int.parse(value);
+              },
+            ),
+          ],
+        );
+      }),
     );
   }
 }

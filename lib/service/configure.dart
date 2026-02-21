@@ -68,6 +68,19 @@ class ConfigureService {
     key: 'seekOPSeconds',
     defaultValue: 85,
   );
+  late final Signal<bool> showChapter = _config(
+    key: 'showChapter',
+    defaultValue: true,
+  );
+  late final Signal<bool> showDanmakuTrend = _config(
+    key: 'showDanmakuTrend',
+    defaultValue: true,
+  );
+  //下一章节按钮显示模式 (0: 章节, 1: 时间, 2: 章节+时间)
+  late final Signal<int> jumpButtonMode = _config(
+    key: 'jumpButtonMode',
+    defaultValue: 0,
+  );
   // 自动为字幕和弹幕选择语言（0: 关闭，1: 中文简体，2: 中文繁体）
   late final Signal<int> autoLanguage = _config(
     key: 'autoLanguage',

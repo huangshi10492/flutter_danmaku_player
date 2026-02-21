@@ -225,6 +225,7 @@ class VideoPlayerService {
       duration = await _player.stream.duration.firstWhere(
         (d) => d != Duration.zero,
       );
+      danmakuService.computeTrend(duration.inSeconds);
       _getChapter();
       _timerGroup.forEach((_, value) => value.init());
       _subscriptions.addAll([
