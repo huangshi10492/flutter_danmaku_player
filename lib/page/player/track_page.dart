@@ -1,8 +1,10 @@
+import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/utils/video_player_utils.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
@@ -16,6 +18,7 @@ class TrackPage extends StatelessWidget {
   });
 
   Future<void> _pickExternalSubtitle(BuildContext context) async {
+    final globalService = GetIt.I.get<GlobalService>();
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -25,19 +28,10 @@ class TrackPage extends StatelessWidget {
       if (result != null && result.files.single.path != null) {
         final filePath = result.files.single.path!;
         await playerService.loadExternalSubtitle(filePath);
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('外部字幕加载成功')));
-        }
+        globalService.showNotification('外部字幕加载成功');
       }
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('加载外部字幕失败: $e')));
-      }
+      globalService.showNotification('加载外部字幕失败');
     }
   }
 

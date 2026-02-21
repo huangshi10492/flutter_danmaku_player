@@ -64,14 +64,10 @@ class _FontManagerPageState extends State<FontManagerPage> {
         final targetPath = '${fontsDir.path}/$fileName';
         await sourceFile.copy(targetPath);
         await _loadFontFiles();
-        if (mounted) {
-          showToast(context, title: '导入成功', description: '字体文件 $fileName 已导入');
-        }
+        showToast(title: '导入成功', description: '字体文件 $fileName 已导入');
       }
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '导入失败', description: e.toString());
-      }
+      showToast(level: 3, title: '导入失败', description: e.toString());
     }
   }
 
@@ -86,13 +82,9 @@ class _FontManagerPageState extends State<FontManagerPage> {
       );
       await _loadFontFiles();
       _configureService.subtitleFontName.value = 'MiSans-Regular';
-      if (mounted) {
-        showToast(context, title: '导入成功', description: '默认字体 MiSans 已导入并设置');
-      }
+      showToast(title: '导入成功', description: '默认字体 MiSans 已导入并设置');
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '导入失败', description: e.toString());
-      }
+      showToast(level: 3, title: '导入失败', description: e.toString());
     }
   }
 
@@ -102,14 +94,10 @@ class _FontManagerPageState extends State<FontManagerPage> {
       if (await fontFile.exists()) {
         await fontFile.delete();
         await _loadFontFiles();
-        if (mounted) {
-          showToast(context, title: '删除成功', description: '字体文件 $fileName 已删除');
-        }
+        showToast(title: '删除成功', description: '字体文件 $fileName 已删除');
       }
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '删除失败', description: e.toString());
-      }
+      showToast(level: 3, title: '删除失败', description: e.toString());
     }
   }
 
@@ -211,11 +199,7 @@ class _FontManagerPageState extends State<FontManagerPage> {
                     final fontNameWithoutExt = fileName.split('.').first;
                     _configureService.subtitleFontName.value =
                         fontNameWithoutExt;
-                    showToast(
-                      context,
-                      title: '字体已选择',
-                      description: fontNameWithoutExt,
-                    );
+                    showToast(title: '字体已选择', description: fontNameWithoutExt);
                   },
                 );
               }).toList(),

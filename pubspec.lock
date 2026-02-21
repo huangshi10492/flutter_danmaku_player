@@ -444,18 +444,18 @@ packages:
     dependency: "direct main"
     description:
       name: forui
-      sha256: ce202dd85d927a47232898b79c922405ec2f67f05f9043aabf87eb7061c4c6ca
+      sha256: "68e35cc6e989d960bcc4d31e49f22464e80f4c1f2d40c7ad63c1ba74386c209c"
       url: "https://pub.dev"
     source: hosted
-    version: "0.18.0+1"
+    version: "0.19.0"
   forui_assets:
     dependency: transitive
     description:
       name: forui_assets
-      sha256: "5c56e1615e25d0aecc73e2567683ce95eb41f623242e3775cecbd2b178455e7d"
+      sha256: ba80eeee720f517468bc06974a83905a183fa148ab34ea080b8fe7909806218c
       url: "https://pub.dev"
     source: hosted
-    version: "0.18.0"
+    version: "0.19.0"
   get_it:
     dependency: "direct main"
     description:

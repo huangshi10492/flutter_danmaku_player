@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:catcher_2/catcher_2.dart';
 import 'package:catcher_2/model/platform_type.dart';
+import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/hive/hive_registrar.g.dart';
 import 'package:fldanplay/router.dart';
@@ -152,7 +153,14 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
         themeMode: materialThemeMode,
         builder: (context, child) => FTheme(
           data: fTheme,
-          child: FToaster(child: child!),
+          child: FToaster(
+            child: Builder(
+              builder: (context) {
+                GetIt.I.get<GlobalService>().appContext = context;
+                return child!;
+              },
+            ),
+          ),
         ),
         routerConfig: router,
       );

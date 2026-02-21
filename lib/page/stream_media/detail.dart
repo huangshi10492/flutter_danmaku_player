@@ -110,9 +110,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         });
       }
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '播放失败', description: e.toString());
-      }
+      showToast(level: 3, title: '播放失败', description: e.toString());
     } finally {
       _isPlaying.value = false;
     }
@@ -122,9 +120,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     _service.setVideoList(season);
     final videoInfo = _service.getVideoInfo(index);
     _offlineCacheService.startDownload(videoInfo);
-    if (context.mounted) {
-      showToast(context, title: '${videoInfo.name}已加入离线缓存');
-    }
+    showToast(title: '${videoInfo.name}已加入离线缓存');
   }
 
   @override

@@ -22,8 +22,8 @@ class GlobalService {
     );
   }
 
-  late BuildContext notificationContext;
-  late BuildContext playerContext;
+  late BuildContext playerNotificationContext;
+  late BuildContext appContext;
   Function(String)? updateListener;
   String device = 'Unknown';
   String deviceId = 'Unknown';
@@ -46,9 +46,9 @@ class GlobalService {
   }
 
   void showNotification(String message) {
-    if (!notificationContext.mounted) return;
+    if (!playerNotificationContext.mounted) return;
     showRawFToast(
-      context: notificationContext,
+      context: playerNotificationContext,
       alignment: FToastAlignment.bottomLeft,
       duration: Duration(seconds: 3),
       builder: (context, entry) {

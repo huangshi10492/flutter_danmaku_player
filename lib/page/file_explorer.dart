@@ -106,16 +106,14 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
       videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
     }
-    if (mounted) {
-      final location = Uri(path: videoPlayerPath);
-      context.push(location.toString(), extra: videoInfo);
-    }
+    final location = Uri(path: videoPlayerPath);
+    context.push(location.toString(), extra: videoInfo);
   }
 
   void _handleOfflineDownload(String path, int index) {
     final videoInfo = _fileExplorerService.getVideoInfo(index, path);
     _offlineCacheService.startDownload(videoInfo);
-    if (mounted) showToast(context, title: '${videoInfo.name}已加入离线缓存');
+    showToast(title: '${videoInfo.name}已加入离线缓存');
   }
 
   Future<void> _refresh() async {

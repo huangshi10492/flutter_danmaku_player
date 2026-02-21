@@ -44,7 +44,7 @@ class SettingsSection extends StatelessWidget {
                   return FDivider(
                     style: .delta(
                       color: colors.border,
-                      padding: .symmetric(vertical: 0, horizontal: 16),
+                      padding: .value(.symmetric(vertical: 0, horizontal: 16)),
                     ),
                   );
                 }

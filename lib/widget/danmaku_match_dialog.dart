@@ -58,7 +58,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       setState(() {
         _state = _DanmakuSearchState.search;
       });
-      if (mounted) showToast(context, title: '未找到弹幕');
+      showToast(title: '未找到弹幕');
       return;
     }
     setState(() {
@@ -77,7 +77,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       return;
     }
     if (_selectedServer.isEmpty) {
-      showToast(context, title: '请选择服务器');
+      showToast(title: '请选择服务器');
       return;
     }
     setState(() {
@@ -190,7 +190,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: FAccordion(
-                style: .delta(childPadding: .zero),
+                style: .delta(childPadding: .value(.zero)),
                 children: _buildBody(),
               ),
             ),
@@ -233,7 +233,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
         ),
         const SizedBox(width: 8),
         FButton.icon(
-          style: .delta(iconContentStyle: .delta(padding: .all(8))),
+          style: .delta(iconContentStyle: .delta(padding: .value(.all(8)))),
           onPress: _state == _DanmakuSearchState.searching ? () {} : _search,
           child: _state == _DanmakuSearchState.searching
               ? const SizedBox(
@@ -288,9 +288,9 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             final episode = anime.episodes[(index / 2).round()];
             return FItem(
               style: .delta(
-                margin: .symmetric(vertical: 2, horizontal: 0),
+                margin: .value(.symmetric(vertical: 2, horizontal: 0)),
                 contentStyle: .delta(
-                  padding: .symmetric(vertical: 10, horizontal: 6),
+                  padding: .value(.symmetric(vertical: 10, horizontal: 6)),
                 ),
               ),
               title: Text(
@@ -306,16 +306,16 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
                   widget.uniqueKey,
                   episode,
                 );
-                if (mounted) {
-                  if (result.isNotEmpty) {
-                    showToast(this.context, title: '弹幕保存成功');
+                if (result.isNotEmpty) {
+                  showToast(title: '弹幕保存成功');
+                  if (mounted) {
                     Navigator.pop(this.context, result);
-                  } else {
-                    showToast(this.context, title: '弹幕保存失败');
-                    setState(() {
-                      _state = _DanmakuSearchState.search;
-                    });
                   }
+                } else {
+                  showToast(title: '弹幕保存失败');
+                  setState(() {
+                    _state = _DanmakuSearchState.search;
+                  });
                 }
               },
             );

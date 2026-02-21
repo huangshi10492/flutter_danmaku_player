@@ -67,23 +67,9 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
     try {
       final syncService = GetIt.I<WebDAVSyncService>();
       final success = await syncService.testConnection();
-
-      if (mounted) {
-        showToast(
-          context,
-          level: success ? 1 : 3,
-          title: success ? '连接测试成功' : '连接测试失败',
-        );
-      }
+      showToast(level: success ? 1 : 3, title: success ? '连接测试成功' : '连接测试失败');
     } catch (e) {
-      if (mounted) {
-        showToast(
-          context,
-          level: 3,
-          title: '连接测试失败',
-          description: e.toString(),
-        );
-      }
+      showToast(level: 3, title: '连接测试失败', description: e.toString());
     }
   }
 

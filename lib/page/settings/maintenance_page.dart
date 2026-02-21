@@ -55,13 +55,9 @@ class _MaintenancePageState extends State<MaintenancePage> {
       );
       await file.delete();
       if (path == null) return;
-      if (mounted) {
-        showToast(context, level: 1, title: '备份成功', description: '配置和媒体库已导出');
-      }
+      showToast(level: 1, title: '备份成功', description: '配置和媒体库已导出');
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '备份失败', description: e.toString());
-      }
+      showToast(level: 3, title: '备份失败', description: e.toString());
     } finally {
       setState(() => _isLoading = false);
     }
@@ -83,23 +79,9 @@ class _MaintenancePageState extends State<MaintenancePage> {
         try {
           final file = File(result.files.single.path!);
           await _maintenanceUtils.restoreConfigAndStorage(file);
-          if (mounted) {
-            showToast(
-              context,
-              level: 2,
-              title: '还原成功',
-              description: '请重启应用以使配置生效',
-            );
-          }
+          showToast(level: 2, title: '还原成功', description: '请重启应用以使配置生效');
         } catch (e) {
-          if (mounted) {
-            showToast(
-              context,
-              level: 3,
-              title: '还原失败',
-              description: e.toString(),
-            );
-          }
+          showToast(level: 3, title: '还原失败', description: e.toString());
         } finally {
           setState(() => _isLoading = false);
         }
@@ -112,18 +94,9 @@ class _MaintenancePageState extends State<MaintenancePage> {
     try {
       final cleaned = await _maintenanceUtils.cleanOldHistories(_cleanDaysAgo);
       await _loadStats();
-      if (mounted) {
-        showToast(
-          context,
-          level: 1,
-          title: '清理完成',
-          description: '已清理$cleaned条老旧历史记录',
-        );
-      }
+      showToast(level: 1, title: '清理完成', description: '已清理$cleaned条老旧历史记录');
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '清理失败', description: e.toString());
-      }
+      showToast(level: 3, title: '清理失败', description: e.toString());
     } finally {
       setState(() => _isLoading = false);
     }
@@ -137,18 +110,13 @@ class _MaintenancePageState extends State<MaintenancePage> {
       final screenshotCleaned = await _maintenanceUtils
           .cleanOrphanedScreenshots();
       await _loadStats();
-      if (mounted) {
-        showToast(
-          context,
-          level: 1,
-          title: '清理完成',
-          description: '已清理$danmakuCleaned个弹幕文件和$screenshotCleaned个缩略图',
-        );
-      }
+      showToast(
+        level: 1,
+        title: '清理完成',
+        description: '已清理$danmakuCleaned个弹幕文件和$screenshotCleaned个缩略图',
+      );
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '清理失败', description: e.toString());
-      }
+      showToast(level: 3, title: '清理失败', description: e.toString());
     } finally {
       setState(() => _isLoading = false);
     }

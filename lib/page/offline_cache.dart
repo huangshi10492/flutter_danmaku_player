@@ -33,7 +33,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
       final location = Uri(path: videoPlayerPath);
       context.push(location.toString(), extra: videoInfo);
     } catch (e) {
-      showToast(context, level: 3, title: '播放失败', description: e.toString());
+      showToast(level: 3, title: '播放失败', description: e.toString());
     }
   }
 
@@ -52,11 +52,9 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
     try {
       await _cacheService.cancelDownload(cache.uniqueKey);
       await _cacheService.deleteCache(cache.uniqueKey);
-      if (mounted) showToast(context, title: '缓存已删除');
+      showToast(title: '缓存已删除');
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '删除失败', description: e.toString());
-      }
+      showToast(level: 3, title: '删除失败', description: e.toString());
     }
   }
 

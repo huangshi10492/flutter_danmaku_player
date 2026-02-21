@@ -137,6 +137,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               }
               if (event.logicalKey == LogicalKeyboardKey.escape) {
                 windowManager.setFullScreen(false);
+                _uiState.isFullScreen.value = false;
               }
             } else if (event is KeyRepeatEvent) {
               // 右方向键长按
@@ -718,7 +719,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           style: .delta(expandBehavior: .always),
           child: Builder(
             builder: (context) {
-              _globalService.notificationContext = context;
+              _globalService.playerNotificationContext = context;
               return Container();
             },
           ),

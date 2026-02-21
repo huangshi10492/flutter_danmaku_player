@@ -92,14 +92,7 @@ class RootPageState extends State<RootPage> {
         }
       }
     } catch (e) {
-      if (mounted) {
-        showToast(
-          context,
-          level: 3,
-          title: '选择文件失败',
-          description: e.toString(),
-        );
-      }
+      showToast(level: 3, title: '选择文件失败', description: e.toString());
     }
   }
 
@@ -127,7 +120,7 @@ class RootPageState extends State<RootPage> {
                   }
                   // 格式校验
                   if (!url.startsWith('http')) {
-                    showToast(context, level: 2, title: '请输入有效的网络视频URL');
+                    showToast(level: 2, title: '请输入有效的网络视频URL');
                     return;
                   }
                   final videoInfo = VideoInfo(
@@ -137,10 +130,8 @@ class RootPageState extends State<RootPage> {
                     videoName: url.split('/').last.split('.').first,
                     name: url.split('/').last,
                   );
-                  if (mounted) {
-                    final location = Uri(path: videoPlayerPath);
-                    context.push(location.toString(), extra: videoInfo);
-                  }
+                  final location = Uri(path: videoPlayerPath);
+                  this.context.push(location.toString(), extra: videoInfo);
                   Navigator.pop(context);
                 },
                 child: const Text('确定'),
@@ -155,14 +146,7 @@ class RootPageState extends State<RootPage> {
         },
       );
     } catch (e) {
-      if (mounted) {
-        showToast(
-          context,
-          level: 3,
-          title: '播放视频失败',
-          description: e.toString(),
-        );
-      }
+      showToast(level: 3, title: '播放视频失败', description: e.toString());
     }
   }
 
@@ -298,12 +282,13 @@ class _PopoverMenuState extends State<_PopoverMenu>
   @override
   Widget build(BuildContext context) {
     final controller = FPopoverController(vsync: this);
-    return FPopoverMenu.tiles(
+    return FPopoverMenu(
       control: .managed(controller: controller),
       menu: [
-        FTileGroup(
+        .group(
+          divider: .indented,
           children: [
-            FTile(
+            .item(
               prefix: const Icon(FIcons.pencil),
               title: Text('编辑'),
               onPress: () {
@@ -311,11 +296,9 @@ class _PopoverMenuState extends State<_PopoverMenu>
                 widget.edit();
               },
             ),
-            FTile(
-              prefix: Icon(
-                FIcons.trash,
-                color: context.theme.colors.destructive,
-              ),
+            .item(
+              variants: {.destructive},
+              prefix: Icon(FIcons.trash),
               title: Text('删除'),
               onPress: () {
                 controller.toggle();

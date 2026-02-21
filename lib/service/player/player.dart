@@ -12,8 +12,8 @@ import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
 import 'package:fldanplay/utils/log.dart';
+import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/utils/utils.dart';
-import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:image/image.dart' as img;
 import 'package:media_kit/media_kit.dart';
@@ -147,22 +147,7 @@ class VideoPlayerService {
       _log.info('initialize', '开始初始化视频播放器');
       _subscriptions.add(
         _player.stream.error.listen((e) {
-          final ctx = _globalService.playerContext;
-          if (ctx.mounted) {
-            ScaffoldMessenger.of(ctx)
-              ..removeCurrentSnackBar()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text('播放器发生错误: $e'),
-                  action: SnackBarAction(
-                    label: 'Dismiss',
-                    onPressed: () {
-                      ScaffoldMessenger.of(ctx).hideCurrentSnackBar();
-                    },
-                  ),
-                ),
-              );
-          }
+          showToast(level: 3, title: '播放器发生错误', description: e.toString());
           _log.error('mpv', '播放器发生错误', error: e);
         }),
       );
@@ -212,7 +197,7 @@ class VideoPlayerService {
           case 'info':
             _log.info('mpv', '${event.prefix}:${event.text}');
           case 'error':
-            _log.error('mpv', '${event.prefix}:${event.text}');
+            break;
           case 'warning':
             _log.warn('mpv', '${event.prefix}:${event.text}');
           default:

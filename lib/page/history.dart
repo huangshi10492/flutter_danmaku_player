@@ -61,14 +61,7 @@ class _HistoryPageState extends State<HistoryPage> {
     try {
       await _historyService.clearAllHistories();
     } catch (e) {
-      if (mounted) {
-        showToast(
-          context,
-          level: 3,
-          title: '清空历史记录失败',
-          description: e.toString(),
-        );
-      }
+      showToast(level: 3, title: '清空历史记录失败', description: e.toString());
     }
   }
 
@@ -86,7 +79,7 @@ class _HistoryPageState extends State<HistoryPage> {
     try {
       final url = history.url;
       if (url == null) {
-        showToast(context, level: 3, title: '播放失败', description: '视频URL为空');
+        showToast(level: 3, title: '播放失败', description: '视频URL为空');
         return;
       }
       late VideoInfo videoInfo;
@@ -97,10 +90,8 @@ class _HistoryPageState extends State<HistoryPage> {
         if (cache != null) {
           videoInfo = cache.videoInfo;
           videoInfo.cached = true;
-          if (mounted) {
-            final location = Uri(path: videoPlayerPath);
-            context.push(location.toString(), extra: videoInfo);
-          }
+          final location = Uri(path: videoPlayerPath);
+          context.push(location.toString(), extra: videoInfo);
           return;
         }
       }
@@ -108,22 +99,12 @@ class _HistoryPageState extends State<HistoryPage> {
         case HistoriesType.fileStorage:
           final storageKey = history.storageKey;
           if (storageKey == null) {
-            showToast(
-              context,
-              level: 3,
-              title: '播放失败',
-              description: '无法从URL中提取媒体库ID',
-            );
+            showToast(level: 3, title: '播放失败', description: '无法从URL中提取媒体库ID');
             return;
           }
           final storage = _storageService.get(storageKey);
           if (storage == null) {
-            showToast(
-              context,
-              level: 3,
-              title: '播放失败',
-              description: '找不到对应的媒体库',
-            );
+            showToast(level: 3, title: '播放失败', description: '找不到对应的媒体库');
             return;
           }
           switch (storage.storageType) {
@@ -136,12 +117,7 @@ class _HistoryPageState extends State<HistoryPage> {
               _fileExplorerService.setProvider(provider, storage);
               break;
             default:
-              showToast(
-                context,
-                level: 3,
-                title: '播放失败',
-                description: '不支持的媒体库类型',
-              );
+              showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
               return;
           }
           videoInfo = await _fileExplorerService.getVideoInfoFromHistory(
@@ -151,22 +127,12 @@ class _HistoryPageState extends State<HistoryPage> {
         case HistoriesType.streamMediaStorage:
           final storageKey = history.storageKey;
           if (storageKey == null) {
-            showToast(
-              context,
-              level: 3,
-              title: '播放失败',
-              description: '无法从URL中提取媒体库ID',
-            );
+            showToast(level: 3, title: '播放失败', description: '无法从URL中提取媒体库ID');
             return;
           }
           final storage = _storageService.get(storageKey);
           if (storage == null) {
-            showToast(
-              context,
-              level: 3,
-              title: '播放失败',
-              description: '找不到对应的媒体库',
-            );
+            showToast(level: 3, title: '播放失败', description: '找不到对应的媒体库');
             return;
           }
           switch (storage.storageType) {
@@ -185,12 +151,7 @@ class _HistoryPageState extends State<HistoryPage> {
               _streamMediaExplorerService.setProvider(provider, storage);
               break;
             default:
-              showToast(
-                context,
-                level: 3,
-                title: '播放失败',
-                description: '不支持的媒体库类型',
-              );
+              showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
               return;
           }
           videoInfo = _streamMediaExplorerService.getVideoInfoFromHistory(
@@ -219,9 +180,7 @@ class _HistoryPageState extends State<HistoryPage> {
         context.push(location.toString(), extra: videoInfo);
       }
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '播放失败', description: e.toString());
-      }
+      showToast(level: 3, title: '播放失败', description: e.toString());
     }
   }
 

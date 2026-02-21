@@ -1,14 +1,16 @@
+import 'package:fldanplay/service/global.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 
 /// [level] 0: none, 1: info, 2: warning, 3: error
-void showToast(
-  BuildContext context, {
+void showToast({
   required String title,
   String? description,
   FToastAlignment alignment = FToastAlignment.topRight,
   int level = 0,
 }) {
+  final ctx = GetIt.I.get<GlobalService>().appContext;
   Widget? icon;
   switch (level) {
     case 1:
@@ -22,17 +24,14 @@ void showToast(
       );
       break;
     case 3:
-      icon = Icon(FIcons.circleX, size: 20, color: context.theme.colors.error);
+      icon = Icon(FIcons.circleX, size: 20, color: ctx.theme.colors.error);
       break;
   }
   showFToast(
-    context: context,
+    context: ctx,
     alignment: alignment,
     icon: icon,
-    title: Text(
-      title,
-      style: context.theme.typography.base.copyWith(height: 1),
-    ),
+    title: Text(title, style: ctx.theme.typography.base.copyWith(height: 1)),
     description: description != null ? Text(description) : null,
     suffixBuilder: (context, entry) => IntrinsicHeight(
       child: FButton.icon(

@@ -113,7 +113,7 @@ class SelectStorageTypeSheet extends StatelessWidget {
 class _StorageFormData {
   final Map<String, TextEditingController> controllers = {};
   final Map<String, bool> toggleValues = {};
-  final Map<String, FMultiValueNotifier> selectControllers = {};
+  final Map<String, String> selectValues = {};
 
   void initialize(List<_FieldConfig> configs) {
     dispose();
@@ -126,7 +126,7 @@ class _StorageFormData {
           toggleValues[field.key] = false;
           break;
         case _FieldType.select:
-          selectControllers[field.key] = FMultiValueNotifier();
+          selectValues[field.key] = field.options?.values.first ?? '';
           break;
       }
     }
@@ -172,9 +172,7 @@ class _StorageFormData {
             case 'ftpMode':
             case 'smbVersion':
               // TODO:
-              selectControllers[field.key]!.value = {
-                field.options!.values.first,
-              };
+              selectValues[field.key] = field.options!.values.first;
               break;
           }
           break;
@@ -222,16 +220,14 @@ class _StorageFormData {
         case _FieldType.select:
           switch (field.key) {
             case 'ftpMode':
-              // TODO:
-              selectControllers[field.key]!.value = {
-                field.options!.values.first,
-              };
+              selectValues[field.key] =
+                  // _storage.ftpMode ??
+                  field.options!.values.first;
               break;
             case 'smbVersion':
-              // TODO:
-              selectControllers[field.key]!.value = {
-                field.options!.values.first,
-              };
+              selectValues[field.key] =
+                  // _storage.smbVersion ??
+                  field.options!.values.first;
               break;
           }
           break;
@@ -243,12 +239,9 @@ class _StorageFormData {
     for (final controller in controllers.values) {
       controller.dispose();
     }
-    for (final controller in selectControllers.values) {
-      controller.dispose();
-    }
     controllers.clear();
     toggleValues.clear();
-    selectControllers.clear();
+    selectValues.clear();
   }
 }
 
@@ -380,8 +373,6 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
   bool _isLoading = false;
 
   List<CollectionItem> _mediaServerLibraries = [];
-  final FMultiValueNotifier _streamMediaLibraryController =
-      FMultiValueNotifier();
   bool _isMediaServerLoggedIn = false;
   String get _title {
     switch (widget.storageType) {
@@ -419,7 +410,6 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
     setState(() {
       _nameController = TextEditingController(text: _storage.name);
       _uniqueKeyController = TextEditingController(text: _storage.uniqueKey);
-      _streamMediaLibraryController.value = {_storage.mediaLibraryId ?? ''};
       _formData.loadFromStorage(_storage, _fieldConfigs);
     });
   }
@@ -441,22 +431,13 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
       _storage.storageType = widget.storageType;
       _formData.saveToStorage(_storage, _fieldConfigs);
       await _storageService.update(_storage);
-      if (context.mounted) {
-        showToast(context, title: '媒体库保存成功');
-        for (final controller in _formData.controllers.values) {
-          controller.clear();
-        }
+      showToast(title: '媒体库保存成功');
+      for (final controller in _formData.controllers.values) {
+        controller.clear();
       }
       return true;
     } catch (e) {
-      if (context.mounted) {
-        showToast(
-          context,
-          level: 3,
-          title: '媒体库保存失败',
-          description: e.toString(),
-        );
-      }
+      showToast(level: 3, title: '媒体库保存失败', description: e.toString());
       return false;
     } finally {
       if (mounted) {
@@ -479,9 +460,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         username.isEmpty ||
         password == null ||
         password.isEmpty) {
-      if (mounted) {
-        showToast(context, level: 2, title: '请填写完整的服务器地址、用户名和密码');
-      }
+      showToast(level: 2, title: '请填写完整的服务器地址、用户名和密码');
       return;
     }
     setState(() => _isLoading = true);
@@ -512,13 +491,9 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         _mediaServerLibraries = libraries;
         _isMediaServerLoggedIn = true;
       });
-      if (mounted) {
-        showToast(context, title: '登录成功！请选择媒体库');
-      }
+      showToast(title: '登录成功！请选择媒体库');
     } catch (e) {
-      if (mounted) {
-        showToast(context, level: 3, title: '登录失败', description: e.toString());
-      }
+      showToast(level: 3, title: '登录失败', description: e.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -586,11 +561,11 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: FSelectMenuTile.fromMap(
-            selectControl: .managed(
-              controller: _formData.selectControllers[field.key]!,
+            selectControl: .lifted(
+              value: {_formData.selectValues[field.key]},
               onChange: (value) {
                 setState(() {
-                  _formData.selectControllers[field.key]!.value = {value.last!};
+                  _formData.selectValues[field.key] = value.last!;
                 });
               },
             ),
@@ -599,9 +574,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
             details: Text(
               field.options!.entries
                   .firstWhere(
-                    (e) =>
-                        e.value ==
-                        _formData.selectControllers[field.key]!.value.first,
+                    (e) => e.value == _formData.selectValues[field.key],
                   )
                   .key,
             ),
@@ -744,14 +717,13 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                       vertical: 6,
                     ),
                     child: FSelectMenuTile.fromMap(
-                      selectControl: .managed(
-                        controller: _streamMediaLibraryController,
+                      selectControl: .lifted(
+                        value: {_formData.controllers['mediaLibraryId']!.text},
                         onChange: (value) {
                           if (value.isEmpty) return;
                           setState(() {
                             _formData.controllers['mediaLibraryId']!.text =
                                 value.last;
-                            _streamMediaLibraryController.value = {value.last};
                           });
                         },
                       ),

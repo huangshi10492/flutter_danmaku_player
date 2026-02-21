@@ -82,7 +82,7 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FAccordion(
-              style: .delta(childPadding: .zero),
+              style: .delta(childPadding: .value(.zero)),
               children: _buildBody(),
             ),
           ),
@@ -120,7 +120,7 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
         ),
         const SizedBox(width: 8),
         FButton.icon(
-          style: .delta(iconContentStyle: .delta(padding: .all(8))),
+          style: .delta(iconContentStyle: .delta(padding: .value(.all(8)))),
           onPress: _isLoading ? () {} : _search,
           child: _isLoading
               ? const SizedBox(
@@ -176,9 +176,9 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
             final episode = anime.episodes[(index / 2).round()];
             return FItem(
               style: .delta(
-                margin: const .symmetric(vertical: 2, horizontal: 0),
+                margin: .value(.symmetric(vertical: 2, horizontal: 0)),
                 contentStyle: .delta(
-                  padding: .symmetric(vertical: 10, horizontal: 6),
+                  padding: .value(.symmetric(vertical: 10, horizontal: 6)),
                 ),
               ),
               title: Text(
