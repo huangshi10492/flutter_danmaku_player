@@ -52,7 +52,9 @@ class DanmakuService {
   int lastTime = 0;
   String cacheDir = "";
   int _durationSeconds = 0;
+  List<String> danmakuFilterKeywords = [];
   late bool danmakuServiceEnable = configureService.danmakuServiceEnable.value;
+  late void Function() filterEffect;
 
   Future<void> init() async {
     final documentsDir = await getApplicationSupportDirectory();
@@ -62,6 +64,10 @@ class DanmakuService {
     danmakuSettings.value = sittings;
     controller.updateOption(sittings.toDanmakuOption());
     globalService.videoName = videoInfo.videoName;
+    danmakuFilterKeywords = configureService.danmakuFilterKeywords.value;
+    filterEffect = effect(() {
+      danmakuFilterKeywords = configureService.danmakuFilterKeywords.value;
+    });
     loadDanmaku();
   }
 
@@ -175,10 +181,27 @@ class DanmakuService {
     }
   }
 
+  bool shouldFilterDanmaku(String text) {
+    for (String item in danmakuFilterKeywords) {
+      if (item.startsWith('/') && item.endsWith('/')) {
+        if (item.length <= 2) continue;
+        String pattern = item.substring(1, item.length - 1);
+        try {
+          if (RegExp(pattern).hasMatch(text)) return true;
+        } catch (_) {
+          continue;
+        }
+      } else {
+        if (text.contains(item)) return true;
+      }
+    }
+    return false;
+  }
+
   /// 将弹幕添加到控制器中显示
   void _addDanmakuToController(Danmaku danmaku) {
     try {
-      // 根据弹幕类型转换为canvas_danmaku的类型
+      if (shouldFilterDanmaku(danmaku.text)) return;
       DanmakuItemType danmakuType;
       switch (danmaku.type) {
         case 4:

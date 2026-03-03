@@ -14,6 +14,7 @@ import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
+import 'package:fldanplay/widget/danmaku_keyword_filter.dart';
 import 'package:fldanplay/widget/settings/radio_settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
@@ -34,6 +35,7 @@ enum RightDrawerType {
   subtitleTrack,
   metadata,
   playerUI,
+  danmakuKeywordFilter,
 }
 
 class RightDrawerContent extends StatelessWidget {
@@ -83,7 +85,10 @@ class RightDrawerContent extends StatelessWidget {
           danmakuService: playerService.danmakuService,
         );
       case RightDrawerType.danmakuFilter:
-        return DanmakuFilterPanel(danmakuService: playerService.danmakuService);
+        return DanmakuFilterPanel(
+          danmakuService: playerService.danmakuService,
+          onDrawerChanged: onDrawerChanged,
+        );
       case RightDrawerType.episode:
         return _buildEpisodePanel(context);
       case RightDrawerType.audioTrack:
@@ -94,6 +99,13 @@ class RightDrawerContent extends StatelessWidget {
         return _buildMetadataPanel(context);
       case RightDrawerType.playerUI:
         return _buildPlayerUI(context);
+      case .danmakuKeywordFilter:
+        return Scaffold(
+          body: Padding(
+            padding: const .all(4),
+            child: SingleChildScrollView(child: DanmakuKeywordFilter()),
+          ),
+        );
     }
   }
 

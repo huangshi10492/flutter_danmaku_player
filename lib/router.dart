@@ -78,6 +78,15 @@ final router = GoRouter(
             key: state.pageKey,
             child: const DanmakuSettingsPage(),
           ),
+          routes: [
+            GoRoute(
+              path: 'filter',
+              pageBuilder: (context, state) => SlideAndExitTransitionPage(
+                key: state.pageKey,
+                child: const DanmakuKeywordFilterPage(),
+              ),
+            ),
+          ],
         ),
         GoRoute(
           path: 'font',

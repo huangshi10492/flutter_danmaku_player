@@ -1,3 +1,4 @@
+import 'package:fldanplay/page/player/right_drawer.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/utils/icon.dart';
@@ -11,8 +12,12 @@ import 'package:signals_flutter/signals_flutter.dart';
 
 class DanmakuFilterPanel extends StatelessWidget {
   final DanmakuService danmakuService;
-
-  const DanmakuFilterPanel({super.key, required this.danmakuService});
+  final void Function(RightDrawerType newType) onDrawerChanged;
+  const DanmakuFilterPanel({
+    super.key,
+    required this.danmakuService,
+    required this.onDrawerChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -137,6 +142,12 @@ class DanmakuFilterPanel extends StatelessWidget {
                   subtitle: '(${ratio['Other']!})',
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            FButton(
+              suffix: Icon(FIcons.arrowRight),
+              onPress: () => onDrawerChanged(.danmakuKeywordFilter),
+              child: const Text('关键词过滤'),
             ),
             SettingsSection(
               title: '延迟设置',

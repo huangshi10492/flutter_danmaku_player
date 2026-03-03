@@ -1,12 +1,14 @@
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/theme/tile_style.dart';
 import 'package:fldanplay/utils/dialog.dart';
+import 'package:fldanplay/widget/danmaku_keyword_filter.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 class DanmakuSettingsPage extends StatefulWidget {
@@ -114,6 +116,12 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
                     configure.defaultDanmakuEnable.value = value;
                   },
                 ),
+                SettingsTile.navigationTile(
+                  title: '关键词过滤',
+                  onPress: () {
+                    context.push('/settings/danmaku/filter');
+                  },
+                ),
               ],
             ),
             SettingsSection(
@@ -194,6 +202,18 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class DanmakuKeywordFilterPage extends StatelessWidget {
+  const DanmakuKeywordFilterPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SettingsScaffold(
+      title: '关键词过滤',
+      child: DanmakuKeywordFilter(),
     );
   }
 }
