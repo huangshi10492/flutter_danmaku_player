@@ -347,6 +347,13 @@ class RightDrawerContent extends StatelessWidget {
                     configure.showDanmakuTrend.value = value;
                   },
                 ),
+                SettingsTile.switchTile(
+                  title: '始终显示进度条',
+                  switchValue: configure.alwaysShowProgressBar.value,
+                  onBoolChange: (value) {
+                    configure.alwaysShowProgressBar.value = value;
+                  },
+                ),
               ],
             ),
             Padding(

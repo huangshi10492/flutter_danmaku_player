@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:auto_orientation/auto_orientation.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:fldanplay/model/history.dart';
@@ -228,6 +229,25 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             },
             child: Stack(
               children: [
+                Watch((context) {
+                  if (!_configureService.alwaysShowProgressBar.value ||
+                      _uiState.showControls.value) {
+                    return const SizedBox.shrink();
+                  }
+                  return Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: ProgressBar(
+                      progress: _playerService.value.position.value,
+                      buffered: _playerService.value.bufferedPosition.value,
+                      total: _playerService.value.duration,
+                      barHeight: 2,
+                      thumbRadius: 0,
+                      timeLabelLocation: .none,
+                    ),
+                  );
+                }),
                 ..._buildAnimatedControls(),
                 _buildStatusIndicatorOverlay(),
                 _buildProgressIndicatorOverlay(),

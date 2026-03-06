@@ -176,6 +176,10 @@ class ConfigureService {
     key: 'desktopVolume',
     defaultValue: 0.9,
   );
+  late final Signal<bool> alwaysShowProgressBar = _config(
+    key: 'alwaysShowProgressBar',
+    defaultValue: true,
+  );
 
   DanmakuSettings getDanmakuSettings() {
     final jsonString = _box.get('danmakuSettings');

@@ -106,6 +106,13 @@ class PlayerSettingsPage extends StatelessWidget {
                     configure.showDanmakuTrend.value = value;
                   },
                 ),
+                SettingsTile.switchTile(
+                  title: '始终显示进度条',
+                  switchValue: configure.alwaysShowProgressBar.value,
+                  onBoolChange: (value) {
+                    configure.alwaysShowProgressBar.value = value;
+                  },
+                ),
                 SettingsTile.radioTile(
                   title: '下一章节按钮显示模式',
                   onRadioChange: (value) {
