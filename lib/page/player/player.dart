@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:auto_orientation/auto_orientation.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
@@ -39,11 +37,8 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late final Signal<VideoPlayerService> _playerService = signal(
-    VideoPlayerService(widget.videoInfo),
-  );
+  late final _playerService = VideoPlayerService(widget.videoInfo);
   final PlayerUIState _uiState = PlayerUIState();
-  late final DanmakuController _danmakuController;
   final _globalService = GetIt.I.get<GlobalService>();
   final _configureService = GetIt.I.get<ConfigureService>();
   late final Signal<VideoInfo> _videoInfo = signal(widget.videoInfo);
@@ -52,16 +47,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void initState() {
     super.initState();
     _uiState.init();
-    _initializePlayer();
-  }
-
-  /// 初始化播放器
-  Future<void> _initializePlayer() async {
-    await _playerService.value.initialize();
-    // 显示控制栏
-    _uiState.showControlsTemporarily();
     effect(() {
-      if (_playerService.value.playerState.value == PlayerState.completed) {
+      if (_playerService.playerState.value == .completed) {
         _uiState.updateControlsVisibility(true);
       }
     });
@@ -71,7 +58,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void dispose() {
     // 释放UI状态管理器
     _uiState.dispose();
-    _playerService.value.dispose();
+    _playerService.dispose();
     // 恢复系统UI
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     AutoOrientation.fullAutoMode();
@@ -91,7 +78,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       body: GestureDetector(
         onTap: () {
           if (Utils.isDesktop()) {
-            _playerService.value.togglePlayPause();
+            _playerService.togglePlayPause();
           } else {
             if (_uiState.showControls.value) {
               _uiState.updateControlsVisibility(false);
@@ -105,7 +92,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             windowManager.setFullScreen(!_uiState.isFullScreen.value);
             _uiState.isFullScreen.value = !_uiState.isFullScreen.value;
           } else {
-            _playerService.value.togglePlayPause();
+            _playerService.togglePlayPause();
           }
         },
         child: Focus(
@@ -114,11 +101,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             if (event is KeyDownEvent) {
               // 当空格键被按下时
               if (event.logicalKey == LogicalKeyboardKey.space) {
-                _playerService.value.togglePlayPause();
+                _playerService.togglePlayPause();
               }
               // 左方向键被按下
               if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-                _playerService.value.seekRelative(
+                _playerService.seekRelative(
                   Duration(seconds: -_configureService.backwardSeconds.value),
                 );
               }
@@ -128,7 +115,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 final newVolume = (initialVolume + 0.05).clamp(0.0, 1.0);
                 _uiState.setVolume(newVolume);
                 BrightnessVolumeService.setVolume(newVolume);
-                _playerService.value.setVolume(newVolume);
+                _playerService.setVolume(newVolume);
               }
               // 下方向键被按下
               if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -136,7 +123,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 final newVolume = (initialVolume - 0.05).clamp(0.0, 1.0);
                 _uiState.setVolume(newVolume);
                 BrightnessVolumeService.setVolume(newVolume);
-                _playerService.value.setVolume(newVolume);
+                _playerService.setVolume(newVolume);
               }
               if (event.logicalKey == LogicalKeyboardKey.escape) {
                 windowManager.setFullScreen(false);
@@ -148,20 +135,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 _uiState.startLongPress(
                   _configureService.doublePlaySpeed.value *
                       (_configureService.doubleWithNowSpeed.value
-                          ? _playerService.value.playbackSpeed.value
+                          ? _playerService.playbackSpeed.value
                           : 1),
                 );
                 HapticFeedback.vibrate();
-                _playerService.value.doubleSpeed(true);
+                _playerService.doubleSpeed(true);
               }
             } else if (event is KeyUpEvent) {
               // 右方向键抬起
               if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
                 if (_uiState.longPress.value) {
                   _uiState.endLongPress();
-                  _playerService.value.doubleSpeed(false);
+                  _playerService.doubleSpeed(false);
                 } else {
-                  _playerService.value.seekRelative(
+                  _playerService.seekRelative(
                     Duration(seconds: _configureService.forwardSeconds.value),
                   );
                 }
@@ -176,19 +163,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     _uiState.startLongPress(
                       _configureService.doublePlaySpeed.value *
                           (_configureService.doubleWithNowSpeed.value
-                              ? _playerService.value.playbackSpeed.value
+                              ? _playerService.playbackSpeed.value
                               : 1),
                     );
                     HapticFeedback.vibrate();
-                    _playerService.value.doubleSpeed(true);
+                    _playerService.doubleSpeed(true);
                   },
                   onLongPressEnd: () {
                     _uiState.endLongPress();
-                    _playerService.value.doubleSpeed(false);
+                    _playerService.doubleSpeed(false);
                   },
                   onPanStart: () {
                     _uiState.startGesture(
-                      initialPosition: _playerService.value.position.value,
+                      initialPosition: _playerService.position.value,
                     );
                   },
                   onPanEnd: _uiState.endGesture,
@@ -212,8 +199,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         _buildDanmakuLayer(),
         _buildNotificationOverlay(),
         Watch((context) {
-          final playerState = _playerService.value.playerState.value;
-          final errorMessage = _playerService.value.errorMessage.value;
+          final playerState = _playerService.playerState.value;
+          final errorMessage = _playerService.errorMessage.value;
           if (playerState == PlayerState.error) {
             return _buildErrorWidget(errorMessage);
           }
@@ -241,9 +228,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     left: 0,
                     right: 0,
                     child: ProgressBar(
-                      progress: _playerService.value.position.value,
-                      buffered: _playerService.value.bufferedPosition.value,
-                      total: _playerService.value.duration,
+                      progress: _playerService.position.value,
+                      buffered: _playerService.bufferedPosition.value,
+                      total: _playerService.duration,
                       barHeight: 2,
                       thumbRadius: 0,
                       timeLabelLocation: .none,
@@ -279,13 +266,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               style: context.theme.typography.sm,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
-            FButton(
-              onPress: () {
-                _initializePlayer();
-              },
-              child: const Text('重试'),
-            ),
           ],
         ),
       ),
@@ -293,30 +273,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   Widget _buildLoadingWidget() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.all(16),
-          child: FButton.icon(
-            variant: .ghost,
-            onPress: () => context.pop(),
-            child: const Icon(FIcons.arrowLeft),
-          ),
+    return Scaffold(
+      appBar: SysAppBar(title: ''),
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: .center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('正在加载视频...', style: context.theme.typography.base),
+          ],
         ),
-        Expanded(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 16),
-                Text('正在加载视频...', style: context.theme.typography.base),
-              ],
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -371,7 +340,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     onPressed: () => context.pop(),
                   ),
                   Watch((context) {
-                    final videoName = _playerService.value.name.value;
+                    final videoName = _playerService.name.value;
                     return Expanded(
                       child: Text(
                         videoName,
@@ -413,28 +382,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 // 弹幕开关
                 Watch((context) {
                   final enabled =
-                      _playerService.value.danmakuService.danmakuEnabled.value;
+                      _playerService.danmakuService.danmakuEnabled.value;
                   return enabled
                       ? IconButton(
                           onPressed: () {
-                            _playerService
-                                    .value
-                                    .danmakuService
-                                    .danmakuEnabled
-                                    .value =
+                            _playerService.danmakuService.danmakuEnabled.value =
                                 false;
-                            _playerService.value.danmakuService.controller
-                                .clear();
+                            _playerService.danmakuService.controller.clear();
                           },
                           icon: Icon(MyIcon.danmaku, size: 24),
                         )
                       : IconButton(
                           onPressed: () {
-                            _playerService
-                                    .value
-                                    .danmakuService
-                                    .danmakuEnabled
-                                    .value =
+                            _playerService.danmakuService.danmakuEnabled.value =
                                 true;
                           },
                           icon: Icon(MyIcon.danmakuOff, size: 24),
@@ -491,8 +451,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   children: [
                     // 播放/暂停
                     Watch((context) {
-                      final playerState = _playerService.value.playerState
-                          .watch(context);
+                      final playerState = _playerService.playerState.value;
                       return IconButton(
                         icon: Icon(
                           playerState == PlayerState.playing
@@ -500,7 +459,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               : Icons.play_arrow,
                           size: 24,
                         ),
-                        onPressed: _playerService.value.togglePlayPause,
+                        onPressed: _playerService.togglePlayPause,
                       );
                     }),
                     // 上一个视频
@@ -533,10 +492,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 // 右侧按钮组
                 Row(
                   children: [
-                    _buildJumpButton(_playerService.value.chapters.value),
+                    _buildJumpButton(_playerService.chapters.value),
                     // 速度控制
                     Watch((context) {
-                      final speed = _playerService.value.playbackSpeed.value;
+                      final speed = _playerService.playbackSpeed.value;
                       return TextButton(
                         onPressed: () =>
                             _showRightDrawer(RightDrawerType.speed),
@@ -588,7 +547,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget _buildJumpButton(Map<int, String> chapters) {
     final nextChapterMode = _configureService.jumpButtonMode.value;
     final secondButton = TextButton(
-      onPressed: () => _playerService.value.seekRelative(
+      onPressed: () => _playerService.seekRelative(
         Duration(seconds: _configureService.seekOPSeconds.value),
       ),
       child: Row(
@@ -606,7 +565,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return secondButton;
     }
     final nextChapterButton = Watch((context) {
-      final position = _playerService.value.position.value;
+      final position = _playerService.position.value;
       String text = "";
       Duration? nextChapter;
       for (var chapter in chapters.entries) {
@@ -622,7 +581,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         child: Text(text, style: context.theme.typography.base),
         onPressed: () {
           if (nextChapter == null) return;
-          _playerService.value.seekTo(nextChapter);
+          _playerService.seekTo(nextChapter);
         },
       );
     });
@@ -635,14 +594,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   /// 构建视频播放器组件
   Widget _buildVideoPlayer() {
     return Watch((context) {
-      final playerState = _playerService.value.playerState.value;
-      if (playerState == PlayerState.error ||
-          playerState == PlayerState.loading) {
+      if (_playerService.controller.value == null) {
         return Container();
       }
       return Center(
         child: Video(
-          controller: _playerService.value.controller,
+          controller: _playerService.controller.value!,
           controls: NoVideoControls,
         ),
       );
@@ -653,13 +610,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget _buildDanmakuLayer() {
     return Watch((context) {
       final opacity =
-          _playerService.value.danmakuService.danmakuSettings.value.opacity;
+          _playerService.danmakuService.danmakuSettings.value.opacity;
       return Opacity(
         opacity: opacity,
         child: DanmakuScreen(
           createdController: (controller) {
-            _danmakuController = controller;
-            _playerService.value.danmakuService.controller = controller;
+            _playerService.danmakuService.controller = controller;
           },
           option: DanmakuOption(),
         ),
@@ -708,11 +664,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   /// 构建缓冲指示器
   Widget _buildBufferingIndicator() {
     return Watch((context) {
-      final playerState = _playerService.value.playerState.value;
+      final playerState = _playerService.playerState.value;
       if (playerState != PlayerState.buffering) {
         return const SizedBox.shrink();
       }
-      final bufferedPosition = _playerService.value.bufferedPosition.value;
+      final bufferedPosition = _playerService.bufferedPosition.value;
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -766,14 +722,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     final newVolume = (initialVolume + offset).clamp(0.0, 1.0);
     _uiState.setVolume(newVolume);
     BrightnessVolumeService.setVolume(newVolume);
-    _playerService.value.setVolume(newVolume);
+    _playerService.setVolume(newVolume);
   }
 
   /// 调整播放进度
   void _adjustProgress(Duration offset, bool end) {
     final initialPosition = _uiState.initialPositionOnPan;
     if (initialPosition == null) return;
-    final duration = _playerService.value.duration;
+    final duration = _playerService.duration;
     if (duration.inMilliseconds <= 0) return;
     final newPosition = (initialPosition + offset);
     // 限制在视频时长范围内
@@ -790,7 +746,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       '$seekSecondsText|$newPositionText / $durationText',
     );
     if (end) {
-      _playerService.value.seekTo(finalPosition);
+      _playerService.seekTo(finalPosition);
     }
   }
 
@@ -832,16 +788,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget _buildProgressBar() {
     return Watch((context) {
       return VideoProgressBar(
-        progress: _playerService.value.position.value,
-        total: _playerService.value.duration,
-        buffered: _playerService.value.bufferedPosition.value,
+        progress: _playerService.position.value,
+        total: _playerService.duration,
+        buffered: _playerService.bufferedPosition.value,
         danmakuTrend: _configureService.showDanmakuTrend.value
-            ? _playerService.value.danmakuService.danmakuTrend.value
+            ? _playerService.danmakuService.danmakuTrend.value
             : [],
         chapters: _configureService.showChapter.value
-            ? _playerService.value.chapters.value
+            ? _playerService.chapters.value
             : {},
-        onSeek: _playerService.value.seekTo,
+        onSeek: _playerService.seekTo,
         onDragStart: (_) => _uiState.updateControlsVisibility(true),
         onDragEnd: () => _uiState.showControlsTemporarily(),
       );
@@ -874,13 +830,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       );
       if (history != null) await historyService.save(history);
     }
-    final service = _playerService.value;
-    _danmakuController.clear();
-    _playerService.value = VideoPlayerService(newVideoInfo);
     _videoInfo.value = newVideoInfo;
-    service.dispose();
-    _playerService.value.danmakuService.controller = _danmakuController;
-    _initializePlayer();
+    _playerService.switchVideo(newVideoInfo);
   }
 
   void _showRightDrawer(RightDrawerType drawerType) {
@@ -893,7 +844,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       builder: (context) {
         return RightDrawerContent(
           drawerType: drawerType,
-          playerService: _playerService.value,
+          playerService: _playerService,
           onEpisodeSelected: _switchVideo,
           videoInfo: _videoInfo.value,
           onDrawerChanged: (newType) {

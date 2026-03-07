@@ -303,24 +303,36 @@ class RightDrawerContent extends StatelessWidget {
   }
 
   Widget _buildMetadataPanel(BuildContext context) {
-    return ListView(
-      children: [
-        Text('视频来源', style: context.theme.typography.xl),
-        const SizedBox(height: 8),
-        SelectableText(playerService.media.toString()),
-        const SizedBox(height: 16),
-        Text('硬件解码器', style: context.theme.typography.xl),
-        const SizedBox(height: 8),
-        SelectableText(playerService.hwdec),
-        const SizedBox(height: 16),
-        Text('视频信息', style: context.theme.typography.xl),
-        const SizedBox(height: 8),
-        SelectableText(playerService.videoParams.toString()),
-        const SizedBox(height: 16),
-        Text('音频信息', style: context.theme.typography.xl),
-        const SizedBox(height: 8),
-        SelectableText(playerService.audioParams.toString()),
-      ],
+    return FutureBuilder(
+      future: playerService.getMetadata(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('加载失败'));
+        }
+        final data = snapshot.data!;
+        return ListView(
+          children: [
+            Text('视频来源', style: context.theme.typography.xl),
+            const SizedBox(height: 8),
+            SelectableText(data.media),
+            const SizedBox(height: 16),
+            Text('硬件解码器', style: context.theme.typography.xl),
+            const SizedBox(height: 8),
+            SelectableText(data.hwdec),
+            const SizedBox(height: 16),
+            Text('视频信息', style: context.theme.typography.xl),
+            const SizedBox(height: 8),
+            SelectableText(data.videoParams),
+            const SizedBox(height: 16),
+            Text('音频信息', style: context.theme.typography.xl),
+            const SizedBox(height: 8),
+            SelectableText(data.audioParams),
+          ],
+        );
+      },
     );
   }
 

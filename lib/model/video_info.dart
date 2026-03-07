@@ -65,3 +65,17 @@ class TrackInfo {
     required this.title,
   });
 }
+
+class Metadata {
+  final String media;
+  final String hwdec;
+  final String videoParams;
+  final String audioParams;
+
+  const Metadata({
+    required this.media,
+    required this.hwdec,
+    required this.videoParams,
+    required this.audioParams,
+  });
+}

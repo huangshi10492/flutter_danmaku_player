@@ -72,14 +72,13 @@ enum PlayerState {
 }
 
 class VideoPlayerService {
-  final VideoInfo videoInfo;
-
   final _historyService = GetIt.I<HistoryService>();
   final _globalService = GetIt.I<GlobalService>();
   final _configureService = GetIt.I<ConfigureService>();
 
   final _log = Logger('player');
 
+  final Signal<VideoController?> controller = signal(null);
   final Signal<PlayerState> playerState = Signal(PlayerState.loading);
   final Signal<Duration> position = Signal(Duration.zero);
   final Signal<Duration> bufferedPosition = Signal(Duration.zero);
@@ -93,8 +92,8 @@ class VideoPlayerService {
   final Signal<int> activeSubtitleTrack = Signal(0);
   final Signal<Map<int, String>> chapters = Signal({});
 
-  late final Player _player;
-  late final VideoController controller;
+  VideoInfo _videoInfo;
+  late Player _player;
   late AudioSession _session;
   bool _playInterrupted = false;
   final _subscriptions = <StreamSubscription>[];
@@ -102,37 +101,35 @@ class VideoPlayerService {
   late DanmakuService danmakuService;
   late History _history;
   StreamSubscription<PlayerLog>? playerLogSubscription;
-  AudioParams? audioParams;
-  VideoParams? videoParams;
-  Media? media;
-  String hwdec = '';
 
   // 定时器组
   late final Map<TimerType, UpdateTimer> _timerGroup = {
-    TimerType.history: UpdateTimer((_) => updatePlaybackHistory(), time: 3000),
-    TimerType.danmaku: UpdateTimer(
+    .history: UpdateTimer((_) => updatePlaybackHistory(), time: 3000),
+    .danmaku: UpdateTimer(
       (_) => danmakuService.updatePlayPosition(
         position.value,
         playbackSpeed.value,
       ),
       time: 100,
     ),
-    TimerType.reportProgress: UpdateTimer((_) => _reportProgress(), time: 3000),
+    .reportProgress: UpdateTimer((_) => _reportProgress(), time: 3000),
   };
 
-  VideoPlayerService(this.videoInfo) {
+  VideoPlayerService(VideoInfo videoInfo) : _videoInfo = videoInfo {
     danmakuService = DanmakuService(videoInfo);
+    _initialize();
+  }
+
+  Future<void> _createPlayer() async {
     _player = Player(
       configuration: PlayerConfiguration(
         bufferSize:
             pow(2, _configureService.playerMemory.value).round() * 1024 * 1024,
-        logLevel: _configureService.playerDebugMode.value
-            ? MPVLogLevel.debug
-            : MPVLogLevel.error,
+        logLevel: _configureService.playerDebugMode.value ? .debug : .error,
         libass: true,
       ),
     );
-    controller = VideoController(
+    controller.value = VideoController(
       _player,
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration:
@@ -140,105 +137,146 @@ class VideoPlayerService {
         hwdec: _configureService.hardwareDecoder.value,
       ),
     );
-    name.value = videoInfo.name;
+    _listenPlayerStreams();
+    await _setProperty();
+    await setPlaybackSpeed(_configureService.defaultPlaySpeed.value);
   }
 
-  Future<void> initialize() async {
+  void _listenPlayerStreams() {
+    _subscriptions.add(
+      _player.stream.error.listen((e) {
+        showToast(level: 3, title: '播放器发生错误', description: e.toString());
+        _log.error('mpv', '播放器发生错误', error: e);
+      }),
+    );
+    playerLogSubscription?.cancel();
+    playerLogSubscription = _player.stream.log.listen((event) {
+      switch (event.level) {
+        case 'info':
+          _log.info('mpv', '${event.prefix}:${event.text}');
+        case 'error':
+          break;
+        case 'warning':
+          _log.warn('mpv', '${event.prefix}:${event.text}');
+        default:
+          _log.debug('mpv', '${event.prefix}:${event.text}');
+      }
+    });
+    _subscriptions.addAll([
+      _player.stream.playing.listen(_onPlayingStateChanged),
+      _player.stream.completed.listen(_onCompleted),
+      _player.stream.buffering.listen(_onBufferingStateChanged),
+      _player.stream.position.listen((p) => position.value = p),
+      _player.stream.buffer.listen((b) => bufferedPosition.value = b),
+    ]);
+  }
+
+  void _resetPlaybackState() {
+    playerState.value = .loading;
+    position.value = Duration.zero;
+    bufferedPosition.value = Duration.zero;
+    duration = Duration.zero;
+    errorMessage.value = null;
+    audioTracks.value = [];
+    subtitleTracks.value = [];
+    externalSubtitle.value = null;
+    activeAudioTrack.value = 0;
+    activeSubtitleTrack.value = 0;
+    chapters.value = {};
+  }
+
+  Future<void> _initialize() async {
     try {
       _log.info('initialize', '开始初始化视频播放器');
-      _subscriptions.add(
-        _player.stream.error.listen((e) {
-          showToast(level: 3, title: '播放器发生错误', description: e.toString());
-          _log.error('mpv', '播放器发生错误', error: e);
-        }),
-      );
-      await _setProperty();
-      playerState.value = PlayerState.loading;
-      errorMessage.value = null;
-      setPlaybackSpeed(_configureService.defaultPlaySpeed.value);
-      _history = await _historyService.startHistory(
-        url: videoInfo.virtualVideoPath,
-        headers: jsonEncode(videoInfo.headers),
-        type: videoInfo.historiesType,
-        storageKey: videoInfo.storageKey,
-        name: videoInfo.name,
-        subtitle: videoInfo.subtitle,
-        fileName: videoInfo.videoName,
-      );
-      if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
-        GetIt.I.get<GlobalService>().position.value = _history.position;
-        GetIt.I.get<GlobalService>().isPlaying.value = true;
-        GetIt.I.get<StreamMediaExplorerService>().startPlayback(
-          videoInfo.virtualVideoPath,
-        );
-      }
-      late Duration historyPosition;
-      if (_history.position > 0 &&
-          _history.duration - _history.position > 1000) {
-        historyPosition = Duration(milliseconds: _history.position);
-        final positionText = Utils.formatDuration(historyPosition);
-        _globalService.showNotification('恢复到 $positionText');
-        _log.info('initialize', '恢复播放历史: $positionText');
-      } else {
-        historyPosition = Duration.zero;
-      }
-      if (videoInfo.cached) {
-        final cachePath =
-            '${(await getApplicationSupportDirectory()).path}/offline_cache';
-        media = Media(
-          '$cachePath/${videoInfo.uniqueKey}',
-          start: historyPosition,
-        );
-        _log.info('initialize', '加载缓存视频: $cachePath/${videoInfo.uniqueKey}');
-      } else {
-        media = Media(
-          videoInfo.currentVideoPath,
-          httpHeaders: videoInfo.headers,
-          start: historyPosition,
-        );
-        _log.info('initialize', '加载视频: ${videoInfo.currentVideoPath}');
-      }
-      danmakuService.history = _history;
-      danmakuService.init();
-      playerLogSubscription = _player.stream.log.listen((event) {
-        switch (event.level) {
-          case 'info':
-            _log.info('mpv', '${event.prefix}:${event.text}');
-          case 'error':
-            break;
-          case 'warning':
-            _log.warn('mpv', '${event.prefix}:${event.text}');
-          default:
-            _log.debug('mpv', '${event.prefix}:${event.text}');
-        }
-      });
-      await _initSession();
-      await _player.open(media!, play: true);
-      playerState.value = PlayerState.playing;
-      duration = await _player.stream.duration.firstWhere(
-        (d) => d != Duration.zero,
-      );
-      danmakuService.computeTrend(duration.inSeconds);
-      _getChapter();
+      playerState.value = .loading;
       _timerGroup.forEach((_, value) => value.init());
-      _subscriptions.addAll([
-        _player.stream.playing.listen(_onPlayingStateChanged),
-        _player.stream.completed.listen(_onCompleted),
-        _player.stream.buffering.listen(_onBufferingStateChanged),
-        _player.stream.position.listen((p) => position.value = p),
-        _player.stream.buffer.listen((b) => bufferedPosition.value = b),
-      ]);
-      await _loadTracks();
-      audioParams = _player.state.audioParams;
-      videoParams = _player.state.videoParams;
-      hwdec = await (_player.platform! as NativePlayer).getProperty(
-        'hwdec-current',
-      );
+      playbackSpeed.value = _configureService.defaultPlaySpeed.value;
+      await _createPlayer();
+      await _initSession();
+      await _setVideoInfo(_videoInfo);
       _log.info('initialize', '视频播放器初始化完成');
     } catch (e, stackTrace) {
-      playerState.value = PlayerState.error;
+      playerState.value = .error;
       errorMessage.value = e.toString();
       _log.error('initialize', '视频播放器初始化失败', error: e, stackTrace: stackTrace);
+    }
+  }
+
+  Future<void> _setVideoInfo(VideoInfo videoInfo) async {
+    _videoInfo = videoInfo;
+    name.value = videoInfo.name;
+    errorMessage.value = null;
+    _history = await _historyService.startHistory(
+      url: videoInfo.virtualVideoPath,
+      headers: jsonEncode(videoInfo.headers),
+      type: videoInfo.historiesType,
+      storageKey: videoInfo.storageKey,
+      name: videoInfo.name,
+      subtitle: videoInfo.subtitle,
+      fileName: videoInfo.videoName,
+    );
+    if (videoInfo.historiesType == .streamMediaStorage) {
+      GetIt.I.get<GlobalService>().position.value = _history.position;
+      GetIt.I.get<GlobalService>().isPlaying.value = true;
+      GetIt.I.get<StreamMediaExplorerService>().startPlayback(
+        videoInfo.virtualVideoPath,
+      );
+    }
+    late Duration historyPosition;
+    if (_history.position > 0 && _history.duration - _history.position > 1000) {
+      historyPosition = Duration(milliseconds: _history.position);
+      final positionText = Utils.formatDuration(historyPosition);
+      _globalService.showNotification('恢复到 $positionText');
+      _log.info('setVideoInfo', '恢复播放历史: $positionText');
+    } else {
+      historyPosition = Duration.zero;
+    }
+    Media? media;
+    if (videoInfo.cached) {
+      final cachePath =
+          '${(await getApplicationSupportDirectory()).path}/offline_cache';
+      media = Media(
+        '$cachePath/${videoInfo.uniqueKey}',
+        start: historyPosition,
+      );
+      _log.info('setVideoInfo', '加载缓存视频: $cachePath/${videoInfo.uniqueKey}');
+    } else {
+      media = Media(
+        videoInfo.currentVideoPath,
+        httpHeaders: videoInfo.headers,
+        start: historyPosition,
+      );
+      _log.info('setVideoInfo', '加载视频: ${videoInfo.currentVideoPath}');
+    }
+    danmakuService.history = _history;
+    danmakuService.init();
+    await _player.open(media, play: true);
+    playerState.value = .playing;
+    duration = await _player.stream.duration.firstWhere(
+      (d) => d != Duration.zero,
+    );
+    danmakuService.computeTrend(duration.inSeconds);
+    _getChapter();
+    await _loadTracks();
+  }
+
+  Future<void> switchVideo(VideoInfo videoInfo) async {
+    try {
+      final danmakuController = danmakuService.controller;
+      closeVideo().then((_) async {
+        playerState.value = .loading;
+        _videoInfo = videoInfo;
+        name.value = videoInfo.name;
+        _resetPlaybackState();
+        danmakuService = DanmakuService(videoInfo)
+          ..controller = danmakuController;
+        await _createPlayer();
+        await _setVideoInfo(videoInfo);
+      });
+    } catch (e, stackTrace) {
+      playerState.value = .error;
+      errorMessage.value = e.toString();
+      _log.error('switchVideo', '视频切换失败', error: e, stackTrace: stackTrace);
     }
   }
 
@@ -282,6 +320,17 @@ class VideoPlayerService {
       await pp.setProperty("volume", mpvVolume.toString());
       _log.info('_setProperty', '设置桌面端音量: $mpvVolume');
     }
+  }
+
+  Future<Metadata> getMetadata() async {
+    return Metadata(
+      media: _player.state.playlist.medias.first.uri,
+      hwdec: await (_player.platform! as NativePlayer).getProperty(
+        'hwdec-current',
+      ),
+      videoParams: _player.state.videoParams.toString(),
+      audioParams: _player.state.audioParams.toString(),
+    );
   }
 
   Future<void> _initSession() async {
@@ -440,7 +489,14 @@ class VideoPlayerService {
     }
   }
 
-  Future<void> updatePlaybackHistory() async {
+  void updatePlaybackHistory() {
+    switch (playerState.value) {
+      case .completed:
+      case .error:
+      case .loading:
+        return;
+      default:
+    }
     _historyService.updateProgress(
       position: position.value,
       duration: duration,
@@ -483,30 +539,42 @@ class VideoPlayerService {
     return Duration.zero;
   }
 
-  Future<void> dispose() async {
-    pause();
+  Future<void> closeVideo() async {
     try {
-      await updatePlaybackHistory();
+      controller.value = null;
+      pause();
+      for (final s in _subscriptions) {
+        await s.cancel();
+      }
+      _subscriptions.clear();
+      await playerLogSubscription?.cancel();
+      playerLogSubscription = null;
+      updatePlaybackHistory();
       if (_globalService.updateListener != null) {
         _globalService.updateListener!(_history.uniqueKey);
       }
       GetIt.I.get<WebDAVSyncService>().syncHistories();
-      if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
+      if (_videoInfo.historiesType == .streamMediaStorage) {
         GetIt.I.get<StreamMediaExplorerService>().stopPlayback(
-          videoInfo.virtualVideoPath,
+          _videoInfo.virtualVideoPath,
         );
       }
-      await saveSnapshot();
-      if (_globalService.updateListener != null) {
-        _globalService.updateListener!(_history.uniqueKey);
-      }
+      final player = _player;
+      saveSnapshot().then((_) {
+        if (_globalService.updateListener != null) {
+          _globalService.updateListener!(_history.uniqueKey);
+        }
+        player.dispose();
+      });
+    } catch (e, t) {
+      _log.error('closeVideo', '关闭视频失败', error: e, stackTrace: t);
+    }
+  }
+
+  Future<void> dispose() async {
+    try {
       _timerGroup.forEach((_, value) => value.dispose());
-      for (final s in _subscriptions) {
-        s.cancel();
-      }
-      _subscriptions.clear();
-      playerLogSubscription?.cancel();
-      await _player.dispose();
+      await closeVideo();
     } catch (e, t) {
       _log.error('dispose', '释放播放器资源失败', error: e, stackTrace: t);
     }

@@ -68,6 +68,7 @@ class DanmakuService {
     filterEffect = effect(() {
       danmakuFilterKeywords = configureService.danmakuFilterKeywords.value;
     });
+    controller.clear();
     loadDanmaku();
   }
 
@@ -201,6 +202,7 @@ class DanmakuService {
   /// 将弹幕添加到控制器中显示
   void _addDanmakuToController(Danmaku danmaku) {
     try {
+      if (!danmakuEnabled.value) return;
       if (shouldFilterDanmaku(danmaku.text)) return;
       DanmakuItemType danmakuType;
       switch (danmaku.type) {
