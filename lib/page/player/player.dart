@@ -9,6 +9,8 @@ import 'package:fldanplay/page/player/right_drawer.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/global.dart';
+import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/service/player/ui_state.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
@@ -850,6 +852,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     final streamMediaExplorerService = GetIt.I
         .get<StreamMediaExplorerService>();
     final fileExplorerService = GetIt.I.get<FileExplorerService>();
+    final historyService = GetIt.I.get<HistoryService>();
+    final offlineCacheService = GetIt.I.get<OfflineCacheService>();
     late VideoInfo newVideoInfo;
     if (_videoInfo.value.historiesType == HistoriesType.fileStorage) {
       final videoInfo = await fileExplorerService.selectVideo(index);
@@ -860,6 +864,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
     if (_videoInfo.value.historiesType == HistoriesType.streamMediaStorage) {
       newVideoInfo = streamMediaExplorerService.getVideoInfo(index);
+      if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
+        newVideoInfo.cached = offlineCacheService.isCached(
+          newVideoInfo.uniqueKey,
+        );
+      }
+      final history = streamMediaExplorerService.getHistory(
+        streamMediaExplorerService.episodeList[index],
+      );
+      if (history != null) await historyService.save(history);
     }
     final service = _playerService.value;
     _danmakuController.clear();

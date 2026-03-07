@@ -100,14 +100,9 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       }
       final history = _service.getHistory(season.episodes[index]);
       if (history != null) await historyService.save(history);
-      GetIt.I.get<GlobalService>().position.value = history?.position ?? 0;
-      GetIt.I.get<GlobalService>().isPlaying.value = true;
-      _service.startPlayback(videoInfo.virtualVideoPath);
       if (mounted) {
         final location = Uri(path: videoPlayerPath);
-        context.push(location.toString(), extra: videoInfo).then((_) {
-          _service.stopPlayback(videoInfo.virtualVideoPath);
-        });
+        context.push(location.toString(), extra: videoInfo);
       }
     } catch (e) {
       showToast(level: 3, title: '播放失败', description: e.toString());

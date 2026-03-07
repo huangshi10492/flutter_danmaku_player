@@ -10,6 +10,7 @@ import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/global.dart';
+import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/toast.dart';
@@ -164,6 +165,13 @@ class VideoPlayerService {
         subtitle: videoInfo.subtitle,
         fileName: videoInfo.videoName,
       );
+      if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
+        GetIt.I.get<GlobalService>().position.value = _history.position;
+        GetIt.I.get<GlobalService>().isPlaying.value = true;
+        GetIt.I.get<StreamMediaExplorerService>().startPlayback(
+          videoInfo.virtualVideoPath,
+        );
+      }
       late Duration historyPosition;
       if (_history.position > 0 &&
           _history.duration - _history.position > 1000) {
@@ -483,6 +491,11 @@ class VideoPlayerService {
         _globalService.updateListener!(_history.uniqueKey);
       }
       GetIt.I.get<WebDAVSyncService>().syncHistories();
+      if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
+        GetIt.I.get<StreamMediaExplorerService>().stopPlayback(
+          videoInfo.virtualVideoPath,
+        );
+      }
       await saveSnapshot();
       if (_globalService.updateListener != null) {
         _globalService.updateListener!(_history.uniqueKey);
