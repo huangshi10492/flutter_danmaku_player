@@ -1,9 +1,7 @@
 name: Release builds
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: "21"
@@ -15,6 +13,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.1")
+          echo "Latest tag: $TAG"
 
       - name: Install Linux desktop deps
         run: |
@@ -58,7 +63,6 @@ jobs:
       - name: Collect APK artifacts
         run: |
           mkdir -p dist
-          TAG="${GITHUB_REF_NAME}"
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/fldanplay-${TAG}-android-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk   dist/fldanplay-${TAG}-android-x86_64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/fldanplay-${TAG}-android-armeabi-v7a.apk
@@ -78,7 +82,6 @@ jobs:
       - name: Package linux build output
         run: |
           # Tarball package
-          TAG="${GITHUB_REF_NAME}"
           tar -zcvf fldanplay-${TAG}-linux-amd64.tar.gz -C build/linux/x64/release/bundle .
 
           # Debian package
@@ -94,9 +97,9 @@ jobs:
           SIZE_KB=$(du -s -b --apparent-size . | awk '{print int($1)}')
           SIZE_KB=$(($SIZE_KB - $(du -s -b --apparent-size DEBIAN | awk '{print int($1)}')))
           SIZE_KB=$(echo $SIZE_KB | awk '{print int($1/1024 + 0.999)}')
-          VERSION="${TAG#v}-1" 
+          VERSION="${TAG#v}-1"
 
-          cat>DEBIAN/control<<EOF
+          cat > DEBIAN/control <<EOF
           Maintainer: huangshi10492
           Package: fldanplay
           Version: ${VERSION}
@@ -131,6 +134,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Get latest tag
+        shell: pwsh
+        run: |
+          $tag = git describe --tags --abbrev=0 2>$null
+          echo "Latest tag: $tag"
 
       - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
         uses: subosito/flutter-action@v2
@@ -160,7 +171,6 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          $tag = $env:GITHUB_REF_NAME
           $src = Join-Path build windows\x64\runner\Release
           $zip = Join-Path release ("fldanplay-$tag-windows-x64-portable.zip")
           Compress-Archive -Path "$src\*" -DestinationPath $zip -Force
@@ -216,28 +226,4 @@ jobs:
   #         name: ios
   #         path: build/ios/ipa/*.ipa
 
-  release:
-    name: Create draft GitHub Release
-    runs-on: ubuntu-latest
-    needs: [android-linux, windows]
-    permissions: write-all
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v6
-        with:
-          pattern: "*"
-          merge-multiple: true
-
-      - name: Create draft release and upload assets
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: true
-          name: ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
-          files: |
-            **/*.exe
-            **/*.deb
-            **/*.apk
-            **/*.zip
-            **/*.tar.gz
 
