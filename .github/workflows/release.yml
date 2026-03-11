@@ -95,11 +95,12 @@ jobs:
           SIZE_KB=$(du -s -b --apparent-size . | awk '{print int($1)}')
           SIZE_KB=$(($SIZE_KB - $(du -s -b --apparent-size DEBIAN | awk '{print int($1)}')))
           SIZE_KB=$(echo $SIZE_KB | awk '{print int($1/1024 + 0.999)}')
+          VERSION="${TAG#v}-1" 
 
           cat>DEBIAN/control<<EOF
           Maintainer: huangshi10492
           Package: fldanplay
-          Version: ${TAG}
+          Version: ${VERSION}
           Section: x11
           Priority: optional
           Architecture: amd64
