@@ -1,4 +1,4 @@
-name: Release builds
+name: Test builds
 
 on:
   workflow_dispatch:
@@ -16,9 +16,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest tag
+      - name: Get tag
         run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.1")
+          LTAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.1")
+          echo "TAG=$LTAG" >> $GITHUB_ENV
           echo "Latest tag: $TAG"
 
       - name: Install Linux desktop deps
@@ -137,11 +138,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest tag
+      - name: Get tag
         shell: pwsh
         run: |
-          $tag = git describe --tags --abbrev=0 2>$null
-          echo "Latest tag: $tag"
+          $ltag = git describe --tags --abbrev=0 2>$null
+          echo "tag=$ltag" >> $env:GITHUB_ENV
+          echo "Latest tag: $ltag"
 
       - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
         uses: subosito/flutter-action@v2
@@ -172,13 +174,13 @@ jobs:
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path release | Out-Null
           $src = Join-Path build windows\x64\runner\Release
-          $zip = Join-Path release ("fldanplay-$tag-windows-x64-portable.zip")
+          $zip = Join-Path release ("fldanplay-$env:tag-windows-x64-portable.zip")
           Compress-Archive -Path "$src\*" -DestinationPath $zip -Force
 
       - name: Build Windows Setup
         run: |
           fastforge package --platform windows --targets exe --skip-clean
-          mv dist/**/*.exe release/fldanplay-$tag-windows-x64-setup.exe
+          mv dist/**/*.exe release/fldanplay-$env:tag-windows-x64-setup.exe
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v6

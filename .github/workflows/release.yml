@@ -16,6 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Get tag
+        run: |
+          LTAG=${GITHUB_REF_NAME}
+          echo "TAG=$LTAG" >> $GITHUB_ENV
+          echo "tag: $LTAG"
+
       - name: Install Linux desktop deps
         run: |
           sudo apt-get update
@@ -58,7 +64,6 @@ jobs:
       - name: Collect APK artifacts
         run: |
           mkdir -p dist
-          TAG="${GITHUB_REF_NAME}"
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/fldanplay-${TAG}-android-arm64-v8a.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk   dist/fldanplay-${TAG}-android-x86_64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/fldanplay-${TAG}-android-armeabi-v7a.apk
@@ -78,7 +83,6 @@ jobs:
       - name: Package linux build output
         run: |
           # Tarball package
-          TAG="${GITHUB_REF_NAME}"
           tar -zcvf fldanplay-${TAG}-linux-amd64.tar.gz -C build/linux/x64/release/bundle .
 
           # Debian package
@@ -132,6 +136,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Get tag
+        shell: pwsh
+        run: |
+          $ltag = git describe --tags --abbrev=0 2>$null
+          echo "tag=$ltag" >> $env:GITHUB_ENV
+          echo "Latest tag: $ltag"
+
       - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
         uses: subosito/flutter-action@v2
         with:
@@ -160,15 +171,14 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path release | Out-Null
-          $tag = $env:GITHUB_REF_NAME
           $src = Join-Path build windows\x64\runner\Release
-          $zip = Join-Path release ("fldanplay-$tag-windows-x64-portable.zip")
+          $zip = Join-Path release ("fldanplay-$env:tag-windows-x64-portable.zip")
           Compress-Archive -Path "$src\*" -DestinationPath $zip -Force
 
       - name: Build Windows Setup
         run: |
           fastforge package --platform windows --targets exe --skip-clean
-          mv dist/**/*.exe release/fldanplay-$tag-windows-x64-setup.exe
+          mv dist/**/*.exe release/fldanplay-$env:tag-windows-x64-setup.exe
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v6
