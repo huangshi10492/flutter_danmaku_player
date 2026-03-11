@@ -15,15 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Linux desktop deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev rpm patchelf libmpv-dev mpv
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev rpm patchelf libmpv-dev
 
       - name: Set up Java ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: jetbrains
           java-version: ${{ env.JAVA_VERSION }}
@@ -65,7 +65,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/fldanplay-${TAG}-android-armeabi-v7a.apk
 
       - name: Upload APK artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-apk
           path: dist/*.apk
@@ -82,25 +82,66 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           tar -zcvf fldanplay-${TAG}-linux-amd64.tar.gz -C build/linux/x64/release/bundle .
 
+          # Debian package
+          mkdir fldanplay-${TAG}-linux-amd64
+          cd fldanplay-${TAG}-linux-amd64
+          mkdir -p opt/fldanplay
+          mkdir -p usr/share/applications
+          mkdir -p usr/share/icons/hicolor/512x512/apps
+          cp -r ../build/linux/x64/release/bundle/* opt/fldanplay
+          cp -r ../assets/linux/DEBIAN .
+          chmod 0755 DEBIAN/postinst
+          chmod 0755 DEBIAN/postrm
+          SIZE_KB=$(du -s -b --apparent-size . | awk '{print int($1)}')
+          SIZE_KB=$(($SIZE_KB - $(du -s -b --apparent-size DEBIAN | awk '{print int($1)}')))
+          SIZE_KB=$(echo $SIZE_KB | awk '{print int($1/1024 + 0.999)}')
+
+          cat>DEBIAN/control<<EOF
+          Maintainer: huangshi10492
+          Package: fldanplay
+          Version: ${TAG}
+          Section: x11
+          Priority: optional
+          Architecture: amd64
+          Essential: no
+          Installed-Size: ${SIZE_KB}
+          Description: fldanplay
+          Homepage: https://github.com/huangshi10492/flutter_danmaku_player
+          Depends: libmpv2
+          EOF
+
+          cp ../assets/linux/com.huangshi10492.fldanplay.desktop usr/share/applications/com.huangshi10492.fldanplay.desktop
+          cp ../assets/images/logo_round.png usr/share/icons/hicolor/512x512/apps/fldanplay.png
+
+          cd ..
+          dpkg-deb --build --root-owner-group fldanplay-${TAG}-linux-amd64
+        shell: bash
+
       - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux
           path: |
             fldanplay-*.tar.gz
+            fldanplay-*.deb
 
   windows:
     name: Build Windows
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
         uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
+
+      - name: Add fastforge and Inno Setup
+        run: |
+          dart pub global activate fastforge
+          choco install innosetup
 
       - name: Enable Windows desktop
         shell: pwsh
@@ -118,40 +159,24 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          New-Item -ItemType Directory -Force -Path release | Out-Null
           $tag = $env:GITHUB_REF_NAME
           $src = Join-Path build windows\x64\runner\Release
-          $zip = Join-Path dist ("fldanplay-$tag-windows-x64.zip")
+          $zip = Join-Path release ("fldanplay-$tag-windows-x64-portable.zip")
           Compress-Archive -Path "$src\*" -DestinationPath $zip -Force
 
-      # - name: Prepare Windows signing cert (if provided)
-      #   if: ${{ secrets.WINDOWS_PFX_BASE64 != '' }}
-      #   shell: pwsh
-      #   run: |
-      #     $bytes = [System.Convert]::FromBase64String($env:WINDOWS_PFX_BASE64)
-      #     [System.IO.File]::WriteAllBytes("windows\\app_signing.pfx", $bytes)
-      #   env:
-      #     WINDOWS_PFX_BASE64: ${{ secrets.WINDOWS_PFX_BASE64 }}
-
-      # - name: Build MSIX via msix package
-      #   shell: pwsh
-      #   env:
-      #     WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
-      #   run: |
-      #     flutter pub global activate msix
-      #     dart run msix:build
-      #     # Collect any produced .msix
-      #     New-Item -ItemType Directory -Force -Path dist | Out-Null
-      #     Get-ChildItem -Path build -Recurse -Filter *.msix | ForEach-Object {
-      #       Copy-Item $_.FullName (Join-Path dist ("app-$env:GITHUB_REF_NAME-windows-x64.msix")) -Force
-      #     }
+      - name: Build Windows Setup
+        run: |
+          fastforge package --platform windows --targets exe --skip-clean
+          mv dist/**/*.exe release/fldanplay-$tag-windows-x64-setup.exe
 
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows
           path: |
-            dist/*.zip
+            release/*.zip
+            release/*.exe
           if-no-files-found: warn
 
   # macos:
@@ -198,7 +223,7 @@ jobs:
     permissions: write-all
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: "*"
           merge-multiple: true
@@ -210,6 +235,8 @@ jobs:
           name: ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           files: |
+            **/*.exe
+            **/*.deb
             **/*.apk
             **/*.zip
             **/*.tar.gz

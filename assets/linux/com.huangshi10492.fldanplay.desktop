@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=fldanplay
+Comment=fldanplay
+Exec=fldanplay
+StartupWMClass=com.huangshi10492.fldanplay
+Icon=fldanplay
+Terminal=false
+Type=Application
+Categories=Video;

@@ -1,0 +1,7 @@
+app_id: 592BC173-D168-CAB0-6983-66F76F6F9129
+publisher: huangshi10492
+publisher_url: https://github.com/huangshi10492/flutter_danmaku_player
+display_name: fldanplay
+setup_icon_file: windows\runner\resources\app_icon.ico
+locales:
+  - en

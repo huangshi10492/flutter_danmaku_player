@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+ln -sf /opt/fldanplay/fldanplay /usr/bin/fldanplay
+chmod +x /usr/bin/fldanplay
+update-mime-database /usr/share/mime || true
+update-desktop-database /usr/share/applications || true
+exit 0
