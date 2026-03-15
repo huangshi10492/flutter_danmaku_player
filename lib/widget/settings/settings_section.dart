@@ -31,7 +31,7 @@ class SettingsSection extends StatelessWidget {
                 color: colors.border,
                 width: context.theme.style.borderWidth,
               ),
-              borderRadius: context.theme.style.borderRadius,
+              borderRadius: context.theme.style.borderRadius.md,
             ),
             child: ListView.builder(
               shrinkWrap: true,
@@ -52,6 +52,24 @@ class SettingsSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class SettingsSectionTitle extends StatelessWidget {
+  const SettingsSectionTitle(this.title, {super.key});
+  final String title;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      child: Text(
+        title,
+        style: context.theme.typography.sm.copyWith(
+          color: context.theme.colors.mutedForeground,
+        ),
+        textAlign: TextAlign.start,
       ),
     );
   }

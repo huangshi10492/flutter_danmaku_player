@@ -9,10 +9,16 @@ FTileStyle tileStyle({
 }) => FTileStyle(
   backgroundColor: .all(Colors.transparent),
   decoration: FVariants.from(
-    BoxDecoration(color: Colors.transparent, borderRadius: style.borderRadius),
+    ShapeDecoration(
+      shape: RoundedSuperellipseBorder(
+        side: BorderSide(color: Colors.transparent, width: style.borderWidth),
+        borderRadius: style.borderRadius.md,
+      ),
+      color: Colors.transparent,
+    ),
     variants: {
-      [.hovered, .pressed]: .delta(color: colors.secondary),
-      [.disabled]: .delta(color: colors.disable(colors.secondary)),
+      [.hovered, .pressed]: .shapeDelta(color: colors.secondary),
+      [.disabled]: .shapeDelta(color: colors.disable(colors.secondary)),
     },
   ),
   contentStyle: _tileContentStyle(
@@ -34,6 +40,7 @@ FTileStyle tileStyle({
     pressedExitDuration: const Duration(milliseconds: 25),
   ),
   focusedOutlineStyle: style.focusedOutlineStyle,
+  shape: RoundedSuperellipseBorder(borderRadius: style.borderRadius.md),
   margin: .zero,
 );
 
@@ -47,13 +54,13 @@ FTileContentStyle _tileContentStyle({
   final disabledMutedForeground = colors.disable(mutedForeground);
   return FTileContentStyle(
     prefixIconStyle: FVariants.from(
-      IconThemeData(color: prefix, size: 18),
+      IconThemeData(color: prefix, size: typography.lg.fontSize),
       variants: {
         [.disabled]: .delta(color: colors.disable(prefix)),
       },
     ),
     titleTextStyle: FVariants.from(
-      typography.base.copyWith(color: foreground),
+      typography.md.copyWith(color: foreground),
       variants: {
         [.disabled]: .delta(color: colors.disable(foreground)),
       },
@@ -65,18 +72,19 @@ FTileContentStyle _tileContentStyle({
       },
     ),
     detailsTextStyle: FVariants.from(
-      typography.base.copyWith(color: mutedForeground),
+      typography.md.copyWith(color: mutedForeground),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },
     ),
     suffixIconStyle: FVariants.from(
-      IconThemeData(color: mutedForeground, size: 18),
+      IconThemeData(color: mutedForeground, size: typography.md.fontSize),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },
     ),
-    padding: const EdgeInsets.fromLTRB(15, 13, 10, 13),
+    suffixedPadding: FTileStyle.defaultSuffixedPadding,
+    unsuffixedPadding: FTileStyle.defaultUnsuffixedPadding,
     prefixIconSpacing: 10,
     titleSpacing: 3,
     middleSpacing: 4,
@@ -91,17 +99,17 @@ FRawTileContentStyle _rawTileContentStyle({
   required Color color,
 }) => FRawTileContentStyle(
   prefixIconStyle: FVariants.from(
-    IconThemeData(color: prefix, size: 18),
+    IconThemeData(color: prefix, size: typography.md.fontSize),
     variants: {
       [.disabled]: .delta(color: colors.disable(prefix)),
     },
   ),
-  childTextStyle: FVariants(
-    typography.base.copyWith(color: color),
+  childTextStyle: FVariants.from(
+    typography.md.copyWith(color: color),
     variants: {
-      [.disabled]: typography.base.copyWith(color: colors.disable(color)),
+      [.disabled]: .delta(color: colors.disable(color)),
     },
   ),
-  padding: const EdgeInsets.fromLTRB(15, 13, 10, 13),
+  padding: FTileStyle.defaultUnsuffixedPadding,
   prefixIconSpacing: 10,
 );

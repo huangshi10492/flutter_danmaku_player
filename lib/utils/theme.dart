@@ -1,79 +1,53 @@
-import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
 FThemeData getTheme(String theme, bool isDark) {
-  late FColors colors;
-  if (isDark) {
-    switch (theme) {
-      case 'blue':
-        colors = FThemes.blue.dark.colors;
-      case 'neutral':
-        colors = FThemes.neutral.dark.colors;
-      case 'zinc':
-        colors = FThemes.zinc.dark.colors;
-      case 'slate':
-        colors = FThemes.slate.dark.colors;
-      case 'red':
-        colors = FThemes.red.dark.colors;
-      case 'rose':
-        colors = FThemes.rose.dark.colors;
-      case 'orange':
-        colors = FThemes.orange.dark.colors;
-      case 'green':
-        colors = FThemes.green.dark.colors;
-      case 'yellow':
-        colors = FThemes.yellow.dark.colors;
-      case 'violet':
-        colors = FThemes.violet.dark.colors;
-      default:
-        colors = FThemes.blue.dark.colors;
-    }
-  } else {
-    switch (theme) {
-      case 'blue':
-        colors = FThemes.blue.light.colors;
-      case 'neutral':
-        colors = FThemes.neutral.light.colors;
-      case 'zinc':
-        colors = FThemes.zinc.light.colors;
-      case 'slate':
-        colors = FThemes.slate.light.colors;
-      case 'red':
-        colors = FThemes.red.light.colors;
-      case 'rose':
-        colors = FThemes.rose.light.colors;
-      case 'orange':
-        colors = FThemes.orange.light.colors;
-      case 'green':
-        colors = FThemes.green.light.colors;
-      case 'yellow':
-        colors = FThemes.yellow.light.colors;
-      case 'violet':
-        colors = FThemes.violet.light.colors;
-      default:
-        colors = FThemes.blue.light.colors;
-    }
-  }
+  final color = switch (theme) {
+    'blue' => FThemes.blue,
+    'neutral' => FThemes.neutral,
+    'zinc' => FThemes.zinc,
+    'slate' => FThemes.slate,
+    'red' => FThemes.red,
+    'rose' => FThemes.rose,
+    'orange' => FThemes.orange,
+    'green' => FThemes.green,
+    'yellow' => FThemes.yellow,
+    'violet' => FThemes.violet,
+    _ => FThemes.blue,
+  };
+  FColors colors = isDark ? color.dark.touch.colors : color.light.touch.colors;
   return FThemeData(
     colors: colors,
+    touch: false,
     typography: FTypography.inherit(
       colors: colors,
+      touch: false,
       defaultFontFamily: 'MiSans',
     ),
   ).copyWith(
-    textFieldStyle: .delta(
-      labelTextStyle: .delta([.base(.delta(fontWeight: FontWeight.normal))]),
-    ),
+    buttonStyles: .delta([
+      .all(.delta([.all(buttonStyleDelta)])),
+    ]),
   );
 }
 
+FButtonStyleDelta get buttonStyleDelta => .delta(
+  contentStyle: .delta(
+    textStyle: .delta([.base(.delta(fontSize: 16))]),
+    padding: .scale(1.25),
+  ),
+);
+
 FItemGroupStyleDelta get rootItemGroupStyle => .delta(
   itemStyles: .delta([
-    .base(
+    .all(
       .delta(
         contentStyle: .delta(
           titleTextStyle: .delta([.base(.delta(fontSize: 18, height: 1.75))]),
           prefixIconStyle: .delta([.base(.delta(size: 32))]),
+          subtitleTextStyle: .delta([.base(.delta(fontSize: 12, height: 1))]),
+          unsuffixedPadding: EdgeInsetsGeometryDelta.add(
+            .only(top: 2, bottom: 2),
+          ),
         ),
       ),
     ),
@@ -82,11 +56,15 @@ FItemGroupStyleDelta get rootItemGroupStyle => .delta(
 
 FItemGroupStyleDelta get settingsItemGroupStyle => .delta(
   itemStyles: .delta([
-    .base(
+    .all(
       .delta(
         contentStyle: .delta(
           titleTextStyle: .delta([.base(.delta(fontSize: 16, height: 1.5))]),
           prefixIconStyle: .delta([.base(.delta(size: 28))]),
+          subtitleTextStyle: .delta([.base(.delta(fontSize: 12, height: 1))]),
+          unsuffixedPadding: EdgeInsetsGeometryDelta.add(
+            .only(top: 2, bottom: 2),
+          ),
         ),
       ),
     ),

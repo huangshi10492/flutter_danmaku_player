@@ -541,7 +541,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         );
       case _FieldType.toggle:
         return FItem(
-          title: Text(field.label, style: context.theme.typography.base),
+          title: Text(field.label, style: context.theme.typography.md),
           suffix: Switch(
             value: _formData.toggleValues[field.key] ?? false,
             onChanged: (value) {
@@ -705,7 +705,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                     vertical: 6,
                   ),
                   child: FButton(
-                    variant: _isMediaServerLoggedIn ? .secondary : null,
+                    variant: _isMediaServerLoggedIn ? .secondary : .primary,
                     onPress: _isLoading ? null : _loginToMediaServer,
                     child: Text(_isMediaServerLoggedIn ? '已登录' : '登录并获取媒体库'),
                   ),

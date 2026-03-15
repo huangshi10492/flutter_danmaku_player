@@ -13,6 +13,7 @@ import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
+import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/danmaku_keyword_filter.dart';
 import 'package:fldanplay/widget/settings/radio_settings_section.dart';
@@ -163,43 +164,44 @@ class RightDrawerContent extends StatelessWidget {
         Watch((context) {
           final configure = GetIt.I.get<ConfigureService>();
           return FItemGroup(
+            style: settingsItemGroupStyle,
             children: [
               if (configure.danmakuServiceEnable.value) ...[
                 FItem(
                   prefix: const Icon(MyIcon.danmaku, size: 20),
-                  title: Text('弹幕信息', style: context.theme.typography.base),
+                  title: Text('弹幕信息'),
                   onPress: () => onDrawerChanged(RightDrawerType.danmakuInfo),
                 ),
                 FItem(
                   prefix: const Icon(FIcons.palette, size: 20),
-                  title: Text('弹幕外观', style: context.theme.typography.base),
+                  title: Text('弹幕外观'),
                   onPress: () =>
                       onDrawerChanged(RightDrawerType.danmakuSettings),
                 ),
                 FItem(
                   prefix: const Icon(FIcons.funnel, size: 20),
-                  title: Text('弹幕过滤与延迟', style: context.theme.typography.base),
+                  title: Text('弹幕过滤与延迟'),
                   onPress: () => onDrawerChanged(RightDrawerType.danmakuFilter),
                 ),
               ],
               FItem(
                 prefix: const Icon(Icons.audiotrack_outlined, size: 20),
-                title: Text('音频选择', style: context.theme.typography.base),
+                title: Text('音频选择'),
                 onPress: () => onDrawerChanged(RightDrawerType.audioTrack),
               ),
               FItem(
                 prefix: const Icon(FIcons.closedCaption, size: 20),
-                title: Text('字幕选择', style: context.theme.typography.base),
+                title: Text('字幕选择'),
                 onPress: () => onDrawerChanged(RightDrawerType.subtitleTrack),
               ),
               FItem(
                 prefix: const Icon(FIcons.wrench, size: 20),
-                title: Text('播放器界面设置', style: context.theme.typography.base),
+                title: Text('播放器界面设置'),
                 onPress: () => onDrawerChanged(RightDrawerType.playerUI),
               ),
               FItem(
                 prefix: const Icon(FIcons.info, size: 20),
-                title: Text('播放信息', style: context.theme.typography.base),
+                title: Text('播放信息'),
                 onPress: () => onDrawerChanged(RightDrawerType.metadata),
               ),
             ],
@@ -368,13 +370,7 @@ class RightDrawerContent extends StatelessWidget {
                 ),
               ],
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Text(
-                '下一章节按钮显示模式',
-                style: TextStyle(color: context.theme.colors.mutedForeground),
-              ),
-            ),
+            SettingsSectionTitle('下一章节按钮显示模式'),
             RadioSettingsSection(
               options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
               value: configure.jumpButtonMode.value.toString(),

@@ -8,6 +8,7 @@ import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/global.dart';
+import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/danmaku_match_dialog.dart';
 import 'package:fldanplay/widget/error_refresh.dart';
@@ -261,6 +262,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                       child: SafeArea(
                         child: FItemGroup(
                           divider: FItemDivider.indented,
+                          style: settingsItemGroupStyle,
                           children: _listBuilder(files),
                         ),
                       ),
@@ -327,11 +329,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         widgetList.add(
           FItem(
             prefix: const Icon(FIcons.folder, size: 40),
-            title: Text(
-              file.name,
-              style: context.theme.typography.base,
-              maxLines: 2,
-            ),
+            title: Text(file.name, maxLines: 2),
             subtitle: Text('目录'),
             onPress: () {
               _fileExplorerService.next(file.name);

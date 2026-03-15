@@ -218,7 +218,7 @@ class StreamMediaInfoCard extends StatelessWidget {
           enabled: isLoading,
           child: Text(
             hasOverview ? overview : '暂无简介',
-            style: context.theme.typography.base,
+            style: context.theme.typography.md,
             overflow: TextOverflow.fade,
             softWrap: true,
           ),
@@ -286,7 +286,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                         ?.replaceAll(RegExp(r'<br\s*/?>'), ' ')
                         .trim()) ??
                     '',
-          style: context.theme.typography.base,
+          style: context.theme.typography.md,
         ),
         const SizedBox(height: 16),
         Text('标签', style: context.theme.typography.xl),
@@ -335,7 +335,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                         ),
                         child: Text(
                           url.name,
-                          style: context.theme.typography.base.copyWith(
+                          style: context.theme.typography.md.copyWith(
                             height: 1.25,
                           ),
                         ),

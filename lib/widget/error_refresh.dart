@@ -13,7 +13,7 @@ class ErrorRefresh extends StatelessWidget {
         mainAxisAlignment: .center,
         mainAxisSize: .min,
         children: [
-          Text(error, style: context.theme.typography.base),
+          Text(error, style: context.theme.typography.md),
           const SizedBox(height: 16),
           FButton(
             onPress: onRefresh,

@@ -34,7 +34,9 @@ Color _getThemeColor(String themeKey, bool isDark) {
     'violet' => FThemes.violet,
     _ => FThemes.blue,
   };
-  return isDark ? theme.dark.colors.primary : theme.light.colors.primary;
+  return isDark
+      ? theme.dark.touch.colors.primary
+      : theme.light.touch.colors.primary;
 }
 
 class GeneralSettingsPage extends StatelessWidget {

@@ -282,7 +282,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text('正在加载视频...', style: context.theme.typography.base),
+            Text('正在加载视频...', style: context.theme.typography.md),
           ],
         ),
       ),
@@ -345,7 +345,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: Text(
                         videoName,
                         overflow: TextOverflow.ellipsis,
-                        style: context.theme.typography.base,
+                        style: context.theme.typography.md,
                       ),
                     );
                   }),
@@ -501,7 +501,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             _showRightDrawer(RightDrawerType.speed),
                         child: Text(
                           '${speed.toStringAsFixed(2)}X',
-                          style: context.theme.typography.base,
+                          style: context.theme.typography.md,
                         ),
                       );
                     }),
@@ -556,7 +556,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           const SizedBox(width: 4),
           Text(
             '${_configureService.seekOPSeconds.value}s',
-            style: context.theme.typography.base,
+            style: context.theme.typography.md,
           ),
         ],
       ),
@@ -578,7 +578,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         }
       }
       return TextButton(
-        child: Text(text, style: context.theme.typography.base),
+        child: Text(text, style: context.theme.typography.md),
         onPressed: () {
           if (nextChapter == null) return;
           _playerService.seekTo(nextChapter);
@@ -677,7 +677,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             SizedBox(height: 8),
             Text(
               Utils.formatDuration(bufferedPosition),
-              style: context.theme.typography.base,
+              style: context.theme.typography.md,
             ),
           ],
         ),
@@ -776,7 +776,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               Text(seekText, style: context.theme.typography.xl),
               if (timeText.isNotEmpty) ...[
                 const SizedBox(height: 4),
-                Text(timeText, style: context.theme.typography.base),
+                Text(timeText, style: context.theme.typography.md),
               ],
             ],
           ),

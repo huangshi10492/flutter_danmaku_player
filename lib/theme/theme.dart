@@ -1,7 +1,9 @@
+import 'package:fldanplay/utils/theme.dart';
 import 'package:forui/forui.dart';
 import 'package:flutter/material.dart';
 
 FThemeData get zincDark {
+  const touch = false;
   const colors = FColors(
     brightness: .dark,
     systemOverlayStyle: .light,
@@ -23,106 +25,76 @@ FThemeData get zincDark {
   );
 
   final typography = _typography(colors: colors);
-  final style = _style(colors: colors, typography: typography);
+  final style = _style(colors: colors, typography: typography, touch: touch);
 
-  return FThemeData(colors: colors, typography: typography, style: style);
+  return FThemeData(
+    colors: colors,
+    typography: typography,
+    style: style,
+    touch: touch,
+  ).copyWith(
+    buttonStyles: .delta([
+      .all(.delta([.all(buttonStyleDelta)])),
+    ]),
+  );
 }
 
 FTypography _typography({
   required FColors colors,
   String defaultFontFamily = 'MiSans',
-}) => FTypography(
-  xs: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 12,
-    height: 1,
-  ),
-  sm: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 14,
-    height: 1.25,
-  ),
-  base: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 16,
-    height: 1.5,
-  ),
-  lg: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 18,
-    height: 1.75,
-  ),
-  xl: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 20,
-    height: 1.75,
-  ),
-  xl2: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 22,
-    height: 2,
-  ),
-  xl3: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 30,
-    height: 2.25,
-  ),
-  xl4: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 36,
-    height: 2.5,
-  ),
-  xl5: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 48,
-    height: 1,
-  ),
-  xl6: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 60,
-    height: 1,
-  ),
-  xl7: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 72,
-    height: 1,
-  ),
-  xl8: TextStyle(
-    color: colors.foreground,
-    fontFamily: defaultFontFamily,
-    fontSize: 96,
-    height: 1,
-  ),
-);
+}) {
+  assert(
+    defaultFontFamily.isNotEmpty,
+    'defaultFontFamily ($defaultFontFamily) should not be empty.',
+  );
+  final color = colors.foreground;
+  final font = defaultFontFamily;
+  return FTypography(
+    defaultFontFamily: defaultFontFamily,
+    xs3: TextStyle(color: color, fontFamily: font, fontSize: 8, height: 1),
+    xs2: TextStyle(color: color, fontFamily: font, fontSize: 10, height: 1),
+    xs: TextStyle(color: color, fontFamily: font, fontSize: 12, height: 1),
+    sm: TextStyle(color: color, fontFamily: font, fontSize: 14, height: 1.25),
+    md: TextStyle(color: color, fontFamily: font, fontSize: 16, height: 1.5),
+    lg: TextStyle(color: color, fontFamily: font, fontSize: 18, height: 1.75),
+    xl: TextStyle(color: color, fontFamily: font, fontSize: 20, height: 1.75),
+    xl2: TextStyle(color: color, fontFamily: font, fontSize: 22, height: 2),
+    xl3: TextStyle(color: color, fontFamily: font, fontSize: 30, height: 2.25),
+    xl4: TextStyle(color: color, fontFamily: font, fontSize: 36, height: 2.5),
+    xl5: TextStyle(color: color, fontFamily: font, fontSize: 48, height: 1),
+    xl6: TextStyle(color: color, fontFamily: font, fontSize: 60, height: 1),
+    xl7: TextStyle(color: color, fontFamily: font, fontSize: 72, height: 1),
+    xl8: TextStyle(color: color, fontFamily: font, fontSize: 96, height: 1),
+  );
+}
 
-FStyle _style({required FColors colors, required FTypography typography}) =>
-    FStyle(
-      formFieldStyle: .inherit(colors: colors, typography: typography),
-      focusedOutlineStyle: FFocusedOutlineStyle(
-        color: colors.primary,
-        borderRadius: const .all(.circular(8)),
-      ),
-      iconStyle: IconThemeData(color: colors.foreground, size: 20),
-      tappableStyle: FTappableStyle(),
-      borderRadius: const FLerpBorderRadius.all(.circular(8), min: 24),
-      borderWidth: 1,
-      pagePadding: const .symmetric(vertical: 8, horizontal: 12),
-      shadow: const [
-        BoxShadow(
-          color: Color(0x0d000000),
-          offset: Offset(0, 1),
-          blurRadius: 2,
-        ),
-      ],
-    );
+FStyle _style({
+  required FColors colors,
+  required FTypography typography,
+  required bool touch,
+}) {
+  const borderRadius = FBorderRadius();
+  return FStyle(
+    formFieldStyle: .inherit(
+      colors: colors,
+      typography: typography,
+      touch: touch,
+    ),
+    focusedOutlineStyle: FFocusedOutlineStyle(
+      color: colors.primary,
+      borderRadius: borderRadius.md,
+    ),
+    sizes: FSizes.inherit(touch: touch),
+    iconStyle: IconThemeData(
+      color: colors.foreground,
+      size: typography.lg.fontSize,
+    ),
+    tappableStyle: FTappableStyle(),
+    borderRadius: const FBorderRadius(),
+    borderWidth: 1,
+    pagePadding: const .symmetric(vertical: 8, horizontal: 12),
+    shadow: const [
+      BoxShadow(color: Color(0x0d000000), offset: Offset(0, 1), blurRadius: 2),
+    ],
+  );
+}

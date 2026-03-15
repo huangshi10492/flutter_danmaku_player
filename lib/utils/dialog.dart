@@ -18,7 +18,7 @@ void showConfirmDialog(
       body: Text(content),
       actions: [
         FButton(
-          variant: destructive ? .destructive : null,
+          variant: destructive ? .destructive : .primary,
           onPress: () {
             Navigator.pop(context);
             onConfirm();

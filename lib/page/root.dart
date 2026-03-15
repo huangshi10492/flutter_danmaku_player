@@ -284,9 +284,25 @@ class _PopoverMenuState extends State<_PopoverMenu>
     final controller = FPopoverController(vsync: this);
     return FPopoverMenu(
       control: .managed(controller: controller),
+      style: .delta(
+        itemGroupStyle: .delta(
+          itemStyles: .delta([
+            .all(
+              .delta(
+                contentStyle: .delta(
+                  titleTextStyle: .delta([.base(.delta(fontSize: 15))]),
+                  unsuffixedPadding: EdgeInsetsGeometryDelta.add(
+                    .only(top: 4, bottom: 4),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
       menu: [
         .group(
-          divider: .indented,
+          divider: .full,
           children: [
             .item(
               prefix: const Icon(FIcons.pencil),
@@ -297,7 +313,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
               },
             ),
             .item(
-              variants: {.destructive},
+              variant: .destructive,
               prefix: Icon(FIcons.trash),
               title: Text('删除'),
               onPress: () {

@@ -239,6 +239,13 @@ class _VideoItemState extends State<VideoItem> {
         init();
       },
       child: (controller) => FItem(
+        style: .delta(
+          contentStyle: .delta(
+            unsuffixedPadding: EdgeInsetsGeometryDelta.add(
+              .only(top: 2, bottom: 2),
+            ),
+          ),
+        ),
         prefix: SizedBox(
           width: 95,
           height: 65,
@@ -271,7 +278,7 @@ class _VideoItemState extends State<VideoItem> {
                 ),
                 child: Text(
                   widget.name,
-                  style: context.theme.typography.base,
+                  style: context.theme.typography.md,
                   maxLines: 2,
                 ),
               ),
@@ -293,6 +300,7 @@ class _VideoItemState extends State<VideoItem> {
                             constraints: .tightFor(height: 4),
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -344,9 +352,25 @@ class _PopoverMenuState extends State<_PopoverMenu>
     final controller = FPopoverController(vsync: this);
     return FPopoverMenu(
       control: .managed(controller: controller),
+      style: .delta(
+        itemGroupStyle: .delta(
+          itemStyles: .delta([
+            .all(
+              .delta(
+                contentStyle: .delta(
+                  titleTextStyle: .delta([.base(.delta(fontSize: 15))]),
+                  unsuffixedPadding: EdgeInsetsGeometryDelta.add(
+                    .only(top: 4, bottom: 4),
+                  ),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
       menu: [
         .group(
-          divider: .indented,
+          divider: .full,
           children: [
             .item(
               prefix: const Icon(FIcons.download),

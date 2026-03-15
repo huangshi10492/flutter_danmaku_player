@@ -29,13 +29,7 @@ class DanmakuFilterPanel extends StatelessWidget {
         return ListView(
           padding: EdgeInsets.all(4),
           children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Text(
-                '按位置过滤',
-                style: TextStyle(color: context.theme.colors.mutedForeground),
-              ),
-            ),
+            SettingsSectionTitle('按位置过滤'),
             GridView(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,
@@ -78,13 +72,7 @@ class DanmakuFilterPanel extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Text(
-                '数据源过滤',
-                style: TextStyle(color: context.theme.colors.mutedForeground),
-              ),
-            ),
+            SettingsSectionTitle('数据源过滤'),
             GridView(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 3,

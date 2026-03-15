@@ -104,7 +104,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                 return FItem(
                   title: Text(
                     cache.videoInfo.name,
-                    style: context.theme.typography.base,
+                    style: context.theme.typography.md,
                   ),
                   onPress: () => _playCache(cache),
                   suffix: FButton.icon(
@@ -129,7 +129,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
               return FItem(
                 title: Text(
                   cache.videoInfo.name,
-                  style: context.theme.typography.base,
+                  style: context.theme.typography.sm,
                 ),
                 suffix: Row(
                   mainAxisSize: MainAxisSize.min,

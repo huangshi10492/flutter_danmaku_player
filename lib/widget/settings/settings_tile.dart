@@ -262,10 +262,14 @@ class SettingsTile extends StatelessWidget with FTileMixin {
       radioOptions!,
       style: .delta(
         tileStyle: .delta(
+          contentStyle: .delta(
+            titleTextStyle: .delta([.base(.delta(fontSize: 16))]),
+            detailsTextStyle: .delta([.base(.delta(fontSize: 16))]),
+          ),
           backgroundColor: FVariants.all(Colors.transparent),
           decoration: .delta([
-            .all(.delta(border: null)),
-            .base(.delta(color: Colors.transparent)),
+            .all(.boxDelta(border: null)),
+            .base(.boxDelta(color: Colors.transparent)),
           ]),
         ),
       ),

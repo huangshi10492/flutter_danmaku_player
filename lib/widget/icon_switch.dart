@@ -19,7 +19,7 @@ class IconSwitch extends StatelessWidget {
   Widget build(BuildContext context) {
     return FButton(
       onPress: onPress,
-      variant: value ? null : .secondary,
+      variant: value ? .primary : .secondary,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

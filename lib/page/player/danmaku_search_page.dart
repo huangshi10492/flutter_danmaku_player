@@ -178,12 +178,12 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
               style: .delta(
                 margin: .value(.symmetric(vertical: 2, horizontal: 0)),
                 contentStyle: .delta(
-                  padding: .value(.symmetric(vertical: 10, horizontal: 6)),
+                  // padding: .value(.symmetric(vertical: 10, horizontal: 6)),
                 ),
               ),
               title: Text(
                 episode.episodeTitle,
-                style: context.theme.typography.base,
+                style: context.theme.typography.md,
                 maxLines: 2,
               ),
               onPress: () {

@@ -108,7 +108,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           SizedBox(height: 16),
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('正在匹配弹幕...', style: context.theme.typography.base),
+          Text('正在匹配弹幕...', style: context.theme.typography.md),
         ],
       );
     }
@@ -119,7 +119,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           SizedBox(height: 16),
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('正在下载弹幕...', style: context.theme.typography.base),
+          Text('正在下载弹幕...', style: context.theme.typography.md),
         ],
       );
     }
@@ -130,7 +130,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           SizedBox(height: 16),
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('正在保存弹幕...', style: context.theme.typography.base),
+          Text('正在保存弹幕...', style: context.theme.typography.md),
         ],
       );
     }
@@ -141,7 +141,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           SizedBox(height: 8),
           Text('自动匹配成功', style: context.theme.typography.xl),
           const SizedBox(height: 16),
-          Text(_message, style: context.theme.typography.base),
+          Text(_message, style: context.theme.typography.md),
           const SizedBox(height: 16),
           FButton(
             variant: .outline,
@@ -290,12 +290,12 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
               style: .delta(
                 margin: .value(.symmetric(vertical: 2, horizontal: 0)),
                 contentStyle: .delta(
-                  padding: .value(.symmetric(vertical: 10, horizontal: 6)),
+                  // padding: .value(.symmetric(vertical: 10, horizontal: 6)),
                 ),
               ),
               title: Text(
                 episode.episodeTitle,
-                style: context.theme.typography.base,
+                style: context.theme.typography.md,
                 maxLines: 2,
               ),
               onPress: () async {

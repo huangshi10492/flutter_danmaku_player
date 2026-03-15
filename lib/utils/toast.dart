@@ -31,7 +31,7 @@ void showToast({
     context: ctx,
     alignment: alignment,
     icon: icon,
-    title: Text(title, style: ctx.theme.typography.base.copyWith(height: 1)),
+    title: Text(title, style: ctx.theme.typography.md.copyWith(height: 1)),
     description: description != null ? Text(description) : null,
     suffixBuilder: (context, entry) => IntrinsicHeight(
       child: FButton.icon(
