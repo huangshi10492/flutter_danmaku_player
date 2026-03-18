@@ -93,6 +93,7 @@ class VideoPlayerService {
   final Signal<Map<int, String>> chapters = Signal({});
 
   VideoInfo _videoInfo;
+  void Function() loadComplete;
   late Player _player;
   late AudioSession _session;
   bool _playInterrupted = false;
@@ -115,7 +116,8 @@ class VideoPlayerService {
     .reportProgress: UpdateTimer((_) => _reportProgress(), time: 3000),
   };
 
-  VideoPlayerService(VideoInfo videoInfo) : _videoInfo = videoInfo {
+  VideoPlayerService(VideoInfo videoInfo, this.loadComplete)
+    : _videoInfo = videoInfo {
     danmakuService = DanmakuService(videoInfo);
     _initialize();
   }
@@ -258,6 +260,7 @@ class VideoPlayerService {
     danmakuService.computeTrend(duration.inSeconds);
     _getChapter();
     await _loadTracks();
+    loadComplete.call();
   }
 
   Future<void> switchVideo(VideoInfo videoInfo) async {

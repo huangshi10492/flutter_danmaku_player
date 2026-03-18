@@ -37,7 +37,10 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late final _playerService = VideoPlayerService(widget.videoInfo);
+  late final _playerService = VideoPlayerService(
+    widget.videoInfo,
+    () => _uiState.showControlsTemporarily(),
+  );
   final PlayerUIState _uiState = PlayerUIState();
   final _globalService = GetIt.I.get<GlobalService>();
   final _configureService = GetIt.I.get<ConfigureService>();
@@ -832,6 +835,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
     _videoInfo.value = newVideoInfo;
     _playerService.switchVideo(newVideoInfo);
+    _uiState.updateControlsVisibility(true);
   }
 
   void _showRightDrawer(RightDrawerType drawerType) {
