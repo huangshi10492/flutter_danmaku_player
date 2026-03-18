@@ -5,7 +5,7 @@ on:
 
 env:
   JAVA_VERSION: "21"
-  FLUTTER_CHANNEL: "3.41.4"
+  FLUTTER_VERSION: "3.41.4"
 
 jobs:
   android-linux:
@@ -34,10 +34,11 @@ jobs:
           distribution: jetbrains
           java-version: ${{ env.JAVA_VERSION }}
 
-      - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
+      - name: Set up Flutter (${{ env.FLUTTER_VERSION }})
         uses: subosito/flutter-action@v2
         with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Download Android keystore
@@ -146,10 +147,11 @@ jobs:
           echo "tag=$ltag" >> $env:GITHUB_ENV
           echo "Latest tag: $ltag"
 
-      - name: Set up Flutter (${{ env.FLUTTER_CHANNEL }})
+      - name: Set up Flutter (${{ env.FLUTTER_VERSION }})
         uses: subosito/flutter-action@v2
         with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Add fastforge and Inno Setup
@@ -199,7 +201,7 @@ jobs:
   #     - uses: actions/checkout@v4
   #     - uses: subosito/flutter-action@v2
   #       with:
-  #         channel: ${{ env.FLUTTER_CHANNEL }}
+  #         channel: ${{ env.FLUTTER_VERSION }}
   #         cache: true
   #     - run: flutter config --enable-macos-desktop
   #     - run: flutter pub get
@@ -217,7 +219,7 @@ jobs:
   #     - uses: actions/checkout@v4
   #     - uses: subosito/flutter-action@v2
   #       with:
-  #         channel: ${{ env.FLUTTER_CHANNEL }}
+  #         channel: ${{ env.FLUTTER_VERSION }}
   #         cache: true
   #     - run: flutter pub get
   #     - name: Build iOS
