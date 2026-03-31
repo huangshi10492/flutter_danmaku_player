@@ -1,13 +1,20 @@
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:fldanplay/model/history.dart';
+import 'package:fldanplay/service/configure.dart';
+import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/utils/dialog.dart';
-import 'package:fldanplay/utils/maintenance.dart';
+import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
+import 'package:path_provider/path_provider.dart';
 
 class MaintenancePage extends StatefulWidget {
   const MaintenancePage({super.key});
@@ -20,8 +27,6 @@ class _MaintenancePageState extends State<MaintenancePage> {
   final _maintenanceUtils = MaintenanceUtils();
   bool _isLoading = false;
   int _historyCount = 0;
-  int _danmakuCount = 0;
-  int _screenshotCount = 0;
   int _cleanDaysAgo = 90;
 
   @override
@@ -32,13 +37,9 @@ class _MaintenancePageState extends State<MaintenancePage> {
 
   Future<void> _loadStats() async {
     final historyCount = await _maintenanceUtils.getHistoryCount();
-    final danmakuCount = await _maintenanceUtils.getDanmakuCacheCount();
-    final screenshotCount = await _maintenanceUtils.getScreenshotCacheCount();
     if (mounted) {
       setState(() {
         _historyCount = historyCount;
-        _danmakuCount = danmakuCount;
-        _screenshotCount = screenshotCount;
       });
     }
   }
@@ -102,26 +103,6 @@ class _MaintenancePageState extends State<MaintenancePage> {
     }
   }
 
-  Future<void> _cleanOrphanedFiles() async {
-    setState(() => _isLoading = true);
-    try {
-      final danmakuCleaned = await _maintenanceUtils
-          .cleanOrphanedDanmakuFiles();
-      final screenshotCleaned = await _maintenanceUtils
-          .cleanOrphanedScreenshots();
-      await _loadStats();
-      showToast(
-        level: 1,
-        title: '清理完成',
-        description: '已清理$danmakuCleaned个弹幕文件和$screenshotCleaned个缩略图',
-      );
-    } catch (e) {
-      showToast(level: 3, title: '清理失败', description: e.toString());
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -136,14 +117,6 @@ class _MaintenancePageState extends State<MaintenancePage> {
                   SettingsTile.simpleTile(
                     title: '历史记录',
                     details: '$_historyCount条',
-                  ),
-                  SettingsTile.simpleTile(
-                    title: '弹幕缓存',
-                    details: '$_danmakuCount个',
-                  ),
-                  SettingsTile.simpleTile(
-                    title: '视频缩略图',
-                    details: '$_screenshotCount个',
                   ),
                 ],
               ),
@@ -190,11 +163,6 @@ class _MaintenancePageState extends State<MaintenancePage> {
                       destructive: true,
                     ),
                   ),
-                  SettingsTile.simpleTile(
-                    title: '清理孤立缓存文件',
-                    subtitle: '删除无关联历史记录的弹幕和缩略图',
-                    onPress: _cleanOrphanedFiles,
-                  ),
                 ],
               ),
             ],
@@ -209,5 +177,81 @@ class _MaintenancePageState extends State<MaintenancePage> {
           ),
       ],
     );
+  }
+}
+
+class MaintenanceUtils {
+  final _logger = Logger('MaintenanceUtils');
+
+  Future<Directory> get _appSupportDir async =>
+      await getApplicationSupportDirectory();
+
+  Future<int> getHistoryCount() async {
+    final historyService = GetIt.I<HistoryService>();
+    return historyService.listener.value.length;
+  }
+
+  Future<File> backupConfigAndStorage() async {
+    final configureService = GetIt.I<ConfigureService>();
+    await configureService.beforeBackup();
+    final storageService = GetIt.I<StorageService>();
+    await storageService.beforeBackup();
+    final dir = await _appSupportDir;
+    final hiveDir = Directory('${dir.path}/hive');
+    final archive = Archive();
+    final configureFile = File('${hiveDir.path}/configure.hive');
+    if (await configureFile.exists()) {
+      final bytes = await configureFile.readAsBytes();
+      archive.addFile(ArchiveFile('configure.hive', bytes.length, bytes));
+    }
+    final storageFile = File('${hiveDir.path}/storage.hive');
+    if (await storageFile.exists()) {
+      final bytes = await storageFile.readAsBytes();
+      archive.addFile(ArchiveFile('storage.hive', bytes.length, bytes));
+    }
+    final zipData = ZipEncoder().encode(archive);
+    final exportFile = File(
+      '${dir.path}/fldanplay_config_${DateTime.now().millisecondsSinceEpoch}.zip',
+    );
+    await exportFile.writeAsBytes(zipData);
+    _logger.info('backupConfigAndStorage', '备份完成: ${exportFile.path}');
+    return exportFile;
+  }
+
+  Future<void> restoreConfigAndStorage(File zipFile) async {
+    final bytes = await zipFile.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+    final dir = await _appSupportDir;
+    final hiveDir = Directory('${dir.path}/hive');
+
+    for (final file in archive) {
+      if (file.isFile) {
+        final outputFile = File('${hiveDir.path}/${file.name}');
+        await outputFile.writeAsBytes(file.content as List<int>);
+      }
+    }
+    _logger.info('restoreConfigAndStorage', '还原完成');
+  }
+
+  Future<List<History>> getOldHistories(int daysAgo) async {
+    final historyService = GetIt.I<HistoryService>();
+    final cutoffTime = DateTime.now()
+        .subtract(Duration(days: daysAgo))
+        .millisecondsSinceEpoch;
+    final histories = historyService.listener.value.values.toList();
+    return histories.where((h) => h.updateTime < cutoffTime).toList();
+  }
+
+  Future<int> cleanOldHistories(int daysAgo) async {
+    _logger.info('cleanOldHistories', '开始清理 $daysAgo 天前的历史记录');
+    final historyService = GetIt.I<HistoryService>();
+    final oldHistories = await getOldHistories(daysAgo);
+    int cleanedCount = 0;
+    for (final history in oldHistories) {
+      await historyService.delete(history: history);
+      cleanedCount++;
+    }
+    _logger.info('cleanOldHistories', '清理完成，共清理 $cleanedCount 条记录');
+    return cleanedCount;
   }
 }
