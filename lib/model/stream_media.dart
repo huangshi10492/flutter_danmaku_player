@@ -40,6 +40,50 @@ class CollectionItem {
   }
 }
 
+class ResumeItem {
+  final String id;
+  final String name;
+  final MediaType type;
+  final String? seriesName;
+  final int? parentIndexNumber;
+  final int? indexNumber;
+  final int playbackPositionTicks;
+  final int? runTimeTicks;
+  final DateTime? lastPlayedDate;
+  final String? seriesId;
+  final String? mainImage;
+  final String? fallbackImage;
+
+  const ResumeItem({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.seriesName,
+    this.parentIndexNumber,
+    this.indexNumber,
+    required this.playbackPositionTicks,
+    this.runTimeTicks,
+    this.lastPlayedDate,
+    this.seriesId,
+    this.mainImage,
+    this.fallbackImage,
+  });
+
+  String get subtitle {
+    if (seriesName != null && seriesName!.isNotEmpty) {
+      final buffer = StringBuffer(seriesName!);
+      if (parentIndexNumber != null) {
+        buffer.write(' S$parentIndexNumber');
+      }
+      if (indexNumber != null) {
+        buffer.write('E$indexNumber');
+      }
+      return buffer.toString();
+    }
+    return name;
+  }
+}
+
 class MediaItem {
   final String name;
   final String id;
@@ -155,10 +199,18 @@ class SeasonInfo {
   }
 }
 
+class PlaybackQueueResult {
+  final SeasonInfo season;
+  final int initialIndex;
+
+  const PlaybackQueueResult({required this.season, required this.initialIndex});
+}
+
 class EpisodeInfo {
   final String id;
   final String name;
   final int? indexNumber;
+  final int? parentIndexNumber;
   final String? seriesName;
   final String? overview;
   final int? runTimeTicks;
@@ -169,6 +221,7 @@ class EpisodeInfo {
     required this.id,
     required this.name,
     this.indexNumber,
+    this.parentIndexNumber,
     this.seriesName,
     this.overview,
     this.runTimeTicks,
@@ -181,6 +234,7 @@ class EpisodeInfo {
       id: json['Id'] ?? '',
       name: json['Name'] ?? '',
       indexNumber: json['IndexNumber'],
+      parentIndexNumber: json['ParentIndexNumber'],
       seriesName: json['SeriesName'],
       overview: json['Overview'],
       runTimeTicks: json['RunTimeTicks'],
@@ -192,6 +246,14 @@ class EpisodeInfo {
     if (runTimeTicks == null) return null;
     final minutes = (runTimeTicks! / 10000000 / 60).round();
     return '$minutes分钟';
+  }
+
+  String get subtitle {
+    String buffer = seriesName ?? '';
+    if (parentIndexNumber != null && indexNumber != null) {
+      buffer += ' S${parentIndexNumber}E$indexNumber';
+    }
+    return buffer;
   }
 }
 

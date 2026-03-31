@@ -29,83 +29,88 @@ class StreamMediaInfoCard extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1000),
-        child: SizedBox(
-          height: 300,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final screenWidth = constraints.maxWidth;
-              final isWideLayout = screenWidth > 650;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (!isWideLayout) ...[
-                    Text(
-                      title,
-                      style: context.theme.typography.xl.copyWith(height: 1.4),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 0.7,
-                          child: LayoutBuilder(
-                            builder: (context, boxConstraints) {
-                              final double maxWidth = boxConstraints.maxWidth;
-                              final double maxHeight = boxConstraints.maxHeight;
-                              return Hero(
-                                transitionOnUserGestures: true,
-                                tag: mediaId,
-                                child: NetworkImageWidget(
-                                  url: imageUrl,
-                                  headers: headers,
-                                  maxWidth: maxWidth,
-                                  maxHeight: maxHeight,
-                                  large: true,
-                                  errorWidget: _buildEmtpyPrefix(),
-                                ),
-                              );
-                            },
-                          ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, kToolbarHeight, 16, 0),
+          child: SizedBox(
+            height: 300,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                final isWideLayout = screenWidth > 650;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isWideLayout) ...[
+                      Text(
+                        title,
+                        style: context.theme.typography.xl.copyWith(
+                          height: 1.4,
                         ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 12),
-                            child: InkWell(
-                              onTap: () => _showDetailsBottomSheet(context),
-                              borderRadius: BorderRadius.circular(4),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (isWideLayout) ...[
-                                    Text(
-                                      title,
-                                      style: context.theme.typography.xl2
-                                          .copyWith(height: 1.4),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AspectRatio(
+                            aspectRatio: 0.7,
+                            child: LayoutBuilder(
+                              builder: (context, boxConstraints) {
+                                final double maxWidth = boxConstraints.maxWidth;
+                                final double maxHeight =
+                                    boxConstraints.maxHeight;
+                                return Hero(
+                                  transitionOnUserGestures: true,
+                                  tag: mediaId,
+                                  child: NetworkImageWidget(
+                                    url: imageUrl,
+                                    headers: headers,
+                                    maxWidth: maxWidth,
+                                    maxHeight: maxHeight,
+                                    errorWidget: _buildEmtpyPrefix(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 12),
+                              child: InkWell(
+                                onTap: () => _showDetailsBottomSheet(context),
+                                borderRadius: BorderRadius.circular(4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (isWideLayout) ...[
+                                      Text(
+                                        title,
+                                        style: context.theme.typography.xl2
+                                            .copyWith(height: 1.4),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
+                                    _buildInfoBlocks(context),
+                                    const SizedBox(height: 8),
+                                    if (mediaDetail?.overview != null)
+                                      Flexible(child: _buildOverview(context)),
                                   ],
-                                  _buildInfoBlocks(context),
-                                  const SizedBox(height: 8),
-                                  if (mediaDetail?.overview != null)
-                                    Flexible(child: _buildOverview(context)),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -234,7 +239,7 @@ class StreamMediaInfoCard extends StatelessWidget {
         color: const Color.fromARGB(255, 25, 25, 25),
       ),
       child: const Center(
-        child: Icon(Icons.folder_outlined, size: 50, color: Colors.grey),
+        child: Icon(Icons.play_circle_outline, size: 50, color: Colors.grey),
       ),
     );
   }

@@ -6,8 +6,10 @@ class NetworkImageWidget extends StatelessWidget {
   final Map<String, String>? headers;
   final double maxWidth;
   final double maxHeight;
-  final bool large;
   final Widget? errorWidget;
+  final BoxFit fit;
+  final Color? backgroundColor;
+  final double radius;
 
   const NetworkImageWidget({
     super.key,
@@ -15,36 +17,41 @@ class NetworkImageWidget extends StatelessWidget {
     this.headers,
     required this.maxWidth,
     required this.maxHeight,
-    this.large = false,
     this.errorWidget,
+    this.fit = BoxFit.cover,
+    this.backgroundColor,
+    this.radius = 8,
   });
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(large ? 8 : 4),
-      child: CachedNetworkImage(
-        imageUrl: url,
-        httpHeaders: headers,
-        width: maxWidth,
-        height: maxHeight,
-        memCacheWidth: maxWidth.cacheSize(context),
-        errorWidget: (context, url, error) {
-          if (errorWidget != null) {
-            return errorWidget!;
-          }
-          return Container();
-        },
-        placeholder: (context, url) {
-          if (errorWidget != null) {
-            return errorWidget!;
-          }
-          return Container();
-        },
-        filterQuality: FilterQuality.high,
-        fit: BoxFit.cover,
-        fadeInDuration: const Duration(milliseconds: 0),
-        fadeOutDuration: const Duration(milliseconds: 0),
+      borderRadius: .circular(radius),
+      child: ColoredBox(
+        color: backgroundColor ?? Colors.grey.shade800,
+        child: CachedNetworkImage(
+          imageUrl: url,
+          httpHeaders: headers,
+          width: maxWidth,
+          height: maxHeight,
+          memCacheWidth: maxWidth.cacheSize(context),
+          errorWidget: (context, url, error) {
+            if (errorWidget != null) {
+              return errorWidget!;
+            }
+            return const SizedBox.shrink();
+          },
+          placeholder: (context, url) {
+            if (errorWidget != null) {
+              return errorWidget!;
+            }
+            return const SizedBox.shrink();
+          },
+          filterQuality: FilterQuality.high,
+          fit: fit,
+          fadeInDuration: const Duration(milliseconds: 0),
+          fadeOutDuration: const Duration(milliseconds: 0),
+        ),
       ),
     );
   }

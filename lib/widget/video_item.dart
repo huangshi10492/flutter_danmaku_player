@@ -31,6 +31,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final History? history;
   final String uniqueKey;
   final String name;
+  final String? subtitle;
   final void Function() onPress;
   final void Function()? onLongPress;
   final int refreshKey;
@@ -38,11 +39,14 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final Map<String, String>? headers;
   final Function()? onOfflineDownload;
   final DanmakuMatchDialog? danmakuMatchDialog;
+  final double previewWidth;
+  final double previewHeight;
   const VideoItem({
     super.key,
     required this.history,
     required this.uniqueKey,
     required this.name,
+    this.subtitle,
     required this.onPress,
     this.onLongPress,
     required this.refreshKey,
@@ -50,6 +54,8 @@ class VideoItem extends StatefulWidget with FItemMixin {
     this.headers,
     this.onOfflineDownload,
     this.danmakuMatchDialog,
+    this.previewWidth = 95,
+    this.previewHeight = 65,
   });
   @override
   State<VideoItem> createState() => _VideoItemState();
@@ -199,6 +205,7 @@ class _VideoItemState extends State<VideoItem> {
             headers: widget.headers,
             maxWidth: maxWidth,
             maxHeight: maxHeight,
+            radius: 4,
             errorWidget: _buildEmtpyPrefix(),
           ),
         );
@@ -219,10 +226,15 @@ class _VideoItemState extends State<VideoItem> {
             )
           : 0.0;
       progressPercent = (progress * 100).round();
-      lastWatchTime = Utils.formatLastWatchTime(widget.history!.updateTime);
+      if (widget.history!.updateTime == 0) {
+        lastWatchTime = '';
+      } else {
+        lastWatchTime = Utils.formatLastWatchTime(widget.history!.updateTime);
+      }
     }
     final subtitleStyle =
         context.theme.itemStyles.base.contentStyle.subtitleTextStyle.base;
+    final subtitle = widget.subtitle ?? widget.history?.subtitle;
     return _PopoverMenu(
       download: widget.onOfflineDownload ?? () {},
       matchDanmaku: () async {
@@ -247,8 +259,8 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         prefix: SizedBox(
-          width: 95,
-          height: 65,
+          width: widget.previewWidth,
+          height: widget.previewHeight,
           child: FutureBuilder(
             future: _prefixFuture,
             builder: (context, snapshot) {
@@ -263,7 +275,7 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         title: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 65),
+          constraints: BoxConstraints(minHeight: widget.previewHeight),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -282,45 +294,43 @@ class _VideoItemState extends State<VideoItem> {
                   maxLines: 2,
                 ),
               ),
-              widget.history != null
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  subtitle == null
+                      ? const SizedBox()
+                      : Text(subtitle, style: subtitleStyle),
+                  if (widget.history != null) ...[
+                    const SizedBox(height: 4),
+                    FDeterminateProgress(
+                      value: progress,
+                      style: .delta(
+                        motion: .delta(duration: Duration.zero),
+                        constraints: .tightFor(height: 4),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        widget.history!.subtitle == null
-                            ? const SizedBox()
-                            : Text(
-                                widget.history!.subtitle!,
-                                style: subtitleStyle,
-                              ),
-                        const SizedBox(height: 4),
-                        FDeterminateProgress(
-                          value: progress,
-                          style: .delta(
-                            motion: .delta(duration: Duration.zero),
-                            constraints: .tightFor(height: 4),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                if (_hasDanmaku) _buildDanmakuIcon(),
-                                Text(style: subtitleStyle, lastWatchTime),
-                              ],
-                            ),
-                            Text(style: subtitleStyle, '$progressPercent%'),
+                            if (_hasDanmaku) _buildDanmakuIcon(),
+                            Text(style: subtitleStyle, lastWatchTime),
                           ],
                         ),
+                        Text(style: subtitleStyle, '$progressPercent%'),
                       ],
-                    )
-                  : Row(
+                    ),
+                  ] else
+                    Row(
                       children: [
                         if (_hasDanmaku) _buildDanmakuIcon(),
                         Text(style: subtitleStyle, '未观看'),
                       ],
                     ),
+                ],
+              ),
             ],
           ),
         ),

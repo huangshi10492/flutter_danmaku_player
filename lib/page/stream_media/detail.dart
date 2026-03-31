@@ -1,11 +1,10 @@
 import 'dart:ui';
 
+import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/page/stream_media/info_card.dart';
 import 'package:fldanplay/router.dart';
-import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
-import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
@@ -36,16 +35,20 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
 
   late TabController _tabController;
   MediaDetail? _mediaDetail;
+  ResumeItem? _continueItem;
   bool _isLoading = true;
   String? _error;
   final Map<String, int> _refreshMap = {};
   final Signal<bool> _isPlaying = signal(false);
+  bool get _showContinueSection =>
+      _service.storage?.useRemoteHistory == true && _continueItem != null;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 0, vsync: this);
     _loadMediaDetail();
+    _loadContinueItem();
     GetIt.I.get<GlobalService>().updateListener = refreshItem;
   }
 
@@ -57,6 +60,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   }
 
   void refreshItem(String uniqueKey) {
+    _loadContinueItem();
     setState(() {
       _refreshMap[uniqueKey] = (_refreshMap[uniqueKey] ?? 0) + 1;
     });
@@ -68,9 +72,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         _isLoading = true;
         _error = null;
       });
-
       final detail = await _service.getMediaDetail(widget.mediaItem.id);
-
       setState(() {
         _mediaDetail = detail;
         _isLoading = false;
@@ -88,18 +90,46 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     }
   }
 
+  Future<void> _loadContinueItem() async {
+    if (_service.storage?.useRemoteHistory != true) return;
+    try {
+      final items = await _service.fetchResumeItems(
+        parentId: widget.mediaItem.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _continueItem = items.isEmpty ? null : items.first;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _playContinueItem() async {
+    final item = _continueItem;
+    if (item == null || _isPlaying.value) return;
+    _isPlaying.value = true;
+    try {
+      final videoInfo = await _service.prepareVideoInfoByItemId(item.id);
+      if (!mounted) return;
+      final location = Uri(path: videoPlayerPath);
+      await context.push(location.toString(), extra: videoInfo);
+    } catch (e) {
+      showToast(level: 3, title: '播放失败', description: e.toString());
+    } finally {
+      _isPlaying.value = false;
+    }
+  }
+
   Future<void> _onPlayEpisode(SeasonInfo season, int index) async {
     if (_isPlaying.value) return;
     _isPlaying.value = true;
     try {
-      final historyService = GetIt.I.get<HistoryService>();
-      _service.setVideoList(season);
-      final videoInfo = _service.getVideoInfo(index);
-      if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
-        videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
-      }
-      final history = _service.getHistory(season.episodes[index]);
-      if (history != null) await historyService.save(history);
+      final videoInfo = await _service.prepareVideoInfoForSeason(season, index);
       if (mounted) {
         final location = Uri(path: videoPlayerPath);
         context.push(location.toString(), extra: videoInfo);
@@ -138,7 +168,11 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                     scrolledUnderElevation: 0,
                     stretch: true,
                     centerTitle: false,
-                    expandedHeight: 300 + kTextTabBarHeight + kToolbarHeight,
+                    expandedHeight:
+                        304 +
+                        (_showContinueSection ? 144 : 0) +
+                        kTextTabBarHeight +
+                        kToolbarHeight,
                     toolbarHeight: kToolbarHeight,
                     collapsedHeight:
                         kTextTabBarHeight +
@@ -147,33 +181,30 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                     forceElevated: innerBoxIsScrolled,
                     flexibleSpace: FlexibleSpaceBar(
                       collapseMode: CollapseMode.pin,
-                      background: Stack(
+                      background: Column(
                         children: [
-                          Positioned.fill(
-                            bottom: kTextTabBarHeight,
-                            child: _buildbackground(false),
-                          ),
-                          SafeArea(
-                            bottom: false,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                16,
-                                kToolbarHeight,
-                                16,
-                                kTextTabBarHeight,
+                          Stack(
+                            children: [
+                              Positioned.fill(
+                                bottom: 16,
+                                child: _buildbackground(),
                               ),
-                              child: StreamMediaInfoCard(
-                                title: widget.mediaItem.name,
-                                mediaId: widget.mediaItem.id,
-                                imageUrl: _service.getImageUrl(
-                                  widget.mediaItem.id,
+                              SafeArea(
+                                bottom: false,
+                                child: StreamMediaInfoCard(
+                                  title: widget.mediaItem.name,
+                                  mediaId: widget.mediaItem.id,
+                                  imageUrl: _service.getImageUrl(
+                                    widget.mediaItem.id,
+                                  ),
+                                  headers: _service.headers,
+                                  isLoading: _isLoading,
+                                  mediaDetail: _mediaDetail,
                                 ),
-                                headers: _service.headers,
-                                isLoading: _isLoading,
-                                mediaDetail: _mediaDetail,
                               ),
-                            ),
+                            ],
                           ),
+                          if (_showContinueSection) _buildContinueSection(),
                         ],
                       ),
                     ),
@@ -262,10 +293,55 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     );
   }
 
-  Widget _buildbackground(bool isLandscape) {
-    if (_mediaDetail == null || _isLoading) {
-      return Container();
-    }
+  Widget _buildContinueSection() {
+    if (_isLoading) return const SizedBox.shrink();
+    final item = _continueItem;
+    if (item == null) return const SizedBox.shrink();
+    final uniqueKey = CryptoUtils.generateVideoUniqueKey(item.id);
+    final positionMs = (item.playbackPositionTicks / 10000).round();
+    final durationMs = ((item.runTimeTicks ?? 0) / 10000).round();
+    _refreshMap[uniqueKey] ??= 0;
+    final refreshKey = _refreshMap[uniqueKey]!;
+    final history = History(
+      uniqueKey: uniqueKey,
+      duration: durationMs,
+      position: positionMs,
+      url: item.id,
+      type: HistoriesType.streamMediaStorage,
+      storageKey: _service.storage?.uniqueKey,
+      updateTime: item.lastPlayedDate?.millisecondsSinceEpoch ?? 0,
+      name: item.name,
+      subtitle: item.subtitle,
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1000),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const .only(left: 16, top: 8),
+            child: Text('继续观看', style: context.theme.typography.xl),
+          ),
+          VideoItem(
+            history: history,
+            uniqueKey: uniqueKey,
+            name: item.name,
+            onPress: _playContinueItem,
+            refreshKey: refreshKey,
+            imageUrl: item.mainImage == null
+                ? null
+                : _service.getImageUrl(item.mainImage!),
+            headers: _service.headers,
+            previewWidth: 160,
+            previewHeight: 90,
+            onLongPress: () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildbackground() {
     return IgnorePointer(
       child: Opacity(
         opacity: 0.4,
@@ -276,12 +352,8 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
               child: ShaderMask(
                 shaderCallback: (Rect bounds) {
                   return LinearGradient(
-                    begin: isLandscape
-                        ? Alignment.centerLeft
-                        : Alignment.topCenter,
-                    end: isLandscape
-                        ? Alignment.centerRight
-                        : Alignment.bottomCenter,
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                     colors: [Colors.white, Colors.transparent],
                     stops: [0.7, 1],
                   ).createShader(bounds);
@@ -291,6 +363,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                   headers: _service.headers,
                   maxWidth: boxConstraints.maxWidth,
                   maxHeight: boxConstraints.maxHeight,
+                  radius: 0,
                 ),
               ),
             );
@@ -316,7 +389,8 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       refreshKey: refreshKey,
       imageUrl: _service.getImageUrl(episode.id),
       headers: _service.headers,
-      name: '${episode.indexNumber}. ${episode.name}',
+      name: episode.name,
+      subtitle: episode.subtitle,
       onOfflineDownload: () => _onDownloadEpisode(season, index),
       danmakuMatchDialog: DanmakuMatchDialog(
         uniqueKey: uniqueKey,

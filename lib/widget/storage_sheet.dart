@@ -2,6 +2,7 @@ import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
+import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fldanplay/utils/toast.dart';
@@ -151,9 +152,6 @@ class _StorageFormData {
               case 'password':
                 controller.text = storage.password ?? '';
                 break;
-              case 'mediaLibraryId':
-                controller.text = storage.mediaLibraryId ?? '';
-                break;
             }
           }
           break;
@@ -199,9 +197,6 @@ class _StorageFormData {
                 break;
               case 'password':
                 storage.password = value.isEmpty ? null : value;
-                break;
-              case 'mediaLibraryId':
-                storage.mediaLibraryId = value.isEmpty ? null : value;
                 break;
             }
           }
@@ -327,7 +322,6 @@ List<_FieldConfig> _getConfigs(StorageType type) {
         _FieldConfig('account', '用户名', required: true),
         _FieldConfig('password', '密码', required: true, obscureText: true),
         _FieldConfig('useRemoteHistory', '使用远程历史', type: _FieldType.toggle),
-        _FieldConfig('mediaLibraryId', '媒体库ID', required: true),
       ];
     case StorageType.emby:
       return [
@@ -341,7 +335,6 @@ List<_FieldConfig> _getConfigs(StorageType type) {
         _FieldConfig('account', '用户名', required: true),
         _FieldConfig('password', '密码', required: true, obscureText: true),
         _FieldConfig('useRemoteHistory', '使用远程历史', type: _FieldType.toggle),
-        _FieldConfig('mediaLibraryId', '媒体库ID', required: true),
       ];
   }
 }
@@ -371,9 +364,6 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
 
   var _storage = Storage.create();
   bool _isLoading = false;
-
-  List<CollectionItem> _mediaServerLibraries = [];
-  bool _isMediaServerLoggedIn = false;
   String get _title {
     switch (widget.storageType) {
       case StorageType.webdav:
@@ -416,16 +406,22 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _uniqueKeyController.dispose();
     _formData.dispose();
     super.dispose();
   }
 
-  Future<bool> _saveStorage(BuildContext context) async {
+  Future<bool> _saveStorage() async {
     if (!_formKey.currentState!.validate()) {
       return false;
     }
     setState(() => _isLoading = true);
     try {
+      if (widget.storageType == StorageType.jellyfin ||
+          widget.storageType == StorageType.emby) {
+        await _loginToMediaServer();
+      }
       _storage.name = _nameController.text.trim();
       _storage.uniqueKey = _uniqueKeyController.text.trim();
       _storage.storageType = widget.storageType;
@@ -447,10 +443,6 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
   }
 
   Future<void> _loginToMediaServer() async {
-    if (widget.storageType != StorageType.jellyfin &&
-        widget.storageType != StorageType.emby) {
-      return;
-    }
     final url = _formData.controllers['url']?.text.trim();
     final username = _formData.controllers['account']?.text.trim();
     final password = _formData.controllers['password']?.text.trim();
@@ -460,45 +452,26 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         username.isEmpty ||
         password == null ||
         password.isEmpty) {
-      showToast(level: 2, title: '请填写完整的服务器地址、用户名和密码');
-      return;
+      throw AppException('登录失败', '请填写完整的服务器地址、用户名和密码');
     }
-    setState(() => _isLoading = true);
-    try {
-      StreamMediaExplorerProvider apiUtils;
-      if (widget.storageType == StorageType.jellyfin) {
-        apiUtils = JellyfinStreamMediaExplorerProvider(
-          url,
-          UserInfo(userId: '', token: ''),
-        );
-      } else {
-        apiUtils = EmbyStreamMediaExplorerProvider(
-          url,
-          UserInfo(userId: '', token: ''),
-        );
-      }
-      final dio = apiUtils.getDio(url);
-      final userInfo = await apiUtils.login(dio, username, password);
-      if (widget.storageType == StorageType.jellyfin) {
-        apiUtils = JellyfinStreamMediaExplorerProvider(url, userInfo);
-      } else {
-        apiUtils = EmbyStreamMediaExplorerProvider(url, userInfo);
-      }
-      final libraries = await apiUtils.getUserViews();
-      setState(() {
-        _storage.token = userInfo.token;
-        _storage.userId = userInfo.userId;
-        _mediaServerLibraries = libraries;
-        _isMediaServerLoggedIn = true;
-      });
-      showToast(title: '登录成功！请选择媒体库');
-    } catch (e) {
-      showToast(level: 3, title: '登录失败', description: e.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    StreamMediaExplorerProvider apiUtils;
+    if (widget.storageType == StorageType.jellyfin) {
+      apiUtils = JellyfinStreamMediaExplorerProvider(
+        url,
+        UserInfo(userId: '', token: ''),
+      );
+    } else {
+      apiUtils = EmbyStreamMediaExplorerProvider(
+        url,
+        UserInfo(userId: '', token: ''),
+      );
     }
+    final dio = apiUtils.getDio(url);
+    final userInfo = await apiUtils.login(dio, username, password);
+    setState(() {
+      _storage.token = userInfo.token;
+      _storage.userId = userInfo.userId;
+    });
   }
 
   Widget _buildFieldWidget(_FieldConfig field) {
@@ -614,7 +587,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                       onPress: _isLoading
                           ? null
                           : () async {
-                              final result = await _saveStorage(context);
+                              final result = await _saveStorage();
                               if (context.mounted) {
                                 if (result) {
                                   Navigator.of(context).pop(result);
@@ -696,58 +669,6 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                     child: Text('选择文件夹'),
                   ),
                 ),
-              ],
-              if (widget.storageType == StorageType.jellyfin ||
-                  widget.storageType == StorageType.emby) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  child: FButton(
-                    variant: _isMediaServerLoggedIn ? .secondary : .primary,
-                    onPress: _isLoading ? null : _loginToMediaServer,
-                    child: Text(_isMediaServerLoggedIn ? '已登录' : '登录并获取媒体库'),
-                  ),
-                ),
-                if (_isMediaServerLoggedIn && _mediaServerLibraries.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    child: FSelectMenuTile.fromMap(
-                      selectControl: .lifted(
-                        value: {_formData.controllers['mediaLibraryId']!.text},
-                        onChange: (value) {
-                          if (value.isEmpty) return;
-                          setState(() {
-                            _formData.controllers['mediaLibraryId']!.text =
-                                value.last;
-                          });
-                        },
-                      ),
-                      Map.fromEntries(
-                        _mediaServerLibraries.map(
-                          (lib) => MapEntry(lib.name, lib.id),
-                        ),
-                      ),
-                      title: const Text('选择媒体库'),
-                      details: Text(
-                        _formData.controllers['mediaLibraryId']!.text != ''
-                            ? _mediaServerLibraries
-                                  .firstWhere(
-                                    (lib) =>
-                                        lib.id ==
-                                        _formData
-                                            .controllers['mediaLibraryId']!
-                                            .text,
-                                  )
-                                  .name
-                            : '请选择媒体库',
-                      ),
-                    ),
-                  ),
               ],
             ],
           ),

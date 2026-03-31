@@ -5,8 +5,10 @@ import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:get_it/get_it.dart';
@@ -16,8 +18,10 @@ abstract class StreamMediaExplorerProvider {
   Dio getDio(String url, {UserInfo? userInfo});
   Future<UserInfo> login(Dio dio, String username, String password);
   Future<List<CollectionItem>> getUserViews();
+  Future<List<ResumeItem>> getResumeItems({String? parentId, int limit = 12});
   Future<List<MediaItem>> getItems(String parentId, {required Filter filter});
   Future<MediaDetail> getMediaDetail(String itemId);
+  Future<PlaybackQueueResult> getPlaybackQueue(String itemId);
   Map<String, String> get headers;
   String getImageUrl(String itemId, {String tag = 'Primary'});
   String getStreamUrl(String itemId);
@@ -58,6 +62,9 @@ class Filter {
 class StreamMediaExplorerService {
   final Signal<StreamMediaExplorerProvider?> provider = signal(null);
   final Signal<String> libraryId = signal('');
+  final AsyncSignal<List<CollectionItem>> libraries = asyncSignal(
+    AsyncLoading(),
+  );
   Storage? storage;
   void Function()? _reportEffect;
   List<EpisodeInfo> episodeList = [];
@@ -68,13 +75,14 @@ class StreamMediaExplorerService {
 
   static void register() {
     final service = StreamMediaExplorerService();
+    effect(service._syncLibraryId);
     effect(service.getData);
     GetIt.I.registerSingleton<StreamMediaExplorerService>(service);
   }
 
-  void getData() async {
+  Future<void> getData() async {
     items.value = AsyncLoading();
-    if (provider.value == null) {
+    if (provider.value == null || libraryId.value.isEmpty) {
       items.value = AsyncData([]);
       return;
     }
@@ -93,11 +101,101 @@ class StreamMediaExplorerService {
   void setProvider(StreamMediaExplorerProvider newProvider, Storage storage) {
     batch(() {
       filter.value = Filter();
+      libraries.value = AsyncLoading();
+      items.value = AsyncLoading();
+      episodeList = [];
       this.storage = storage;
       provider.value = newProvider;
       libraryId.value = storage.mediaLibraryId!;
     });
     _logger.info('setProvider', '设置新的媒体库提供者');
+  }
+
+  Future<List<CollectionItem>> loadLibraries() async {
+    if (provider.value == null) {
+      libraries.value = AsyncData([]);
+      return [];
+    }
+    libraries.value = AsyncLoading();
+    try {
+      final list = await provider.value!.getUserViews();
+      libraries.value = AsyncData(list);
+      if (list.isEmpty) {
+        libraryId.value = '';
+      } else {
+        final currentLibraryId = storage?.mediaLibraryId;
+        final selectedLibraryId =
+            list.any((item) => item.id == currentLibraryId)
+            ? currentLibraryId!
+            : list.first.id;
+        if (libraryId.value != selectedLibraryId) {
+          libraryId.value = selectedLibraryId;
+        }
+      }
+      return list;
+    } catch (e, t) {
+      _logger.error('libraries', '加载媒体库列表失败', error: e, stackTrace: t);
+      libraries.value = AsyncError(e, t);
+      rethrow;
+    }
+  }
+
+  Future<void> refresh() async {
+    if (provider.value == null) {
+      items.value = AsyncData([]);
+      return;
+    }
+    await getData();
+  }
+
+  Future<List<ResumeItem>> fetchResumeItems({
+    String? parentId,
+    int limit = 12,
+  }) async {
+    if (provider.value == null || storage?.useRemoteHistory != true) {
+      return [];
+    }
+    return provider.value!.getResumeItems(parentId: parentId, limit: limit);
+  }
+
+  Future<VideoInfo> prepareVideoInfoByItemId(String itemId) async {
+    if (provider.value == null) {
+      throw AppException('播放失败', '媒体服务未初始化');
+    }
+    final queue = await provider.value!.getPlaybackQueue(itemId);
+    return prepareVideoInfoForSeason(queue.season, queue.initialIndex);
+  }
+
+  Future<VideoInfo> prepareVideoInfoForSeason(
+    SeasonInfo season,
+    int index,
+  ) async {
+    setVideoList(season);
+    final videoInfo = getVideoInfo(index);
+    final history = getHistory(season.episodes[index]);
+    if (history != null) {
+      await GetIt.I.get<HistoryService>().save(history);
+    }
+    if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
+      videoInfo.cached = GetIt.I.get<OfflineCacheService>().isCached(
+        videoInfo.uniqueKey,
+      );
+    }
+    return videoInfo;
+  }
+
+  Future<void> _syncLibraryId() async {
+    final newId = libraryId.value;
+    if (storage == null) return;
+    if (storage!.mediaLibraryId == newId && newId.isEmpty) {
+      return;
+    }
+    storage!.mediaLibraryId = newId;
+    try {
+      await storage!.save();
+    } catch (e, t) {
+      _logger.error('libraryId', '同步媒体库ID失败', error: e, stackTrace: t);
+    }
   }
 
   void setVideoList(SeasonInfo seasonInfo) {
@@ -114,7 +212,7 @@ class StreamMediaExplorerService {
       storageKey: storage!.uniqueKey,
       name: episode.name,
       videoName: episode.fileName,
-      subtitle: '${episode.seriesName} ${episode.indexNumber}',
+      subtitle: episode.subtitle,
       listLength: episodeList.length,
       videoIndex: index,
       canSwitch: true,
@@ -305,7 +403,6 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
               EpisodeInfo(
                 id: detail.id,
                 name: detail.name,
-                indexNumber: 0,
                 seriesName: detail.name,
                 runTimeTicks: detail.runTimeTicks,
                 fileName: itemInfo.fileName,
@@ -322,6 +419,61 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     } catch (e, t) {
       _logger.error('getMediaDetail', '获取媒体详情失败', error: e, stackTrace: t);
       throw AppException('获取媒体详情失败', e);
+    }
+  }
+
+  @override
+  Future<PlaybackQueueResult> getPlaybackQueue(String itemId) async {
+    try {
+      final response = await dio.get(getItemsPath(itemId));
+      final item = response.data as Map<String, dynamic>;
+      final type = item['Type'] as String?;
+      if (type == 'Movie') {
+        final itemInfo = ItemInfo.fromJson(item);
+        return PlaybackQueueResult(
+          season: SeasonInfo(
+            id: item['Id'] ?? itemId,
+            name: item['Name'] ?? '影片',
+            episodes: [
+              EpisodeInfo(
+                id: item['Id'] ?? itemId,
+                name: item['Name'] ?? '',
+                indexNumber: item['IndexNumber'],
+                seriesName: item['Name'] ?? '',
+                runTimeTicks: item['RunTimeTicks'],
+                fileName: itemInfo.fileName,
+                userData: itemInfo.userData,
+              ),
+            ],
+          ),
+          initialIndex: 0,
+        );
+      }
+      if (type == 'Episode') {
+        final seasonId = item['SeasonId'] ?? item['ParentId'];
+        if (seasonId == null || seasonId.toString().isEmpty) {
+          throw AppException('获取播放列表失败', '找不到季度信息');
+        }
+        final episodes = await getEpisodes(dio, seasonId.toString());
+        final initialIndex = episodes.indexWhere(
+          (episode) => episode.id == itemId,
+        );
+        return PlaybackQueueResult(
+          season: SeasonInfo(
+            id: seasonId.toString(),
+            name: item['SeasonName'] ?? '当前季度',
+            indexNumber: item['ParentIndexNumber'],
+            episodes: episodes,
+          ),
+          initialIndex: initialIndex >= 0 ? initialIndex : 0,
+        );
+      }
+      throw AppException('获取播放列表失败', '当前媒体不支持继续播放');
+    } on DioException catch (e, t) {
+      _logger.dio('getPlaybackQueue', e, t, action: '获取播放列表');
+    } catch (e, t) {
+      _logger.error('getPlaybackQueue', '获取播放列表失败', error: e, stackTrace: t);
+      throw AppException('获取播放列表失败', e);
     }
   }
 
@@ -367,6 +519,64 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       _logger.error('getUserViews', '获取用户视图失败', error: e, stackTrace: t);
       throw AppException('获取用户视图失败', e);
     }
+  }
+
+  @override
+  Future<List<ResumeItem>> getResumeItems({
+    String? parentId,
+    int limit = 12,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/Users/${userInfo.userId}/Items/Resume',
+        queryParameters: {
+          'Limit': limit,
+          'Recursive': true,
+          'Fields': 'UserData,SeriesName,ParentIndexNumber,IndexNumber',
+          'MediaTypes': 'Video',
+          if (parentId != null && parentId.isNotEmpty) 'ParentId': parentId,
+        },
+      );
+      final items = response.data['Items'] as List<dynamic>? ?? [];
+      return items
+          .map((item) => _parseResumeItem(item as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e, t) {
+      _logger.dio('getResumeItems', e, t, action: '获取继续观看');
+    } catch (e, t) {
+      _logger.error('getResumeItems', '获取继续观看失败', error: e, stackTrace: t);
+      throw AppException('获取继续观看失败', e);
+    }
+  }
+
+  ResumeItem _parseResumeItem(Map<String, dynamic> json) {
+    final userData = json['UserData'] as Map<String, dynamic>?;
+    final imageTags = json['ImageTags'] as Map<String, dynamic>?;
+    final hasPrimary = (imageTags?['Primary'] as String?)?.isNotEmpty == true;
+    final hasSeriesPrimary =
+        (json['SeriesPrimaryImageTag'] as String?)?.isNotEmpty == true;
+    final seriesId = json['SeriesId'] as String?;
+    return ResumeItem(
+      id: json['Id'] ?? '',
+      name: json['Name'] ?? '',
+      type: MediaType.values.firstWhere(
+        (e) => e.name == json['Type'],
+        orElse: () => MediaType.none,
+      ),
+      seriesName: json['SeriesName'],
+      parentIndexNumber: json['ParentIndexNumber'],
+      indexNumber: json['IndexNumber'],
+      playbackPositionTicks: userData?['PlaybackPositionTicks'] ?? 0,
+      runTimeTicks: json['RunTimeTicks'],
+      lastPlayedDate: userData?['LastPlayedDate'] != null
+          ? DateTime.parse(userData!['LastPlayedDate']).toUtc()
+          : null,
+      seriesId: json['SeriesId'],
+      mainImage: hasPrimary ? (json['PrimaryImageItemId'] ?? json['Id']) : null,
+      fallbackImage: hasSeriesPrimary && seriesId != null && seriesId.isNotEmpty
+          ? seriesId
+          : null,
+    );
   }
 
   Future<List<SeasonInfo>> getSeasons(Dio dio, String seriesId) async {

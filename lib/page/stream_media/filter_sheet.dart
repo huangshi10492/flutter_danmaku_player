@@ -2,16 +2,17 @@ import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/widget/icon_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 
 class StreamMediaFilterSheet extends StatefulWidget {
-  final StreamMediaExplorerService service;
-  const StreamMediaFilterSheet({super.key, required this.service});
+  const StreamMediaFilterSheet({super.key});
   @override
   State<StreamMediaFilterSheet> createState() => _StreamMediaFilterSheetState();
 }
 
 class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
-  late Filter filter = widget.service.filter.value;
+  final service = GetIt.I.get<StreamMediaExplorerService>();
+  late Filter filter = service.filter.value;
   late TextEditingController searchController;
   late TextEditingController yearsController;
   late String status;
@@ -56,7 +57,7 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
       ..seriesStatus = status
       ..sortBy = sortBy
       ..sortOrder = sortOrder;
-    widget.service.filter.value = filter;
+    service.filter.value = filter;
     Navigator.pop(context);
   }
 
