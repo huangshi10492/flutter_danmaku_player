@@ -141,7 +141,7 @@ class VideoPlayerService {
     );
     _listenPlayerStreams();
     await _setProperty();
-    await setPlaybackSpeed(_configureService.defaultPlaySpeed.value);
+    await setPlaybackSpeed(playbackSpeed.value);
   }
 
   void _listenPlayerStreams() {
