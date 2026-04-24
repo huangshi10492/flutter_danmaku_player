@@ -20,7 +20,7 @@ class TrackPage extends StatelessWidget {
   Future<void> _pickExternalSubtitle(BuildContext context) async {
     final globalService = GetIt.I.get<GlobalService>();
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'idx'],
       );

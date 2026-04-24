@@ -659,7 +659,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                   ),
                   child: FButton(
                     onPress: () async {
-                      final path = await FilePicker.platform.getDirectoryPath();
+                      final path = await FilePicker.getDirectoryPath();
                       if (path != null) {
                         setState(() {
                           _formData.controllers['url']!.text = path;

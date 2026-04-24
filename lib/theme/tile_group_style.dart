@@ -26,33 +26,36 @@ FTileGroupStyle tileGroupStyle({
       [.disabled]: .delta(color: colors.disable(colors.foreground)),
     },
   ),
-  tileStyles: FVariants.from(
-    _tileStyle(colors: colors, typography: typography, style: style).copyWith(
-      backgroundColor: .delta([.all(Colors.transparent)]),
-      decoration: .delta([
-        .all(const .shapeDelta(shape: RoundedSuperellipseBorder())),
-      ]),
-    ),
-    variants: {
-      [.destructive]: .delta(
-        contentStyle: _itemContentStyle(
-          colors: colors,
-          typography: typography,
-          prefix: colors.destructive,
-          foreground: colors.destructive,
-          mutedForeground: colors.destructive,
-          suffixedPadding: FTileStyle.defaultSuffixedPadding,
-          unsuffixedPadding: FTileStyle.defaultUnsuffixedPadding,
-        ),
-        rawItemContentStyle: _rawItemContentStyle(
-          colors: colors,
-          typography: typography,
-          prefix: colors.destructive,
-          color: colors.destructive,
-          padding: FTileStyle.defaultUnsuffixedPadding,
-        ),
+  tileStyles: FTileStyles(
+    FVariants.from(
+      _tileStyle(colors: colors, typography: typography, style: style).copyWith(
+        backgroundColor: .delta([.all(Colors.transparent)]),
+        decoration: .delta([
+          .all(const .shapeDelta(shape: RoundedSuperellipseBorder())),
+        ]),
       ),
-    },
+      variants: {
+        [.primary]: const .delta(),
+        [.destructive]: .delta(
+          contentStyle: _itemContentStyle(
+            colors: colors,
+            typography: typography,
+            prefix: colors.destructive,
+            foreground: colors.destructive,
+            mutedForeground: colors.destructive,
+            suffixedPadding: FTileStyle.defaultSuffixedPadding,
+            unsuffixedPadding: FTileStyle.defaultUnsuffixedPadding,
+          ),
+          rawItemContentStyle: _rawItemContentStyle(
+            colors: colors,
+            typography: typography,
+            prefix: colors.destructive,
+            color: colors.destructive,
+            padding: FTileStyle.defaultUnsuffixedPadding,
+          ),
+        ),
+      },
+    ),
   ),
   descriptionTextStyle: style.formFieldStyle.descriptionTextStyle.apply([
     .all(
@@ -124,19 +127,19 @@ FTileContentStyle _tileContentStyle({
       },
     ),
     titleTextStyle: FVariants.from(
-      typography.md.copyWith(color: foreground),
+      typography.sm.copyWith(color: foreground),
       variants: {
         [.disabled]: .delta(color: colors.disable(foreground)),
       },
     ),
     subtitleTextStyle: FVariants.from(
-      typography.xs.copyWith(color: mutedForeground),
+      typography.xs2.copyWith(color: mutedForeground),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },
     ),
     detailsTextStyle: FVariants.from(
-      typography.xs.copyWith(color: mutedForeground),
+      typography.sm.copyWith(color: mutedForeground),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },
@@ -202,7 +205,7 @@ FItemContentStyle _itemContentStyle({
       },
     ),
     subtitleTextStyle: .from(
-      typography.xs2.copyWith(color: mutedForeground),
+      typography.xs.copyWith(color: mutedForeground),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },

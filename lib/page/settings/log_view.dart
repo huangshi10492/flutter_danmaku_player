@@ -10,7 +10,7 @@ class LogViewPage extends StatelessWidget {
   const LogViewPage({super.key, required this.fileName});
   Future<void> _exportLogFile(File file) async {
     final fileName = file.path.split('/').last;
-    await FilePicker.platform.saveFile(
+    await FilePicker.saveFile(
       fileName: fileName,
       allowedExtensions: ['log'],
       bytes: file.readAsBytesSync(),

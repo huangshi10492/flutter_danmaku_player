@@ -53,7 +53,7 @@ class _FontManagerPageState extends State<FontManagerPage> {
 
   Future<void> _importFont() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: .custom,
         allowedExtensions: ['ttf', 'otf', 'ttc'],
       );

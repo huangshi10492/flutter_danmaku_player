@@ -48,7 +48,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
     setState(() => _isLoading = true);
     try {
       final file = await _maintenanceUtils.backupConfigAndStorage();
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         fileName:
             'fldanplay_config_${DateTime.now().millisecondsSinceEpoch}.zip',
         allowedExtensions: ['zip'],
@@ -65,7 +65,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
   }
 
   Future<void> _restoreConfigAndStorage() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['zip'],
     );
