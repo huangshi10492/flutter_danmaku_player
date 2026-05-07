@@ -1,4 +1,5 @@
 import 'package:fldanplay/service/configure.dart';
+import 'package:fldanplay/widget/scale_app.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
@@ -111,6 +112,59 @@ class GeneralSettingsPage extends StatelessWidget {
     return _themeColorNames[colorKey] ?? 'Blue';
   }
 
+  void _showUiScaleDialog(BuildContext context, ConfigureService configure) {
+    showFDialog(
+      context: context,
+      builder: (context, style, animation) {
+        final uiScale = Signal<double>(configure.uiScale.value);
+        return FDialog(
+          style: style,
+          direction: .horizontal,
+          animation: animation,
+          title: Text('界面缩放'),
+          body: Watch((context) {
+            return Material(
+              color: Colors.transparent,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: .start,
+                children: [
+                  Slider(
+                    value: uiScale.value,
+                    min: 0.5,
+                    max: 2.0,
+                    divisions: 15,
+                    label: uiScale.value.toStringAsFixed(1),
+                    onChanged: (value) {
+                      uiScale.value = value;
+                    },
+                  ),
+                  Text('当前缩放：${uiScale.value.toStringAsFixed(1)}'),
+                ],
+              ),
+            );
+          }),
+          actions: [
+            FButton(
+              onPress: () {
+                Navigator.pop(context);
+                configure.uiScale.value = uiScale.value;
+                ScaledWidgetsFlutterBinding.instance.scaleFactor =
+                    uiScale.value;
+              },
+              child: const Text('确定'),
+            ),
+            FButton(
+              variant: .outline,
+              onPress: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final configure = GetIt.I<ConfigureService>();
@@ -120,7 +174,7 @@ class GeneralSettingsPage extends StatelessWidget {
         return Column(
           children: [
             SettingsSection(
-              title: '主题',
+              title: '外观',
               children: [
                 SettingsTile.radioTile(
                   title: '主题模式',
@@ -134,6 +188,11 @@ class GeneralSettingsPage extends StatelessWidget {
                   title: '主题颜色',
                   details: _getThemeColorName(configure.themeColor.value),
                   onPress: () => _showThemeColorDialog(context, configure),
+                ),
+                SettingsTile.navigationTile(
+                  title: 'ui缩放',
+                  details: configure.uiScale.value.toStringAsFixed(1),
+                  onPress: () => _showUiScaleDialog(context, configure),
                 ),
               ],
             ),

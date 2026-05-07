@@ -9,7 +9,7 @@ import 'package:fldanplay/service/logger.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 
 class ServiceLocator {
-  static Future<void> initialize() async {
+  static Future<ConfigureService> initialize() async {
     ConfigureService cs = await ConfigureService.register();
     await LoggerService.register(cs);
     StorageService ss = await StorageService.register();
@@ -19,5 +19,6 @@ class ServiceLocator {
     HistoryService hs = await HistoryService.register();
     await WebDAVSyncService.register(cs, hs);
     await OfflineCacheService.register(ss);
+    return cs;
   }
 }

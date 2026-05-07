@@ -123,6 +123,10 @@ class ConfigureService {
     key: 'themeColor',
     defaultValue: 'blue',
   );
+  late final Signal<double> uiScale = _config(
+    key: 'uiScale',
+    defaultValue: 1.0,
+  );
   late final Signal<bool> offlineCacheFirst = _config(
     key: 'offlineCacheFirst',
     defaultValue: true,

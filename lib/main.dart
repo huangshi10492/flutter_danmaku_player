@@ -10,6 +10,7 @@ import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/service_locator.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/utils.dart';
+import 'package:fldanplay/widget/scale_app.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -22,7 +23,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  ScaledWidgetsFlutterBinding.ensureInitialized();
   await init();
   final Catcher2Options config = Catcher2Options(SilentReportMode(), [
     CatcherLogger(),
@@ -56,7 +57,8 @@ Future<void> init() async {
     '${(await getApplicationSupportDirectory()).path}/hive',
   );
   Hive.registerAdapters();
-  await ServiceLocator.initialize();
+  final cs = await ServiceLocator.initialize();
+  ScaledWidgetsFlutterBinding.instance.scaleFactor = cs.uiScale.value;
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -154,17 +156,38 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
         builder: (context, child) => FTheme(
           data: fTheme,
           child: FToaster(
-            child: Builder(
-              builder: (context) {
-                GetIt.I.get<GlobalService>().appContext = context;
-                return child!;
-              },
+            child: _builder(
+              context,
+              Builder(
+                builder: (context) {
+                  GetIt.I.get<GlobalService>().appContext = context;
+                  return child!;
+                },
+              ),
             ),
           ),
         ),
         routerConfig: router,
       );
     });
+  }
+
+  static Widget _builder(BuildContext context, Widget child) {
+    final uiScale = GetIt.I.get<ConfigureService>().uiScale.value;
+    if (uiScale != 1.0) {
+      final mediaQuery = MediaQuery.of(context);
+      child = MediaQuery(
+        data: mediaQuery.copyWith(
+          size: mediaQuery.size / uiScale,
+          padding: (mediaQuery.padding) / uiScale,
+          viewInsets: mediaQuery.viewInsets / uiScale,
+          viewPadding: (mediaQuery.viewPadding) / uiScale,
+          devicePixelRatio: mediaQuery.devicePixelRatio * uiScale,
+        ),
+        child: child,
+      );
+    }
+    return child;
   }
 }
 
