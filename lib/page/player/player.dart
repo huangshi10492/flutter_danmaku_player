@@ -502,10 +502,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       return TextButton(
                         onPressed: () =>
                             _showRightDrawer(RightDrawerType.speed),
-                        child: Text(
-                          '${speed.toStringAsFixed(2)}X',
-                          style: context.theme.typography.md,
-                        ),
+                        child: Text('${speed.toStringAsFixed(2)}X'),
                       );
                     }),
                     // 选集
@@ -557,10 +554,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         children: [
           const Icon(Icons.fast_forward, size: 24),
           const SizedBox(width: 4),
-          Text(
-            '${_configureService.seekOPSeconds.value}s',
-            style: context.theme.typography.md,
-          ),
+          Text('${_configureService.seekOPSeconds.value}s'),
         ],
       ),
     );
@@ -581,7 +575,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         }
       }
       return TextButton(
-        child: Text(text, style: context.theme.typography.md),
+        child: Text(text),
         onPressed: () {
           if (nextChapter == null) return;
           _playerService.seekTo(nextChapter);

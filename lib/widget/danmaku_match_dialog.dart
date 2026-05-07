@@ -8,21 +8,29 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 enum _DanmakuSearchState {
-  matching,
-  downloading,
-  success,
-  search,
-  searching,
-  saving,
+  matching('正在匹配弹幕...'),
+  downloading('正在下载弹幕...'),
+  success(''),
+  search(''),
+  searching(''),
+  saving('正在保存弹幕...');
+
+  final String message;
+
+  const _DanmakuSearchState(this.message);
 }
 
 class DanmakuMatchDialog extends StatefulWidget {
   final String uniqueKey;
-  final String fileName;
+  final String videoName;
+  final FDialogStyle style;
+  final Animation<double> animation;
   const DanmakuMatchDialog({
     super.key,
+    required this.style,
+    required this.animation,
     required this.uniqueKey,
-    required this.fileName,
+    required this.videoName,
   });
 
   @override
@@ -43,7 +51,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   void initState() {
     super.initState();
     _match();
-    _searchController.text = widget.fileName;
+    _searchController.text = widget.videoName;
   }
 
   @override
@@ -53,7 +61,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   }
 
   Future<void> _match() async {
-    var result = await danmakuGetter.match(widget.uniqueKey, widget.fileName);
+    var result = await danmakuGetter.match(widget.uniqueKey, widget.videoName);
     if (result == null) {
       setState(() {
         _state = _DanmakuSearchState.search;
@@ -101,48 +109,42 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    if (_state == _DanmakuSearchState.matching) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 16),
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('正在匹配弹幕...', style: context.theme.typography.md),
-        ],
-      );
+    return FDialog(
+      style: widget.style,
+      animation: widget.animation,
+      direction: .vertical,
+      constraints: BoxConstraints(minWidth: 10, maxWidth: 560),
+      title: _buildTitle(),
+      body: _buildBody(),
+      actions: _buildAction(),
+    );
+  }
+
+  Widget? _buildTitle() {
+    switch (_state) {
+      case .success:
+        return Text('自动匹配成功');
+      case .search:
+      case .searching:
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('搜索弹幕', style: context.theme.typography.lg),
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.close),
+            ),
+          ],
+        );
+      default:
+        return null;
     }
-    if (_state == _DanmakuSearchState.downloading) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 16),
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('正在下载弹幕...', style: context.theme.typography.md),
-        ],
-      );
-    }
-    if (_state == _DanmakuSearchState.saving) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 16),
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('正在保存弹幕...', style: context.theme.typography.md),
-        ],
-      );
-    }
-    if (_state == _DanmakuSearchState.success) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: 8),
-          Text('自动匹配成功', style: context.theme.typography.xl),
-          const SizedBox(height: 16),
-          Text(_message, style: context.theme.typography.md),
-          const SizedBox(height: 16),
+  }
+
+  List<Widget> _buildAction() {
+    switch (_state) {
+      case .success:
+        return [
           FButton(
             variant: .outline,
             onPress: () => setState(() {
@@ -150,54 +152,58 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             }),
             child: const Text('手动搜索覆盖'),
           ),
-          const SizedBox(height: 8),
           FButton(
             onPress: () => Navigator.pop(context),
             child: const Text('确定'),
           ),
-        ],
-      );
+        ];
+      default:
+        return [];
     }
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.8,
-        minHeight: 200,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
+  }
+
+  Widget _buildBody() {
+    switch (_state) {
+      case .matching:
+      case .downloading:
+      case .saving:
+        return Column(
+          mainAxisSize: .min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            SizedBox(height: 8),
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(_state.message, style: context.theme.typography.md),
+          ],
+        );
+      case .success:
+        return Text(_message);
+      case .search:
+      case .searching:
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            minHeight: 200,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
               children: [
-                Expanded(
-                  child: Text(
-                    '搜索弹幕',
-                    style: context.theme.typography.xl.copyWith(height: 1),
-                    textAlign: TextAlign.start,
+                _buildServerSelector(),
+                const SizedBox(height: 8),
+                _buildSearchBar(),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FAccordion(
+                    style: .delta(childPadding: .value(.zero)),
+                    children: _buildListBody(),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(FIcons.x),
-                  onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            _buildServerSelector(),
-            const SizedBox(height: 8),
-            _buildSearchBar(),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: FAccordion(
-                style: .delta(childPadding: .value(.zero)),
-                children: _buildBody(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
+    }
   }
 
   Widget _buildServerSelector() {
@@ -251,7 +257,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
     );
   }
 
-  List<Widget> _buildBody() {
+  List<Widget> _buildListBody() {
     if (_errorMessage != null) {
       return [
         Center(

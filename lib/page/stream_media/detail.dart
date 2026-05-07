@@ -9,7 +9,6 @@ import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/toast.dart';
-import 'package:fldanplay/widget/danmaku_match_dialog.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/video_item.dart';
 import 'package:flutter/material.dart';
@@ -390,12 +389,9 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       imageUrl: _service.getImageUrl(episode.id),
       headers: _service.headers,
       name: episode.name,
+      videoName: episode.fileName,
       subtitle: episode.subtitle,
       onOfflineDownload: () => _onDownloadEpisode(season, index),
-      danmakuMatchDialog: DanmakuMatchDialog(
-        uniqueKey: uniqueKey,
-        fileName: episode.fileName,
-      ),
       onPress: () => _onPlayEpisode(season, index),
     );
   }

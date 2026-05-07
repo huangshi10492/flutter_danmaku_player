@@ -1,4 +1,3 @@
-import 'package:fldanplay/theme/tile_group_style.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
@@ -22,10 +21,26 @@ class RadioSettingsSection extends StatelessWidget {
         controller: FMultiValueNotifier.radio(value),
         onChange: (value) => onChange(value.first),
       ),
-      style: tileGroupStyle(
-        colors: context.theme.colors,
-        typography: context.theme.typography,
-        style: context.theme.style,
+      style: .delta(
+        decoration: .boxDelta(
+          color: context.theme.colors.secondary.withAlpha(100),
+        ),
+        tileStyles: .delta([
+          .all(
+            .delta(
+              decoration: .delta([.base(.boxDelta(color: Colors.transparent))]),
+              backgroundColor: .delta([.all(Colors.transparent)]),
+              contentStyle: .delta(
+                suffixedPadding: .value(
+                  .symmetric(horizontal: 15, vertical: 8),
+                ),
+                unsuffixedPadding: .value(
+                  .symmetric(horizontal: 15, vertical: 8),
+                ),
+              ),
+            ),
+          ),
+        ]),
       ),
       children: options.entries
           .map(

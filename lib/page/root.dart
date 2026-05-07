@@ -5,7 +5,6 @@ import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/storage_sheet.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/storage.dart';
-import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -169,7 +168,23 @@ class RootPageState extends State<RootPage> {
           child: SafeArea(
             child: FItemGroup(
               divider: FItemDivider.indented,
-              style: rootItemGroupStyle,
+              style: .delta(
+                itemStyles: .delta([
+                  .all(
+                    .delta(
+                      contentStyle: .delta(
+                        titleTextStyle: .delta([
+                          .base(.delta(fontSize: 18, height: 1.75)),
+                        ]),
+                        prefixIconStyle: .delta([.base(.delta(size: 32))]),
+                        subtitleTextStyle: .delta([
+                          .base(.delta(fontSize: 12, height: 1)),
+                        ]),
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
               children: [
                 FItem(
                   prefix: const Icon(FIcons.clock),

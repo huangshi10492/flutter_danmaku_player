@@ -31,6 +31,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final History? history;
   final String uniqueKey;
   final String name;
+  final String? videoName;
   final String? subtitle;
   final void Function() onPress;
   final void Function()? onLongPress;
@@ -38,7 +39,6 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final String? imageUrl;
   final Map<String, String>? headers;
   final Function()? onOfflineDownload;
-  final DanmakuMatchDialog? danmakuMatchDialog;
   final double previewWidth;
   final double previewHeight;
   const VideoItem({
@@ -46,6 +46,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
     required this.history,
     required this.uniqueKey,
     required this.name,
+    this.videoName,
     this.subtitle,
     required this.onPress,
     this.onLongPress,
@@ -53,8 +54,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
     this.imageUrl,
     this.headers,
     this.onOfflineDownload,
-    this.danmakuMatchDialog,
-    this.previewWidth = 95,
+    this.previewWidth = 100,
     this.previewHeight = 65,
   });
   @override
@@ -233,31 +233,25 @@ class _VideoItemState extends State<VideoItem> {
       }
     }
     final subtitleStyle =
-        context.theme.itemStyles.base.contentStyle.subtitleTextStyle.base;
+        context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final subtitle = widget.subtitle ?? widget.history?.subtitle;
     return _PopoverMenu(
       download: widget.onOfflineDownload ?? () {},
       matchDanmaku: () async {
-        if (widget.danmakuMatchDialog == null) return;
+        if (widget.videoName == null) return;
         await showFDialog(
           context: context,
-          builder: (context, style, animation) => FDialog(
+          // barrierDismissible: false,
+          builder: (context, style, animation) => DanmakuMatchDialog(
             style: style,
             animation: animation,
-            actions: [],
-            body: widget.danmakuMatchDialog!,
+            uniqueKey: widget.uniqueKey,
+            videoName: widget.videoName!,
           ),
         );
         init();
       },
       child: (controller) => FItem(
-        style: .delta(
-          contentStyle: .delta(
-            unsuffixedPadding: EdgeInsetsGeometryDelta.add(
-              .only(top: 2, bottom: 2),
-            ),
-          ),
-        ),
         prefix: SizedBox(
           width: widget.previewWidth,
           height: widget.previewHeight,
@@ -288,11 +282,7 @@ class _VideoItemState extends State<VideoItem> {
                   ),
                   child: Text(widget.name),
                 ),
-                child: Text(
-                  widget.name,
-                  style: context.theme.typography.md,
-                  maxLines: 2,
-                ),
+                child: Text(widget.name, maxLines: 2),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,29 +350,14 @@ class _PopoverMenuState extends State<_PopoverMenu>
   @override
   Widget build(BuildContext context) {
     final controller = FPopoverController(vsync: this);
-    return FPopoverMenu(
+    return FPopoverMenu.tiles(
       control: .managed(controller: controller),
-      style: .delta(
-        itemGroupStyle: .delta(
-          itemStyles: .delta([
-            .all(
-              .delta(
-                contentStyle: .delta(
-                  titleTextStyle: .delta([.base(.delta(fontSize: 15))]),
-                  unsuffixedPadding: EdgeInsetsGeometryDelta.add(
-                    .only(top: 4, bottom: 4),
-                  ),
-                ),
-              ),
-            ),
-          ]),
-        ),
-      ),
+      style: .delta(),
       menu: [
         .group(
           divider: .full,
           children: [
-            .item(
+            .tile(
               prefix: const Icon(FIcons.download),
               title: Text('离线保存'),
               onPress: () {
@@ -390,7 +365,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
                 widget.download();
               },
             ),
-            .item(
+            .tile(
               prefix: const Icon(FIcons.captions),
               title: Text('获取并保存弹幕'),
               onPress: () {

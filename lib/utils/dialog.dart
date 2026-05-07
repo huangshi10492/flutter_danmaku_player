@@ -14,6 +14,7 @@ void showConfirmDialog(
     builder: (context, style, animation) => FDialog(
       style: style,
       animation: animation,
+      direction: .horizontal,
       title: Text(title),
       body: Text(content),
       actions: [

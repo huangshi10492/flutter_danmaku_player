@@ -61,7 +61,7 @@ class RightDrawerContent extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: context.theme.colors.background),
-      width: 300,
+      width: 320,
       height: MediaQuery.of(context).size.height,
       child: _buildContent(context),
     );

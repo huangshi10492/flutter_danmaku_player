@@ -20,39 +20,11 @@ FThemeData getTheme(String theme, bool isDark) {
     touch: false,
     typography: FTypography.inherit(
       colors: colors,
-      touch: false,
-      defaultFontFamily: 'MiSans',
+      touch: true,
+      fontFamily: 'MiSans',
     ),
-  ).copyWith(
-    buttonStyles: .delta([
-      .all(.delta([.all(buttonStyleDelta)])),
-    ]),
   );
 }
-
-FButtonStyleDelta get buttonStyleDelta => .delta(
-  contentStyle: .delta(
-    textStyle: .delta([.base(.delta(fontSize: 16))]),
-    padding: .scale(1.25),
-  ),
-);
-
-FItemGroupStyleDelta get rootItemGroupStyle => .delta(
-  itemStyles: .delta([
-    .all(
-      .delta(
-        contentStyle: .delta(
-          titleTextStyle: .delta([.base(.delta(fontSize: 18, height: 1.75))]),
-          prefixIconStyle: .delta([.base(.delta(size: 32))]),
-          subtitleTextStyle: .delta([.base(.delta(fontSize: 12, height: 1))]),
-          unsuffixedPadding: EdgeInsetsGeometryDelta.add(
-            .only(top: 2, bottom: 2),
-          ),
-        ),
-      ),
-    ),
-  ]),
-);
 
 FItemGroupStyleDelta get settingsItemGroupStyle => .delta(
   itemStyles: .delta([
@@ -62,9 +34,6 @@ FItemGroupStyleDelta get settingsItemGroupStyle => .delta(
           titleTextStyle: .delta([.base(.delta(fontSize: 16, height: 1.5))]),
           prefixIconStyle: .delta([.base(.delta(size: 28))]),
           subtitleTextStyle: .delta([.base(.delta(fontSize: 12, height: 1))]),
-          unsuffixedPadding: EdgeInsetsGeometryDelta.add(
-            .only(top: 2, bottom: 2),
-          ),
         ),
       ),
     ),

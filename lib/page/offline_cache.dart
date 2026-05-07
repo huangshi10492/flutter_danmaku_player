@@ -3,7 +3,6 @@ import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
-import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
@@ -69,6 +68,8 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
 
   @override
   Widget build(BuildContext context) {
+    final subtitleStyle =
+        context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     return Scaffold(
       appBar: SysAppBar(title: '离线缓存'),
       body: ValueListenableBuilder(
@@ -102,10 +103,12 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
               final cache = caches[index];
               if (cache.status == DownloadStatus.finished) {
                 return FItem(
-                  title: Text(
-                    cache.videoInfo.name,
-                    style: context.theme.typography.md,
+                  style: .delta(
+                    contentStyle: .delta(
+                      subtitleTextStyle: .delta([.base(.value(subtitleStyle))]),
+                    ),
                   ),
+                  title: Text(cache.videoInfo.name),
                   onPress: () => _playCache(cache),
                   suffix: FButton.icon(
                     onPress: () => _showDeleteConfirmDialog(cache),
@@ -120,17 +123,18 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                     children: [
                       if (cache.videoInfo.subtitle != null)
                         Text(cache.videoInfo.subtitle!),
-                      Text('缓存大小: ${_formatFileSize(cache.fileSize)}'),
-                      Text(Utils.formatDateTime(cache.cacheTime)),
+                      Text(_formatFileSize(cache.fileSize)),
                     ],
                   ),
                 );
               }
               return FItem(
-                title: Text(
-                  cache.videoInfo.name,
-                  style: context.theme.typography.sm,
+                style: .delta(
+                  contentStyle: .delta(
+                    subtitleTextStyle: .delta([.base(.value(subtitleStyle))]),
+                  ),
                 ),
+                title: Text(cache.videoInfo.name),
                 suffix: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

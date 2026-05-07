@@ -10,7 +10,6 @@ import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/toast.dart';
-import 'package:fldanplay/widget/danmaku_match_dialog.dart';
 import 'package:fldanplay/widget/error_refresh.dart';
 import 'package:fldanplay/widget/icon_switch.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
@@ -250,7 +249,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                           size: 48,
                           color: context.theme.colors.mutedForeground,
                         ),
-                        const SizedBox(height: 16),
                         Text('此文件夹为空', style: context.theme.typography.xl),
                       ],
                     ),
@@ -348,12 +346,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           history: file.history,
           uniqueKey: file.uniqueKey!,
           name: file.name,
+          videoName: videoInfo.videoName,
           onOfflineDownload: () =>
               _handleOfflineDownload(file.path, file.videoIndex),
-          danmakuMatchDialog: DanmakuMatchDialog(
-            uniqueKey: videoInfo.uniqueKey,
-            fileName: videoInfo.videoName,
-          ),
           onPress: () => _playVideo(file.path, file.videoIndex),
         ),
       );

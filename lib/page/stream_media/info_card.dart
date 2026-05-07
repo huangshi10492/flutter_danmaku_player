@@ -43,9 +43,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                     if (!isWideLayout) ...[
                       Text(
                         title,
-                        style: context.theme.typography.xl.copyWith(
-                          height: 1.4,
-                        ),
+                        style: context.theme.typography.lg.copyWith(height: 1),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -88,12 +86,14 @@ class StreamMediaInfoCard extends StatelessWidget {
                                     if (isWideLayout) ...[
                                       Text(
                                         title,
-                                        style: context.theme.typography.xl2
-                                            .copyWith(height: 1.4),
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          height: 1.4,
+                                        ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 16),
+                                      const SizedBox(height: 8),
                                     ],
                                     _buildInfoBlocks(context),
                                     const SizedBox(height: 8),
@@ -199,7 +199,7 @@ class StreamMediaInfoCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             mediaDetail!.genres.join(' / '),
-            style: const TextStyle(fontSize: 14, height: 1.25),
+            style: context.theme.typography.xs,
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -223,7 +223,7 @@ class StreamMediaInfoCard extends StatelessWidget {
           enabled: isLoading,
           child: Text(
             hasOverview ? overview : '暂无简介',
-            style: context.theme.typography.md,
+            style: context.theme.typography.sm,
             overflow: TextOverflow.fade,
             softWrap: true,
           ),
@@ -282,7 +282,7 @@ class StreamMediaInfoCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('简介', style: context.theme.typography.xl),
+        Text('简介', style: context.theme.typography.lg),
         const SizedBox(height: 8),
         Text(
           mediaDetail?.overview == null
@@ -294,7 +294,7 @@ class StreamMediaInfoCard extends StatelessWidget {
           style: context.theme.typography.md,
         ),
         const SizedBox(height: 16),
-        Text('标签', style: context.theme.typography.xl),
+        Text('标签', style: context.theme.typography.lg),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -316,37 +316,18 @@ class StreamMediaInfoCard extends StatelessWidget {
               [],
         ),
         const SizedBox(height: 16),
-        Text('外部链接', style: context.theme.typography.xl),
+        Text('外部链接', style: context.theme.typography.lg),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children:
               mediaDetail?.externalUrls.map((url) {
-                return InkWell(
-                  onTap: () => launchUrl(Uri.parse(url.url)),
-                  borderRadius: BorderRadius.circular(4),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: FFocusedOutline(
-                      focused: true,
-                      style: .delta(
-                        color: context.theme.colors.mutedForeground,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        child: Text(
-                          url.name,
-                          style: context.theme.typography.md.copyWith(
-                            height: 1.25,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                return FButton(
+                  onPress: () => launchUrl(Uri.parse(url.url)),
+                  variant: .outline,
+                  mainAxisSize: .min,
+                  child: Text(url.name),
                 );
               }).toList() ??
               [],

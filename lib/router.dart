@@ -17,7 +17,6 @@ import 'package:fldanplay/page/settings/maintenance_page.dart';
 import 'package:fldanplay/page/settings/sync_settings.dart';
 import 'package:fldanplay/page/stream_media/detail.dart';
 import 'package:fldanplay/page/stream_media/explorer.dart';
-import 'package:fldanplay/theme/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
@@ -174,10 +173,11 @@ final router = GoRouter(
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
         AutoOrientation.landscapeAutoMode(forceSensor: true);
         final videoInfo = state.extra as VideoInfo;
+        final theme = FThemes.zinc.dark.touch;
         return CustomTransitionPage(
           child: Theme(
-            data: zincDark.toApproximateMaterialTheme(),
-            child: FTheme(data: zincDark, child: VideoPlayerPage(videoInfo)),
+            data: theme.toApproximateMaterialTheme(),
+            child: FTheme(data: theme, child: VideoPlayerPage(videoInfo)),
           ),
           transitionsBuilder: (_, animation, _, child) {
             return child;

@@ -34,8 +34,6 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   bool isFABVisible = true;
   String? _error;
   List<ResumeItem> _resumeItems = const [];
-  TextStyle subtitleStyle(BuildContext context) =>
-      context.theme.itemStyles.base.contentStyle.subtitleTextStyle.base;
 
   @override
   void initState() {
@@ -169,7 +167,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
             maxLines: 1,
             textAlign: .center,
             overflow: .ellipsis,
-            style: context.theme.typography.md.copyWith(
+            style: context.theme.typography.sm.copyWith(
               color: selected ? context.theme.colors.primary : null,
             ),
           ),
@@ -331,7 +329,10 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
             padding: const .fromLTRB(2, 4, 2, 0),
             child: Text(
               mediaItem.name,
-              style: context.theme.typography.sm,
+              style: context.theme.typography.xs.copyWith(
+                fontSize: 15,
+                height: 1.1,
+              ),
               maxLines: 2,
               overflow: .ellipsis,
               textAlign: .center,
@@ -367,6 +368,8 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildContinuePlaybackCard(ResumeItem item, width) {
+    final subtitleStyle =
+        context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final title = item.name;
     final subtitle = item.subtitle;
     final imageId = item.mainImage ?? item.fallbackImage;
@@ -378,10 +381,12 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
     final progressValue = durationMs <= 0
         ? null
         : (positionMs / durationMs).clamp(0.0, 1.0).toDouble();
-    return SizedBox(
-      width: width,
-      child: InkWell(
-        onTap: () => _openResumeDetail(item),
+    return InkWell(
+      borderRadius: .circular(8),
+      onTap: () => _openResumeDetail(item),
+      child: Container(
+        width: width,
+        padding: .all(4),
         child: Column(
           crossAxisAlignment: .stretch,
           children: [
@@ -412,14 +417,14 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                     title,
                     maxLines: 1,
                     overflow: .ellipsis,
-                    style: context.theme.typography.sm,
+                    style: context.theme.typography.sm.copyWith(height: 1.2),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: .ellipsis,
-                    style: subtitleStyle(context),
+                    style: subtitleStyle,
                   ),
                   const SizedBox(height: 4),
                   if (progressValue != null && positionMs > 0)
@@ -433,7 +438,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                     positionMs > 0
                         ? Utils.formatTime(positionMs, durationMs)
                         : '未观看',
-                    style: subtitleStyle(context),
+                    style: subtitleStyle,
                   ),
                 ],
               ),
@@ -450,23 +455,21 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       crossAxisAlignment: .start,
       children: [
         Padding(
-          padding: const .fromLTRB(4, 0, 0, 4),
+          padding: const .only(left: 4),
           child: Text('继续观看', style: context.theme.typography.xl),
         ),
-        const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
             final screenWidth = constraints.maxWidth;
             final itemWidth = 120.0 + (screenWidth - 300).clamp(0, 300) * 0.4;
             return SizedBox(
-              height: itemWidth / 16 * 9 + 66,
+              height: itemWidth / 16 * 9 + 70,
               child: _HorizontalWheelScroll(
                 controller: _resumeScrollController,
-                child: ListView.separated(
+                child: ListView.builder(
                   controller: _resumeScrollController,
                   scrollDirection: Axis.horizontal,
                   itemCount: _resumeItems.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 12),
                   itemBuilder: (context, index) {
                     return _buildContinuePlaybackCard(
                       _resumeItems[index],
@@ -495,7 +498,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         final itemWidth =
             (screenWidth - itemSpacing * (crossAxisCount + 1)) / crossAxisCount;
         final imageHeight = itemWidth / 0.7;
-        const textHeight = 36;
+        const textHeight = 30;
         final totalHeight = imageHeight + textHeight + 6;
         return Watch((context) {
           return streamMediaExplorerService.items.value.map(

@@ -129,6 +129,8 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   late final double? silderMax;
   late final String? radioValue;
 
+  static const double minHeight = 40;
+
   @override
   Widget build(BuildContext context) {
     switch (type) {
@@ -146,7 +148,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   }
 
   TextStyle subtitleStyle(BuildContext context) =>
-      context.theme.itemStyles.base.contentStyle.subtitleTextStyle.base;
+      context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
 
   Widget _buildSimpleTile(BuildContext context) {
     return FTile(
@@ -156,7 +158,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
         style: context.theme.style,
       ),
       title: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: 40),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -186,12 +188,12 @@ class SettingsTile extends StatelessWidget with FTileMixin {
         style: context.theme.style,
       ),
       title: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: 40),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(title),
+            Text(title, maxLines: 2),
             subtitle == null
                 ? SizedBox()
                 : Text(
@@ -204,7 +206,6 @@ class SettingsTile extends StatelessWidget with FTileMixin {
       ),
       onPress: onPress,
       suffix: SizedBox(
-        height: 40,
         child: Switch(
           value: switchValue!,
           onChanged: (value) => onBoolChange!(value),
@@ -221,22 +222,15 @@ class SettingsTile extends StatelessWidget with FTileMixin {
         style: context.theme.style,
       ),
       title: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: 40),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            SizedBox(height: 2),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [Text(title), Text(details ?? '')],
-            ),
-            Slider(
-              padding: EdgeInsets.only(top: 12, bottom: 4),
-              value: silderValue!,
-              min: silderMin!,
-              max: silderMax!,
-              divisions: silderDivisions,
-              onChanged: (value) => onSilderChange!(value),
+              children: [Text(title, maxLines: 2), Text(details ?? '')],
             ),
             subtitle == null || subtitle == ''
                 ? SizedBox()
@@ -245,6 +239,14 @@ class SettingsTile extends StatelessWidget with FTileMixin {
                     style: subtitleStyle(context),
                     overflow: TextOverflow.visible,
                   ),
+            Slider(
+              padding: EdgeInsets.only(top: 6, bottom: 0),
+              value: silderValue!,
+              min: silderMin!,
+              max: silderMax!,
+              divisions: silderDivisions,
+              onChanged: (value) => onSilderChange!(value),
+            ),
           ],
         ),
       ),
@@ -263,8 +265,8 @@ class SettingsTile extends StatelessWidget with FTileMixin {
       style: .delta(
         tileStyle: .delta(
           contentStyle: .delta(
-            titleTextStyle: .delta([.base(.delta(fontSize: 16))]),
-            detailsTextStyle: .delta([.base(.delta(fontSize: 16))]),
+            unsuffixedPadding: .value(.symmetric(horizontal: 15, vertical: 8)),
+            suffixedPadding: .value(.symmetric(horizontal: 15, vertical: 8)),
           ),
           backgroundColor: FVariants.all(Colors.transparent),
           decoration: .delta([
@@ -273,12 +275,12 @@ class SettingsTile extends StatelessWidget with FTileMixin {
           ]),
         ),
       ),
-      title: Text(title),
+      title: Text(title, maxLines: 2),
       subtitle: subtitle == null
           ? null
           : Text(subtitle!, overflow: TextOverflow.visible),
       details: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: 40),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisAlignment: MainAxisAlignment.center,

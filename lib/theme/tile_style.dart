@@ -54,25 +54,25 @@ FTileContentStyle _tileContentStyle({
   final disabledMutedForeground = colors.disable(mutedForeground);
   return FTileContentStyle(
     prefixIconStyle: FVariants.from(
-      IconThemeData(color: prefix, size: typography.lg.fontSize),
+      IconThemeData(color: prefix, size: typography.md.fontSize),
       variants: {
         [.disabled]: .delta(color: colors.disable(prefix)),
       },
     ),
     titleTextStyle: FVariants.from(
-      typography.md.copyWith(color: foreground),
+      typography.sm.copyWith(color: foreground),
       variants: {
         [.disabled]: .delta(color: colors.disable(foreground)),
       },
     ),
     subtitleTextStyle: FVariants.from(
-      typography.xs.copyWith(color: mutedForeground),
+      typography.xs2.copyWith(color: mutedForeground),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },
     ),
     detailsTextStyle: FVariants.from(
-      typography.md.copyWith(color: mutedForeground),
+      typography.sm.copyWith(color: mutedForeground),
       variants: {
         [.disabled]: .delta(color: disabledMutedForeground),
       },
@@ -83,8 +83,8 @@ FTileContentStyle _tileContentStyle({
         [.disabled]: .delta(color: disabledMutedForeground),
       },
     ),
-    suffixedPadding: FTileStyle.defaultSuffixedPadding,
-    unsuffixedPadding: FTileStyle.defaultUnsuffixedPadding,
+    suffixedPadding: .symmetric(horizontal: 15, vertical: 8),
+    unsuffixedPadding: .symmetric(horizontal: 15, vertical: 8),
     prefixIconSpacing: 10,
     titleSpacing: 3,
     middleSpacing: 4,
@@ -105,11 +105,11 @@ FRawTileContentStyle _rawTileContentStyle({
     },
   ),
   childTextStyle: FVariants.from(
-    typography.md.copyWith(color: color),
+    typography.sm.copyWith(color: color),
     variants: {
       [.disabled]: .delta(color: colors.disable(color)),
     },
   ),
-  padding: FTileStyle.defaultUnsuffixedPadding,
+  padding: .symmetric(horizontal: 15, vertical: 8),
   prefixIconSpacing: 10,
 );

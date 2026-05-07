@@ -18,9 +18,7 @@ class SettingsSection extends StatelessWidget {
               padding: const EdgeInsets.only(left: 16, top: 16, bottom: 8),
               child: Text(
                 title!,
-                style: context.theme.typography.sm.copyWith(
-                  color: colors.mutedForeground,
-                ),
+                style: context.theme.typography.xs,
                 textAlign: TextAlign.start,
               ),
             ),
