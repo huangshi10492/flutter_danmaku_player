@@ -305,6 +305,10 @@ class VideoPlayerService {
 
   Future<void> _setProperty() async {
     var pp = _player.platform as NativePlayer;
+    await pp.setProperty(
+      "demuxer-cache-dir",
+      (await getTemporaryDirectory()).path,
+    );
     if (Platform.isAndroid) {
       await pp.setProperty("volume-max", "100");
       await pp.setProperty(
