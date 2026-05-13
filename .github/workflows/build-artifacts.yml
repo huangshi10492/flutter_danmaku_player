@@ -54,7 +54,7 @@ jobs:
       - name: Set up Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v5
         with:
-          distribution: jetbrains
+          distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
 
       - name: Set up Flutter (${{ env.FLUTTER_VERSION }})
@@ -171,7 +171,7 @@ jobs:
       - name: Build Windows Setup
         shell: pwsh
         run: |
-          dart pub global run fastforge package --platform windows --targets exe --skip-clean
+          fastforge package --platform windows --targets exe --skip-clean
           mv dist/**/*.exe release/fldanplay-$env:TAG-windows-x64-setup.exe
 
       - name: Upload Windows artifacts
