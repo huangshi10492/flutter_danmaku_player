@@ -1,12 +1,13 @@
 import 'dart:io';
 
+import 'package:fldanplay/model/history.dart';
+import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/danmaku_match_dialog.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:path_provider/path_provider.dart';
-import '../model/history.dart';
 
 class FileImageEx extends FileImage {
   late final int fileSize;
@@ -31,7 +32,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final History? history;
   final String uniqueKey;
   final String name;
-  final String? videoName;
+  final DanmakuMatchVideoInfo? danmakuMatchInfo;
   final String? subtitle;
   final void Function() onPress;
   final void Function()? onLongPress;
@@ -46,7 +47,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
     required this.history,
     required this.uniqueKey,
     required this.name,
-    this.videoName,
+    this.danmakuMatchInfo,
     this.subtitle,
     required this.onPress,
     this.onLongPress,
@@ -238,7 +239,7 @@ class _VideoItemState extends State<VideoItem> {
     return _PopoverMenu(
       download: widget.onOfflineDownload ?? () {},
       matchDanmaku: () async {
-        if (widget.videoName == null) return;
+        if (widget.danmakuMatchInfo == null) return;
         await showFDialog(
           context: context,
           // barrierDismissible: false,
@@ -246,7 +247,7 @@ class _VideoItemState extends State<VideoItem> {
             style: style,
             animation: animation,
             uniqueKey: widget.uniqueKey,
-            videoName: widget.videoName!,
+            danmakuMatchVideoInfo: widget.danmakuMatchInfo!,
           ),
         );
         init();

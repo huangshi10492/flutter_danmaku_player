@@ -16,11 +16,17 @@ on:
         required: true
       ANDROID_KEY_ALIAS:
         required: true
+      DANDANPLAY_APP_ID:
+        required: false
+      DANDANPLAY_APP_SECRET:
+        required: false
 
 env:
   JAVA_VERSION: "21"
   FLUTTER_VERSION: "3.41.7"
   RELEASE_TAG: ${{ inputs.release_tag }}
+  DANDANPLAY_APP_ID: ${{ secrets.DANDANPLAY_APP_ID }}
+  DANDANPLAY_APP_SECRET: ${{ secrets.DANDANPLAY_APP_SECRET }}
 
 jobs:
   android-linux:
@@ -69,8 +75,16 @@ jobs:
             echo "keyAlias=${ANDROID_KEY_ALIAS}"
           } > android/key.properties
 
+      - name: Set DanDanPlay dart defines
+        run: |
+          if [ -n "$DANDANPLAY_APP_ID" ] && [ -n "$DANDANPLAY_APP_SECRET" ]; then
+            echo "DANDANPLAY_DART_DEFINE_ARG=--dart-define=DANDANPLAY_APP_ID=$DANDANPLAY_APP_ID --dart-define=DANDANPLAY_APP_SECRET=$DANDANPLAY_APP_SECRET" >> "$GITHUB_ENV"
+          else
+            echo "DANDANPLAY_APP_ID or DANDANPLAY_APP_SECRET is not set. Building without DanDanPlay official API credentials."
+          fi
+
       - name: Build APKs
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi $DANDANPLAY_DART_DEFINE_ARG
 
       - name: Collect APK artifacts
         run: |
@@ -138,7 +152,12 @@ jobs:
       - name: Build Windows
         shell: pwsh
         run: |
-          flutter build windows --release
+          $dartDefines = @()
+          if ($env:DANDANPLAY_APP_ID -and $env:DANDANPLAY_APP_SECRET) {
+            $dartDefines += "--dart-define=DANDANPLAY_APP_ID=$env:DANDANPLAY_APP_ID"
+            $dartDefines += "--dart-define=DANDANPLAY_APP_SECRET=$env:DANDANPLAY_APP_SECRET"
+          }
+          flutter build windows --release @dartDefines
 
       - name: Zip Windows build
         shell: pwsh
@@ -153,9 +172,7 @@ jobs:
         shell: pwsh
         run: |
           dart pub global run fastforge package --platform windows --targets exe --skip-clean
-          $setup = Get-ChildItem -Path dist -Recurse -Filter *.exe | Select-Object -First 1
-          if (-not $setup) { throw 'Windows setup exe was not generated.' }
-          Move-Item -Path $setup.FullName -Destination "release/fldanplay-$env:TAG-windows-x64-setup.exe"
+          mv dist/**/*.exe release/fldanplay-$env:TAG-windows-x64-setup.exe
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v6

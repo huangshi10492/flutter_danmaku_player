@@ -145,7 +145,7 @@ class ConfigureService {
   );
   late final Signal<List<String>> danmakuServerList = _config(
     key: 'danmakuServerList',
-    defaultValue: ['https://danmaku.huangshi10492.top/huangshi10492'],
+    defaultValue: ['https://api.dandanplay.net'],
   );
   late final Signal<List<String>> danmakuFilterKeywords = _config(
     key: 'danmakuFilterKeywords',

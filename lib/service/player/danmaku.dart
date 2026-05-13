@@ -8,6 +8,7 @@ import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
+import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/danmaku_api_utils.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:get_it/get_it.dart';
@@ -293,10 +294,13 @@ class DanmakuService {
         if (exist) return;
       }
       status.value = .matching;
-      Episode? result = await danmakuGetter.match(
-        videoInfo.uniqueKey,
-        videoInfo.videoName,
-      );
+      DanmakuMatchVideoInfo info = .fromVideoInfo(videoInfo);
+      if (videoInfo.cached) {
+        final documentsDir = await getApplicationSupportDirectory();
+        info.currentVideoPath =
+            '${documentsDir.path}/offline_cache/${videoInfo.uniqueKey}';
+      }
+      Episode? result = await danmakuGetter.match(videoInfo.uniqueKey, info);
       if (result == null) {
         globalService.showNotification('未匹配到弹幕');
         status.value = .none;
@@ -329,6 +333,7 @@ class DanmakuService {
         animeTitle: danmakuData.animeTitle ?? '',
         episodeTitle: danmakuData.episodeTitle ?? '',
         url: danmakuData.from ?? configureService.danmakuServerList.value.first,
+        isMatched: danmakuData.isMatched,
       );
       if (now > expireTime) {
         _log.info('_getCachedDanmakus', '弹幕缓存已过期');
@@ -449,17 +454,17 @@ class DanmakuGetter {
     }
   }
 
-  Future<Episode?> match(
-    String uniqueKey,
-    String fileName, {
-    String? fileHash,
-  }) async {
+  Future<Episode?> match(String uniqueKey, DanmakuMatchVideoInfo info) async {
+    final fileHash = await CryptoUtils.generateHash(
+      info.currentVideoPath,
+      info.headers,
+    );
     for (final serverUrl in serverList) {
       try {
         _log.info('match', '尝试使用服务器: $serverUrl');
         final apiUtils = _createApiUtils(serverUrl);
         final episodes = await apiUtils.matchVideo(
-          fileName: fileName,
+          fileName: info.fileName,
           fileHash: fileHash,
         );
         if (episodes.isNotEmpty) {
@@ -503,6 +508,7 @@ class DanmakuGetter {
         animeTitle: episode.animeTitle,
         episodeTitle: episode.episodeTitle,
         from: episode.url,
+        isMatched: episode.isMatched,
       );
       await cacheFile.writeAsString(cacheData.toJsonString());
       _log.info('save', '弹幕缓存保存成功， 弹幕数量: ${danmakus.length}');

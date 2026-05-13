@@ -1,7 +1,17 @@
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:fldanplay/model/danmaku.dart';
+import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
+
+const String dandanPlayServer = 'https://api.dandanplay.net';
+
+// Provide these values with:
+// --dart-define-from-file=dart_defines/dandanplay.json
+const String dandanplayAppId = String.fromEnvironment('DANDANPLAY_APP_ID');
+const String dandanplayAppSecret = String.fromEnvironment(
+  'DANDANPLAY_APP_SECRET',
+);
 
 /// 弹弹play API工具类
 class DanmakuApiUtils {
@@ -19,6 +29,30 @@ class DanmakuApiUtils {
         receiveTimeout: const Duration(seconds: 10),
       ),
     );
+    if (baseUrl == dandanPlayServer) {
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            if (dandanplayAppId.isEmpty || dandanplayAppSecret.isEmpty) {
+              throw AppException('弹弹play开放平台AppId或AppSecret未配置', null);
+            }
+            final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+            final path = Uri.parse(options.path).path;
+            options.headers.addAll({
+              'X-AppId': dandanplayAppId,
+              'X-Timestamp': timestamp.toString(),
+              'X-Signature': CryptoUtils.generateDandanplaySignature(
+                appId: dandanplayAppId,
+                appSecret: dandanplayAppSecret,
+                path: path,
+                timestamp: timestamp,
+              ),
+            });
+            handler.next(options);
+          },
+        ),
+      );
+    }
     dio.interceptors.add(
       RetryInterceptor(
         dio: dio,
@@ -41,16 +75,19 @@ class DanmakuApiUtils {
   }) async {
     const path = '/api/v2/match';
     try {
-      final response = await _dio.post(
-        path,
-        data: {
-          'fileHash': fileHash,
-          'fileName': fileName,
-          'matchModel': fileHash != null ? 'hashAndFileName' : 'fileNameOnly',
-        },
-      );
+      final data = <String, String>{
+        'fileName': fileName,
+        'matchModel': fileHash == null ? 'fileNameOnly' : 'hashAndFileName',
+      };
+      if (fileHash != null) {
+        data['fileHash'] = fileHash;
+      }
+      final response = await _dio.post(path, data: data);
       final matches = response.data['matches'] as List;
-      return matches.map((match) => Episode.fromJson(match, baseUrl)).toList();
+      final isMatched = response.data['isMatched'] as bool?;
+      return matches
+          .map((match) => Episode.fromJson(match, baseUrl, isMatched))
+          .toList();
     } on DioException catch (e, t) {
       _logger.dio('matchVideo', e, t, action: '匹配节目');
     } catch (e, t) {

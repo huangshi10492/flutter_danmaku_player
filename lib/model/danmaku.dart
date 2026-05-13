@@ -119,6 +119,7 @@ class Episode {
   final String episodeTitle;
   final int animeId;
   final String url;
+  final bool? isMatched;
 
   const Episode({
     required this.episodeId,
@@ -126,6 +127,7 @@ class Episode {
     required this.animeTitle,
     required this.episodeTitle,
     required this.url,
+    this.isMatched,
   });
 
   factory Episode.fromId(int episodeId, int animeId, String url) {
@@ -142,13 +144,24 @@ class Episode {
     return episodeId > 0 && animeId > 0;
   }
 
-  factory Episode.fromJson(Map<String, dynamic> json, String url) {
+  String get matchLabel {
+    if (isMatched == true) return '是';
+    if (isMatched == false) return '否';
+    return '未知';
+  }
+
+  factory Episode.fromJson(
+    Map<String, dynamic> json,
+    String url,
+    bool? isMatched,
+  ) {
     return Episode(
       episodeId: json['episodeId'] as int,
       animeTitle: json['animeTitle'] as String,
       episodeTitle: json['episodeTitle'] as String,
       animeId: json['animeId'] as int,
       url: url,
+      isMatched: isMatched,
     );
   }
 
@@ -164,6 +177,7 @@ class Episode {
       episodeTitle: episodeJson['episodeTitle'] as String,
       animeId: animeId,
       url: url,
+      isMatched: episodeJson['isMatched'] as bool?,
     );
   }
 }
@@ -381,6 +395,7 @@ class DanmakuFile {
   String? animeTitle;
   String? episodeTitle;
   String? from;
+  bool? isMatched;
 
   DanmakuFile({
     required this.uniqueKey,
@@ -391,6 +406,7 @@ class DanmakuFile {
     this.animeTitle,
     this.episodeTitle,
     this.from,
+    this.isMatched,
   });
 
   // 将对象转换为Map，用于JSON序列化
@@ -404,6 +420,7 @@ class DanmakuFile {
       'episodeTitle': episodeTitle,
       'animeTitle': animeTitle,
       'from': from,
+      'isMatched': isMatched,
     };
   }
 
@@ -423,6 +440,7 @@ class DanmakuFile {
       animeTitle: json['animeTitle'] as String?,
       episodeTitle: json['episodeTitle'] as String?,
       from: json['from'] as String?,
+      isMatched: json['isMatched'] as bool?,
     );
   }
 

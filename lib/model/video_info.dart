@@ -79,3 +79,23 @@ class Metadata {
     required this.audioParams,
   });
 }
+
+class DanmakuMatchVideoInfo {
+  final String fileName;
+  String currentVideoPath;
+  final Map<String, String> headers;
+
+  DanmakuMatchVideoInfo({
+    required this.fileName,
+    required this.currentVideoPath,
+    this.headers = const {},
+  });
+
+  factory DanmakuMatchVideoInfo.fromVideoInfo(VideoInfo videoInfo) {
+    return DanmakuMatchVideoInfo(
+      fileName: videoInfo.videoName,
+      currentVideoPath: videoInfo.currentVideoPath,
+      headers: videoInfo.headers,
+    );
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/danmaku.dart';
+import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/utils/toast.dart';
@@ -22,7 +23,7 @@ enum _DanmakuSearchState {
 
 class DanmakuMatchDialog extends StatefulWidget {
   final String uniqueKey;
-  final String videoName;
+  final DanmakuMatchVideoInfo danmakuMatchVideoInfo;
   final FDialogStyle style;
   final Animation<double> animation;
   const DanmakuMatchDialog({
@@ -30,7 +31,7 @@ class DanmakuMatchDialog extends StatefulWidget {
     required this.style,
     required this.animation,
     required this.uniqueKey,
-    required this.videoName,
+    required this.danmakuMatchVideoInfo,
   });
 
   @override
@@ -42,7 +43,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   final danmakuGetter = DanmakuGetter();
   final configure = GetIt.I<ConfigureService>();
   _DanmakuSearchState _state = _DanmakuSearchState.matching;
-  String _message = '';
+  Episode? _successResult;
   String? _errorMessage;
   List<Anime>? _animes;
   String _selectedServer = '';
@@ -51,7 +52,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   void initState() {
     super.initState();
     _match();
-    _searchController.text = widget.videoName;
+    _searchController.text = widget.danmakuMatchVideoInfo.fileName;
   }
 
   @override
@@ -61,7 +62,10 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   }
 
   Future<void> _match() async {
-    var result = await danmakuGetter.match(widget.uniqueKey, widget.videoName);
+    var result = await danmakuGetter.match(
+      widget.uniqueKey,
+      widget.danmakuMatchVideoInfo,
+    );
     if (result == null) {
       setState(() {
         _state = _DanmakuSearchState.search;
@@ -75,7 +79,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
     await danmakuGetter.save(widget.uniqueKey, result);
     setState(() {
       _state = _DanmakuSearchState.success;
-      _message = '${result.animeTitle}\n${result.episodeTitle}';
+      _successResult = result;
     });
   }
 
@@ -177,7 +181,17 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           ],
         );
       case .success:
-        return Text(_message);
+        if (_successResult == null) return SizedBox.shrink();
+        return Column(
+          mainAxisSize: .min,
+          crossAxisAlignment: .start,
+          children: [
+            Text('来源：${_successResult!.url}'),
+            Text('精确关联：${_successResult!.matchLabel}'),
+            Text(_successResult!.animeTitle),
+            Text(_successResult!.episodeTitle),
+          ],
+        );
       case .search:
       case .searching:
         return ConstrainedBox(

@@ -346,7 +346,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           history: file.history,
           uniqueKey: file.uniqueKey!,
           name: file.name,
-          videoName: videoInfo.videoName,
+          danmakuMatchInfo: .fromVideoInfo(videoInfo),
           onOfflineDownload: () =>
               _handleOfflineDownload(file.path, file.videoIndex),
           onPress: () => _playVideo(file.path, file.videoIndex),

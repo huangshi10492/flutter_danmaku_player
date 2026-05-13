@@ -53,6 +53,8 @@ class DanmakuInfoPanel extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text('来源: ${danmakuService.episode.value.url}'),
                     const SizedBox(height: 8),
+                    Text('精确关联: ${danmakuService.episode.value.matchLabel}'),
+                    const SizedBox(height: 8),
                     Text('剧名: ${danmakuService.episode.value.animeTitle}'),
                     const SizedBox(height: 8),
                     Text('集名: ${danmakuService.episode.value.episodeTitle}'),

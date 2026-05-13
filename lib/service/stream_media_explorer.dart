@@ -208,6 +208,7 @@ class StreamMediaExplorerService {
     return VideoInfo(
       currentVideoPath: playbackUrl,
       virtualVideoPath: episode.id,
+      headers: headers,
       historiesType: HistoriesType.streamMediaStorage,
       storageKey: storage!.uniqueKey,
       name: episode.name,
@@ -224,6 +225,7 @@ class StreamMediaExplorerService {
     return VideoInfo(
       currentVideoPath: playbackUrl,
       virtualVideoPath: history.url!,
+      headers: headers,
       historiesType: HistoriesType.streamMediaStorage,
       storageKey: storage!.uniqueKey,
       name: history.name,

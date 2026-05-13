@@ -25,6 +25,7 @@ import 'package:window_manager/window_manager.dart';
 Future<void> main() async {
   ScaledWidgetsFlutterBinding.ensureInitialized();
   await init();
+  upgrade();
   final Catcher2Options config = Catcher2Options(SilentReportMode(), [
     CatcherLogger(),
   ]);
@@ -70,6 +71,17 @@ Future<void> init() async {
       ),
     );
   }
+}
+
+void upgrade() {
+  final cs = GetIt.I.get<ConfigureService>();
+  List<String> list = cs.danmakuServerList.value;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i] == 'https://danmaku.huangshi10492.top/huangshi10492') {
+      list[i] = 'https://api.dandanplay.net';
+    }
+  }
+  cs.danmakuServerList.value = list;
 }
 
 class Application extends StatefulWidget {
