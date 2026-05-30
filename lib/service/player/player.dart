@@ -321,6 +321,7 @@ class VideoPlayerService {
     final fontsDir = await getApplicationSupportDirectory();
     await pp.setProperty("sub-fonts-dir", '${fontsDir.path}/fonts');
     await pp.setProperty("sub-font", _configureService.subtitleFontName.value);
+    await pp.setProperty("sub-font-size", "50");
     if (Utils.isDesktop()) {
       final volume = _configureService.desktopVolume.value;
       final mpvVolume = (volume * 100).toInt();
