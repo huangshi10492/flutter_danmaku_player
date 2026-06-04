@@ -84,62 +84,72 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
         children: [
           SettingsSection(
             children: [
-              Watch((context) {
-                return SettingsTile.switchTile(
-                  title: '启用 WebDAV 同步',
-                  switchValue: configure.syncEnable.value,
-                  onBoolChange: (value) {
-                    configure.syncEnable.value = value;
-                  },
-                );
-              }),
+              SignalBuilder(
+                builder: (context) {
+                  return SettingsTile.switchTile(
+                    title: '启用 WebDAV 同步',
+                    switchValue: configure.syncEnable.value,
+                    onBoolChange: (value) {
+                      configure.syncEnable.value = value;
+                    },
+                  );
+                },
+              ),
             ],
           ),
           SettingsSection(
             title: '服务器信息',
             children: [
-              Watch((context) {
-                return SettingsTile.simpleTile(
-                  title: 'Webdav地址',
-                  subtitle: configure.webDavURL.value,
-                  onPress: () {
-                    _showInputDialog(
-                      context: context,
-                      title: 'Webdav地址',
-                      currentValue: configure.webDavURL.value,
-                      onSave: (value) => configure.webDavURL.value = value,
-                    );
-                  },
-                );
-              }),
-              Watch((context) {
-                return SettingsTile.simpleTile(
-                  title: 'Webdav用户名',
-                  subtitle: configure.webDavUsername.value,
-                  onPress: () {
-                    _showInputDialog(
-                      context: context,
-                      title: 'Webdav用户名',
-                      currentValue: configure.webDavUsername.value,
-                      onSave: (value) => configure.webDavUsername.value = value,
-                    );
-                  },
-                );
-              }),
-              Watch((context) {
-                return SettingsTile.simpleTile(
-                  title: 'Webdav密码',
-                  onPress: () {
-                    _showInputDialog(
-                      context: context,
-                      title: 'Webdav密码',
-                      password: true,
-                      currentValue: configure.webDavPassword.value,
-                      onSave: (value) => configure.webDavPassword.value = value,
-                    );
-                  },
-                );
-              }),
+              SignalBuilder(
+                builder: (context) {
+                  return SettingsTile.simpleTile(
+                    title: 'Webdav地址',
+                    subtitle: configure.webDavURL.value,
+                    onPress: () {
+                      _showInputDialog(
+                        context: context,
+                        title: 'Webdav地址',
+                        currentValue: configure.webDavURL.value,
+                        onSave: (value) => configure.webDavURL.value = value,
+                      );
+                    },
+                  );
+                },
+              ),
+              SignalBuilder(
+                builder: (context) {
+                  return SettingsTile.simpleTile(
+                    title: 'Webdav用户名',
+                    subtitle: configure.webDavUsername.value,
+                    onPress: () {
+                      _showInputDialog(
+                        context: context,
+                        title: 'Webdav用户名',
+                        currentValue: configure.webDavUsername.value,
+                        onSave: (value) =>
+                            configure.webDavUsername.value = value,
+                      );
+                    },
+                  );
+                },
+              ),
+              SignalBuilder(
+                builder: (context) {
+                  return SettingsTile.simpleTile(
+                    title: 'Webdav密码',
+                    onPress: () {
+                      _showInputDialog(
+                        context: context,
+                        title: 'Webdav密码',
+                        password: true,
+                        currentValue: configure.webDavPassword.value,
+                        onSave: (value) =>
+                            configure.webDavPassword.value = value,
+                      );
+                    },
+                  );
+                },
+              ),
             ],
           ),
           SettingsSection(
@@ -161,15 +171,17 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             constraints: BoxConstraints(maxWidth: 1000),
-            child: Watch((context) {
-              return FAlert(
-                title: Text(_getSyncStatusText(sync.syncStatus.value)),
-                subtitle: Text(
-                  sync.syncMessage.value ?? '准备同步...',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              );
-            }),
+            child: SignalBuilder(
+              builder: (context) {
+                return FAlert(
+                  title: Text(_getSyncStatusText(sync.syncStatus.value)),
+                  subtitle: Text(
+                    sync.syncMessage.value ?? '准备同步...',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

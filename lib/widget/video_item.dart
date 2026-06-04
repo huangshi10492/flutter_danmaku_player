@@ -359,7 +359,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
           divider: .full,
           children: [
             .tile(
-              prefix: const Icon(FIcons.download),
+              prefix: const Icon(FLucideIcons.download),
               title: Text('离线保存'),
               onPress: () {
                 controller.toggle();
@@ -367,7 +367,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
               },
             ),
             .tile(
-              prefix: const Icon(FIcons.captions),
+              prefix: const Icon(FLucideIcons.captions),
               title: Text('获取并保存弹幕'),
               onPress: () {
                 controller.toggle();

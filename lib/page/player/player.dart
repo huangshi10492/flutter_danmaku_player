@@ -63,7 +63,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _uiState.dispose();
     _playerService.dispose();
     // 恢复系统UI
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // TODO fix
+    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setEnabledSystemUIMode(
+      .manual,
+      overlays: SystemUiOverlay.values,
+    );
     AutoOrientation.fullAutoMode();
     // 释放音量和亮度控制服务
     BrightnessVolumeService.dispose();
@@ -201,53 +206,57 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         _buildVideoPlayer(),
         _buildDanmakuLayer(),
         _buildNotificationOverlay(),
-        Watch((context) {
-          final playerState = _playerService.playerState.value;
-          final errorMessage = _playerService.errorMessage.value;
-          if (playerState == PlayerState.error) {
-            return _buildErrorWidget(errorMessage);
-          }
-          if (playerState == PlayerState.loading) {
-            return _buildLoadingWidget();
-          }
-          return MouseRegion(
-            cursor: (_uiState.showControls.value)
-                ? SystemMouseCursors.basic
-                : SystemMouseCursors.none,
-            onHover: (PointerEvent pointerEvent) {
-              if (Utils.isDesktop()) {
-                _uiState.showControlsTemporarily();
-              }
-            },
-            child: Stack(
-              children: [
-                Watch((context) {
-                  if (!_configureService.alwaysShowProgressBar.value ||
-                      _uiState.showControls.value) {
-                    return const SizedBox.shrink();
-                  }
-                  return Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: ProgressBar(
-                      progress: _playerService.position.value,
-                      buffered: _playerService.bufferedPosition.value,
-                      total: _playerService.duration,
-                      barHeight: 2,
-                      thumbRadius: 0,
-                      timeLabelLocation: .none,
-                    ),
-                  );
-                }),
-                ..._buildAnimatedControls(),
-                _buildStatusIndicatorOverlay(),
-                _buildProgressIndicatorOverlay(),
-                _buildBufferingIndicator(),
-              ],
-            ),
-          );
-        }),
+        SignalBuilder(
+          builder: (context) {
+            final playerState = _playerService.playerState.value;
+            final errorMessage = _playerService.errorMessage.value;
+            if (playerState == PlayerState.error) {
+              return _buildErrorWidget(errorMessage);
+            }
+            if (playerState == PlayerState.loading) {
+              return _buildLoadingWidget();
+            }
+            return MouseRegion(
+              cursor: (_uiState.showControls.value)
+                  ? SystemMouseCursors.basic
+                  : SystemMouseCursors.none,
+              onHover: (PointerEvent pointerEvent) {
+                if (Utils.isDesktop()) {
+                  _uiState.showControlsTemporarily();
+                }
+              },
+              child: Stack(
+                children: [
+                  SignalBuilder(
+                    builder: (context) {
+                      if (!_configureService.alwaysShowProgressBar.value ||
+                          _uiState.showControls.value) {
+                        return const SizedBox.shrink();
+                      }
+                      return Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: ProgressBar(
+                          progress: _playerService.position.value,
+                          buffered: _playerService.bufferedPosition.value,
+                          total: _playerService.duration,
+                          barHeight: 2,
+                          thumbRadius: 0,
+                          timeLabelLocation: .none,
+                        ),
+                      );
+                    },
+                  ),
+                  ..._buildAnimatedControls(),
+                  _buildStatusIndicatorOverlay(),
+                  _buildProgressIndicatorOverlay(),
+                  _buildBufferingIndicator(),
+                ],
+              ),
+            );
+          },
+        ),
       ],
     );
   }
@@ -260,7 +269,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(FIcons.circleX, color: context.theme.colors.error, size: 64),
+            Icon(
+              FLucideIcons.circleX,
+              color: context.theme.colors.error,
+              size: 64,
+            ),
             const SizedBox(height: 16),
             Text('视频加载失败', style: context.theme.typography.lg),
             const SizedBox(height: 8),
@@ -296,28 +309,32 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   List<Widget> _buildAnimatedControls() {
     return [
       // 顶部控制栏
-      Watch((context) {
-        final showControls = _uiState.showControls.value;
-        return AnimatedPositioned(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          top: showControls ? 0 : -150,
-          left: 0,
-          right: 0,
-          child: _buildTopControls(),
-        );
-      }),
+      SignalBuilder(
+        builder: (context) {
+          final showControls = _uiState.showControls.value;
+          return AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            top: showControls ? 0 : -150,
+            left: 0,
+            right: 0,
+            child: _buildTopControls(),
+          );
+        },
+      ),
       // 底部控制栏
-      Watch((context) {
-        final showControls = _uiState.showControls.value;
-        return AnimatedPositioned(
-          duration: const Duration(milliseconds: 200),
-          bottom: showControls ? 0 : -150,
-          left: 0,
-          right: 0,
-          child: _buildBottomControls(),
-        );
-      }),
+      SignalBuilder(
+        builder: (context) {
+          final showControls = _uiState.showControls.value;
+          return AnimatedPositioned(
+            duration: const Duration(milliseconds: 200),
+            bottom: showControls ? 0 : -150,
+            left: 0,
+            right: 0,
+            child: _buildBottomControls(),
+          );
+        },
+      ),
     ];
   }
 
@@ -339,70 +356,84 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(FIcons.arrowLeft, size: 24),
+                    icon: const Icon(FLucideIcons.arrowLeft, size: 24),
                     onPressed: () => context.pop(),
                   ),
-                  Watch((context) {
-                    final videoName = _playerService.name.value;
-                    return Expanded(
-                      child: Text(
-                        videoName,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.theme.typography.md,
-                      ),
-                    );
-                  }),
+                  SignalBuilder(
+                    builder: (context) {
+                      final videoName = _playerService.name.value;
+                      return Expanded(
+                        child: Text(
+                          videoName,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.theme.typography.md,
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
             SizedBox(width: 16),
             Row(
               children: [
-                Watch((context) {
-                  return Text(
-                    _uiState.currentTime.value,
-                    style: context.theme.typography.sm,
-                  );
-                }),
+                SignalBuilder(
+                  builder: (context) {
+                    return Text(
+                      _uiState.currentTime.value,
+                      style: context.theme.typography.sm,
+                    );
+                  },
+                ),
                 const SizedBox(width: 16),
-                Watch((context) {
-                  final batteryLevel = _uiState.batteryLevel.value;
-                  final batteryChange = _uiState.batteryChange.value;
-                  return Row(
-                    children: [
-                      batteryChange
-                          ? const Icon(FIcons.batteryCharging, size: 20)
-                          : Icon(_getBatteryIcon(batteryLevel), size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$batteryLevel%',
-                        style: context.theme.typography.sm,
-                      ),
-                    ],
-                  );
-                }),
+                SignalBuilder(
+                  builder: (context) {
+                    final batteryLevel = _uiState.batteryLevel.value;
+                    final batteryChange = _uiState.batteryChange.value;
+                    return Row(
+                      children: [
+                        batteryChange
+                            ? const Icon(FLucideIcons.batteryCharging, size: 20)
+                            : Icon(_getBatteryIcon(batteryLevel), size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$batteryLevel%',
+                          style: context.theme.typography.sm,
+                        ),
+                      ],
+                    );
+                  },
+                ),
                 const SizedBox(width: 8),
                 // 弹幕开关
-                Watch((context) {
-                  final enabled =
-                      _playerService.danmakuService.danmakuEnabled.value;
-                  return enabled
-                      ? IconButton(
-                          onPressed: () {
-                            _playerService.danmakuService.danmakuEnabled.value =
-                                false;
-                            _playerService.danmakuService.controller.clear();
-                          },
-                          icon: Icon(MyIcon.danmaku, size: 24),
-                        )
-                      : IconButton(
-                          onPressed: () {
-                            _playerService.danmakuService.danmakuEnabled.value =
-                                true;
-                          },
-                          icon: Icon(MyIcon.danmakuOff, size: 24),
-                        );
-                }),
+                SignalBuilder(
+                  builder: (context) {
+                    final enabled =
+                        _playerService.danmakuService.danmakuEnabled.value;
+                    return enabled
+                        ? IconButton(
+                            onPressed: () {
+                              _playerService
+                                      .danmakuService
+                                      .danmakuEnabled
+                                      .value =
+                                  false;
+                              _playerService.danmakuService.controller.clear();
+                            },
+                            icon: Icon(MyIcon.danmaku, size: 24),
+                          )
+                        : IconButton(
+                            onPressed: () {
+                              _playerService
+                                      .danmakuService
+                                      .danmakuEnabled
+                                      .value =
+                                  true;
+                            },
+                            icon: Icon(MyIcon.danmakuOff, size: 24),
+                          );
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.more_vert, size: 24),
                   onPressed: () =>
@@ -419,13 +450,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   /// 根据电量获取电池图标
   IconData _getBatteryIcon(int level) {
     if (level > 70) {
-      return FIcons.batteryFull;
+      return FLucideIcons.batteryFull;
     } else if (level > 40) {
-      return FIcons.batteryMedium;
+      return FLucideIcons.batteryMedium;
     } else if (level > 10) {
-      return FIcons.batteryLow;
+      return FLucideIcons.batteryLow;
     } else {
-      return FIcons.batteryWarning;
+      return FLucideIcons.batteryWarning;
     }
   }
 
@@ -453,43 +484,49 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 Row(
                   children: [
                     // 播放/暂停
-                    Watch((context) {
-                      final playerState = _playerService.playerState.value;
-                      return IconButton(
-                        icon: Icon(
-                          playerState == PlayerState.playing
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                          size: 24,
-                        ),
-                        onPressed: _playerService.togglePlayPause,
-                      );
-                    }),
+                    SignalBuilder(
+                      builder: (context) {
+                        final playerState = _playerService.playerState.value;
+                        return IconButton(
+                          icon: Icon(
+                            playerState == PlayerState.playing
+                                ? Icons.pause
+                                : Icons.play_arrow,
+                            size: 24,
+                          ),
+                          onPressed: _playerService.togglePlayPause,
+                        );
+                      },
+                    ),
                     // 上一个视频
-                    Watch((context) {
-                      final videoIndex = _videoInfo.value.videoIndex;
-                      return videoIndex > 0
-                          ? IconButton(
-                              icon: const Icon(Icons.skip_previous, size: 24),
-                              onPressed: () {
-                                _switchVideo(videoIndex - 1);
-                              },
-                            )
-                          : Container();
-                    }),
+                    SignalBuilder(
+                      builder: (context) {
+                        final videoIndex = _videoInfo.value.videoIndex;
+                        return videoIndex > 0
+                            ? IconButton(
+                                icon: const Icon(Icons.skip_previous, size: 24),
+                                onPressed: () {
+                                  _switchVideo(videoIndex - 1);
+                                },
+                              )
+                            : Container();
+                      },
+                    ),
                     // 下一个视频
-                    Watch((context) {
-                      final listLength = _videoInfo.value.listLength;
-                      final videoIndex = _videoInfo.value.videoIndex;
-                      return videoIndex < listLength - 1
-                          ? IconButton(
-                              icon: const Icon(Icons.skip_next, size: 24),
-                              onPressed: () {
-                                _switchVideo(videoIndex + 1);
-                              },
-                            )
-                          : Container();
-                    }),
+                    SignalBuilder(
+                      builder: (context) {
+                        final listLength = _videoInfo.value.listLength;
+                        final videoIndex = _videoInfo.value.videoIndex;
+                        return videoIndex < listLength - 1
+                            ? IconButton(
+                                icon: const Icon(Icons.skip_next, size: 24),
+                                onPressed: () {
+                                  _switchVideo(videoIndex + 1);
+                                },
+                              )
+                            : Container();
+                      },
+                    ),
                   ],
                 ),
                 // 右侧按钮组
@@ -497,35 +534,44 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   children: [
                     _buildJumpButton(_playerService.chapters.value),
                     // 速度控制
-                    Watch((context) {
-                      final speed = _playerService.playbackSpeed.value;
-                      return TextButton(
-                        onPressed: () =>
-                            _showRightDrawer(RightDrawerType.speed),
-                        child: Text('${speed.toStringAsFixed(2)}X'),
-                      );
-                    }),
+                    SignalBuilder(
+                      builder: (context) {
+                        final speed = _playerService.playbackSpeed.value;
+                        return TextButton(
+                          onPressed: () =>
+                              _showRightDrawer(RightDrawerType.speed),
+                          child: Text('${speed.toStringAsFixed(2)}X'),
+                        );
+                      },
+                    ),
                     // 选集
-                    Watch((context) {
-                      final canSwitch = _videoInfo.value.canSwitch;
-                      return canSwitch
-                          ? IconButton(
-                              icon: const Icon(FIcons.listVideo, size: 24),
-                              onPressed: () =>
-                                  _showRightDrawer(RightDrawerType.episode),
-                            )
-                          : Container();
-                    }),
+                    SignalBuilder(
+                      builder: (context) {
+                        final canSwitch = _videoInfo.value.canSwitch;
+                        return canSwitch
+                            ? IconButton(
+                                icon: const Icon(
+                                  FLucideIcons.listVideo,
+                                  size: 24,
+                                ),
+                                onPressed: () =>
+                                    _showRightDrawer(RightDrawerType.episode),
+                              )
+                            : Container();
+                      },
+                    ),
                     if (Utils.isDesktop())
                       IconButton(
-                        icon: Watch((context) {
-                          return Icon(
-                            _uiState.isFullScreen.value
-                                ? Icons.fullscreen_exit
-                                : Icons.fullscreen,
-                            size: 24,
-                          );
-                        }),
+                        icon: SignalBuilder(
+                          builder: (context) {
+                            return Icon(
+                              _uiState.isFullScreen.value
+                                  ? Icons.fullscreen_exit
+                                  : Icons.fullscreen,
+                              size: 24,
+                            );
+                          },
+                        ),
                         onPressed: () {
                           windowManager.setFullScreen(
                             !_uiState.isFullScreen.value,
@@ -561,27 +607,29 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     if (chapters.isEmpty || nextChapterMode == 1) {
       return secondButton;
     }
-    final nextChapterButton = Watch((context) {
-      final position = _playerService.position.value;
-      String text = "";
-      Duration? nextChapter;
-      for (var chapter in chapters.entries) {
-        if (chapter.key <= position.inSeconds) {
-          text = chapter.value;
-        } else {
-          text += " -> ${chapter.value}";
-          nextChapter = Duration(seconds: chapter.key);
-          break;
+    final nextChapterButton = SignalBuilder(
+      builder: (context) {
+        final position = _playerService.position.value;
+        String text = "";
+        Duration? nextChapter;
+        for (var chapter in chapters.entries) {
+          if (chapter.key <= position.inSeconds) {
+            text = chapter.value;
+          } else {
+            text += " -> ${chapter.value}";
+            nextChapter = Duration(seconds: chapter.key);
+            break;
+          }
         }
-      }
-      return TextButton(
-        child: Text(text),
-        onPressed: () {
-          if (nextChapter == null) return;
-          _playerService.seekTo(nextChapter);
-        },
-      );
-    });
+        return TextButton(
+          child: Text(text),
+          onPressed: () {
+            if (nextChapter == null) return;
+            _playerService.seekTo(nextChapter);
+          },
+        );
+      },
+    );
     if (nextChapterMode == 2) {
       return Row(children: [nextChapterButton, secondButton]);
     }
@@ -590,96 +638,104 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   /// 构建视频播放器组件
   Widget _buildVideoPlayer() {
-    return Watch((context) {
-      if (_playerService.controller.value == null) {
-        return Container();
-      }
-      return Center(
-        child: Video(
-          controller: _playerService.controller.value!,
-          controls: NoVideoControls,
-        ),
-      );
-    });
+    return SignalBuilder(
+      builder: (context) {
+        if (_playerService.controller.value == null) {
+          return Container();
+        }
+        return Center(
+          child: Video(
+            controller: _playerService.controller.value!,
+            controls: NoVideoControls,
+          ),
+        );
+      },
+    );
   }
 
   /// 构建弹幕层
   Widget _buildDanmakuLayer() {
-    return Watch((context) {
-      final opacity =
-          _playerService.danmakuService.danmakuSettings.value.opacity;
-      return Opacity(
-        opacity: opacity,
-        child: DanmakuScreen(
-          createdController: (controller) {
-            _playerService.danmakuService.controller = controller;
-          },
-          option: DanmakuOption(),
-        ),
-      );
-    });
+    return SignalBuilder(
+      builder: (context) {
+        final opacity =
+            _playerService.danmakuService.danmakuSettings.value.opacity;
+        return Opacity(
+          opacity: opacity,
+          child: DanmakuScreen(
+            createdController: (controller) {
+              _playerService.danmakuService.controller = controller;
+            },
+            option: DanmakuOption(),
+          ),
+        );
+      },
+    );
   }
 
   /// 构建状态指示器覆盖层（音量、亮度、速度）
   Widget _buildStatusIndicatorOverlay() {
-    return Watch((context) {
-      final activeIndicator = _uiState.activeIndicator.value;
-      final indicatorValue = _uiState.indicatorValue.value;
-      if (activeIndicator == IndicatorType.none) {
-        return const SizedBox.shrink();
-      }
-      double displayValue;
-      switch (activeIndicator) {
-        case IndicatorType.none:
-          displayValue = 0;
-          break;
-        case IndicatorType.volume:
-          displayValue = _uiState.currentVolume.value;
-          break;
-        case IndicatorType.brightness:
-          displayValue = _uiState.currentBrightness.value;
-          break;
-        case IndicatorType.speed:
-          displayValue = indicatorValue;
-          break;
-      }
-      return Positioned(
-        top: 100,
-        left: 0,
-        right: 0,
-        child: Center(
-          child: StatusIndicator(
-            type: activeIndicator,
-            value: displayValue,
-            isVisible: true,
+    return SignalBuilder(
+      builder: (context) {
+        final activeIndicator = _uiState.activeIndicator.value;
+        final indicatorValue = _uiState.indicatorValue.value;
+        if (activeIndicator == IndicatorType.none) {
+          return const SizedBox.shrink();
+        }
+        double displayValue;
+        switch (activeIndicator) {
+          case IndicatorType.none:
+            displayValue = 0;
+            break;
+          case IndicatorType.volume:
+            displayValue = _uiState.currentVolume.value;
+            break;
+          case IndicatorType.brightness:
+            displayValue = _uiState.currentBrightness.value;
+            break;
+          case IndicatorType.speed:
+            displayValue = indicatorValue;
+            break;
+        }
+        return Positioned(
+          top: 100,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: StatusIndicator(
+              type: activeIndicator,
+              value: displayValue,
+              isVisible: true,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   /// 构建缓冲指示器
   Widget _buildBufferingIndicator() {
-    return Watch((context) {
-      final playerState = _playerService.playerState.value;
-      if (playerState != PlayerState.buffering) {
-        return const SizedBox.shrink();
-      }
-      final bufferedPosition = _playerService.bufferedPosition.value;
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 8),
-            Text(
-              Utils.formatDuration(bufferedPosition),
-              style: context.theme.typography.md,
-            ),
-          ],
-        ),
-      );
-    });
+    return SignalBuilder(
+      builder: (context) {
+        final playerState = _playerService.playerState.value;
+        if (playerState != PlayerState.buffering) {
+          return const SizedBox.shrink();
+        }
+        final bufferedPosition = _playerService.bufferedPosition.value;
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 8),
+              Text(
+                Utils.formatDuration(bufferedPosition),
+                style: context.theme.typography.md,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   /// 构建通知覆盖层
@@ -749,56 +805,60 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   /// 构建进度指示器覆盖层
   Widget _buildProgressIndicatorOverlay() {
-    return Watch((context) {
-      final showProgressIndicator = _uiState.showProgressIndicator.value;
-      if (!showProgressIndicator) {
-        return const SizedBox.shrink();
-      }
-      final progressText = _uiState.progressIndicatorText.value;
-      final parts = progressText.split('|');
-      final seekText = parts[0];
-      final timeText = parts.length > 1 ? parts[1] : '';
+    return SignalBuilder(
+      builder: (context) {
+        final showProgressIndicator = _uiState.showProgressIndicator.value;
+        if (!showProgressIndicator) {
+          return const SizedBox.shrink();
+        }
+        final progressText = _uiState.progressIndicatorText.value;
+        final parts = progressText.split('|');
+        final seekText = parts[0];
+        final timeText = parts.length > 1 ? parts[1] : '';
 
-      return Center(
-        child: Container(
-          constraints: BoxConstraints(minWidth: 150),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.7),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(seekText, style: context.theme.typography.xl),
-              if (timeText.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(timeText, style: context.theme.typography.md),
+        return Center(
+          child: Container(
+            constraints: BoxConstraints(minWidth: 150),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(seekText, style: context.theme.typography.xl),
+                if (timeText.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(timeText, style: context.theme.typography.md),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   Widget _buildProgressBar() {
-    return Watch((context) {
-      return VideoProgressBar(
-        progress: _playerService.position.value,
-        total: _playerService.duration,
-        buffered: _playerService.bufferedPosition.value,
-        danmakuTrend: _configureService.showDanmakuTrend.value
-            ? _playerService.danmakuService.danmakuTrend.value
-            : [],
-        chapters: _configureService.showChapter.value
-            ? _playerService.chapters.value
-            : {},
-        onSeek: _playerService.seekTo,
-        onDragStart: (_) => _uiState.updateControlsVisibility(true),
-        onDragEnd: () => _uiState.showControlsTemporarily(),
-      );
-    });
+    return SignalBuilder(
+      builder: (context) {
+        return VideoProgressBar(
+          progress: _playerService.position.value,
+          total: _playerService.duration,
+          buffered: _playerService.bufferedPosition.value,
+          danmakuTrend: _configureService.showDanmakuTrend.value
+              ? _playerService.danmakuService.danmakuTrend.value
+              : [],
+          chapters: _configureService.showChapter.value
+              ? _playerService.chapters.value
+              : {},
+          onSeek: _playerService.seekTo,
+          onDragStart: (_) => _uiState.updateControlsVisibility(true),
+          onDragEnd: () => _uiState.showControlsTemporarily(),
+        );
+      },
+    );
   }
 
   void _switchVideo(int index) async {

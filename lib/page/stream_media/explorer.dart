@@ -187,8 +187,8 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         onTap: () => _librariesExpanded.value = !_librariesExpanded.value,
         child: Padding(
           padding: const .symmetric(horizontal: 8, vertical: 8),
-          child: Watch(
-            (context) => AnimatedRotation(
+          child: SignalBuilder(
+            builder: (context) => AnimatedRotation(
               turns: _librariesExpanded.value ? 0.5 : 0,
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOut,
@@ -229,71 +229,76 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildLibrarySection() {
-    return Watch((context) {
-      final librariesState = streamMediaExplorerService.libraries.value;
-      final activeLibraryId = streamMediaExplorerService.libraryId.value;
-      return librariesState.map(
-        data: (libraries) {
-          if (libraries.isEmpty) {
-            return Padding(
-              padding: const .symmetric(vertical: 8, horizontal: 4),
-              child: Text('当前账号下没有可用媒体库', style: context.theme.typography.md),
-            );
-          }
-          return Watch(
-            (context) => Wrap(
-              crossAxisAlignment: .center,
-              children: [
-                ...libraries.map((library) {
-                  final selected = activeLibraryId == library.id;
-                  return _buildAnimatedLibraryItem(
-                    visible: selected || _librariesExpanded.value,
-                    child: _buildLibraryItem(library, selected),
-                  );
-                }),
-                if (libraries.length > 1)
-                  Padding(padding: const .all(4), child: _buildLibraryToggle()),
-              ],
-            ),
-          );
-        },
-        error: (error, stack) {
-          return OutlinedButton(
-            onPressed: streamMediaExplorerService.loadLibraries,
-            child: const Text('重试'),
-          );
-        },
-        loading: () {
-          return Skeletonizer(
-            enabled: true,
-            child: Wrap(
-              crossAxisAlignment: .center,
-              children: [
-                Padding(
-                  padding: const .all(4),
-                  child: Container(
-                    constraints: BoxConstraints(minWidth: 100),
-                    decoration: BoxDecoration(
-                      borderRadius: .circular(8),
-                      border: .all(color: context.theme.colors.border),
+    return SignalBuilder(
+      builder: (context) {
+        final librariesState = streamMediaExplorerService.libraries.value;
+        final activeLibraryId = streamMediaExplorerService.libraryId.value;
+        return librariesState.map(
+          data: (libraries) {
+            if (libraries.isEmpty) {
+              return Padding(
+                padding: const .symmetric(vertical: 8, horizontal: 4),
+                child: Text('当前账号下没有可用媒体库', style: context.theme.typography.md),
+              );
+            }
+            return SignalBuilder(
+              builder: (context) => Wrap(
+                crossAxisAlignment: .center,
+                children: [
+                  ...libraries.map((library) {
+                    final selected = activeLibraryId == library.id;
+                    return _buildAnimatedLibraryItem(
+                      visible: selected || _librariesExpanded.value,
+                      child: _buildLibraryItem(library, selected),
+                    );
+                  }),
+                  if (libraries.length > 1)
+                    Padding(
+                      padding: const .all(4),
+                      child: _buildLibraryToggle(),
                     ),
-                    child: Padding(
-                      padding: const .symmetric(horizontal: 16, vertical: 8),
-                      child: Text(
-                        "加载中...",
-                        textAlign: .center,
-                        style: context.theme.typography.md,
+                ],
+              ),
+            );
+          },
+          error: (error, stack) {
+            return OutlinedButton(
+              onPressed: streamMediaExplorerService.loadLibraries,
+              child: const Text('重试'),
+            );
+          },
+          loading: () {
+            return Skeletonizer(
+              enabled: true,
+              child: Wrap(
+                crossAxisAlignment: .center,
+                children: [
+                  Padding(
+                    padding: const .all(4),
+                    child: Container(
+                      constraints: BoxConstraints(minWidth: 100),
+                      decoration: BoxDecoration(
+                        borderRadius: .circular(8),
+                        border: .all(color: context.theme.colors.border),
+                      ),
+                      child: Padding(
+                        padding: const .symmetric(horizontal: 16, vertical: 8),
+                        child: Text(
+                          "加载中...",
+                          textAlign: .center,
+                          style: context.theme.typography.md,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Skeleton.shade(child: _buildLibraryToggle()),
-              ],
-            ),
-          );
-        },
-      );
-    });
+                  Skeleton.shade(child: _buildLibraryToggle()),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildMediaCard(MediaItem mediaItem) {
@@ -500,46 +505,48 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         final imageHeight = itemWidth / 0.7;
         const textHeight = 30;
         final totalHeight = imageHeight + textHeight + 6;
-        return Watch((context) {
-          return streamMediaExplorerService.items.value.map(
-            data: (items) {
-              return SliverMainAxisGroup(
-                slivers: [
-                  SliverGrid(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: itemSpacing,
-                      mainAxisSpacing: 4,
-                      childAspectRatio: itemWidth / totalHeight,
+        return SignalBuilder(
+          builder: (context) {
+            return streamMediaExplorerService.items.value.map(
+              data: (items) {
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: itemSpacing,
+                        mainAxisSpacing: 4,
+                        childAspectRatio: itemWidth / totalHeight,
+                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        return _buildMediaCard(items[index]);
+                      }, childCount: items.length),
                     ),
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      return _buildMediaCard(items[index]);
-                    }, childCount: items.length),
-                  ),
-                  if (items.length >= 300)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: .all(16),
-                        child: Text(
-                          '最多显示300个结果，更多结果请使用筛选',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                    if (items.length >= 300)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: .all(16),
+                          child: Text(
+                            '最多显示300个结果，更多结果请使用筛选',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              );
-            },
-            error: (error, stack) => SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: Text('加载失败\n${error.toString()}')),
-            ),
-            loading: () => const SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
-        });
+                  ],
+                );
+              },
+              error: (error, stack) => SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: Text('加载失败\n${error.toString()}')),
+              ),
+              loading: () => const SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -584,17 +591,19 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       appBar: SysAppBar(title: storage?.name ?? ''),
       body: _buildBody(),
       floatingActionButton: isFABVisible
-          ? Watch((context) {
-              final isFiltered = streamMediaExplorerService.filter.value
-                  .isFiltered();
-              return FloatingActionButton(
-                onPressed: () => _openFilterSheet(),
-                shape: const CircleBorder(),
-                child: isFiltered
-                    ? const Icon(FIcons.listFilterPlus)
-                    : const Icon(FIcons.listFilter),
-              );
-            })
+          ? SignalBuilder(
+              builder: (context) {
+                final isFiltered = streamMediaExplorerService.filter.value
+                    .isFiltered();
+                return FloatingActionButton(
+                  onPressed: () => _openFilterSheet(),
+                  shape: const CircleBorder(),
+                  child: isFiltered
+                      ? const Icon(FLucideIcons.listFilterPlus)
+                      : const Icon(FLucideIcons.listFilter),
+                );
+              },
+            )
           : null,
     );
   }

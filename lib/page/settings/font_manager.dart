@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:fldanplay/service/configure.dart';
-import 'package:fldanplay/theme/tile_style.dart';
+import 'package:fldanplay/theme/styles/tile_style.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
@@ -144,25 +144,27 @@ class _FontManagerPageState extends State<FontManagerPage> {
       child: Column(
         crossAxisAlignment: .start,
         children: [
-          Watch((context) {
-            final currentFont = _configureService.subtitleFontName.value;
-            return SettingsSection(
-              children: [
-                SettingsTile.simpleTile(
-                  title: '当前字体',
-                  subtitle: currentFont.isEmpty ? '系统默认' : currentFont,
-                  onPress: _showInputFontNameDialog,
-                ),
-                SettingsTile.simpleTile(
-                  title: '重置为系统默认字体',
-                  subtitle: '点击重置为系统默认字体',
-                  onPress: () {
-                    _configureService.subtitleFontName.value = '';
-                  },
-                ),
-              ],
-            );
-          }),
+          SignalBuilder(
+            builder: (context) {
+              final currentFont = _configureService.subtitleFontName.value;
+              return SettingsSection(
+                children: [
+                  SettingsTile.simpleTile(
+                    title: '当前字体',
+                    subtitle: currentFont.isEmpty ? '系统默认' : currentFont,
+                    onPress: _showInputFontNameDialog,
+                  ),
+                  SettingsTile.simpleTile(
+                    title: '重置为系统默认字体',
+                    subtitle: '点击重置为系统默认字体',
+                    onPress: () {
+                      _configureService.subtitleFontName.value = '';
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
           if (_fontFiles.isNotEmpty)
             SettingsSection(
               title: '字体文件管理',
@@ -188,7 +190,7 @@ class _FontManagerPageState extends State<FontManagerPage> {
                         ),
                         variant: .ghost,
                         child: Icon(
-                          FIcons.x,
+                          FLucideIcons.x,
                           color: context.theme.colors.destructive,
                           size: 20,
                         ),

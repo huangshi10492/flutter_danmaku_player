@@ -20,13 +20,13 @@ class SettingsPage extends StatelessWidget {
             divider: FItemDivider.indented,
             children: [
               FItem(
-                prefix: const Icon(FIcons.settings),
+                prefix: const Icon(FLucideIcons.settings),
                 title: const Text('通用'),
                 subtitle: const Text('界面、播放缓存优先度'),
                 onPress: () => context.push('/settings/general'),
               ),
               FItem(
-                prefix: const Icon(FIcons.video),
+                prefix: const Icon(FLucideIcons.video),
                 title: const Text('播放器'),
                 subtitle: const Text('播放速度、解码、字幕语言'),
                 onPress: () => context.push('/settings/player'),
@@ -38,25 +38,25 @@ class SettingsPage extends StatelessWidget {
                 onPress: () => context.push('/settings/danmaku'),
               ),
               FItem(
-                prefix: const Icon(FIcons.type),
+                prefix: const Icon(FLucideIcons.type),
                 title: const Text('字体'),
                 subtitle: const Text('管理视频字幕字体'),
                 onPress: () => context.push('/settings/font'),
               ),
               FItem(
-                prefix: const Icon(FIcons.cloud),
+                prefix: const Icon(FLucideIcons.cloud),
                 title: const Text('同步'),
                 subtitle: const Text('设置 WebDAV 同步参数'),
                 onPress: () => context.push('/settings/webdav'),
               ),
               FItem(
-                prefix: const Icon(FIcons.wrench),
+                prefix: const Icon(FLucideIcons.wrench),
                 title: const Text('维护'),
                 subtitle: const Text('数据备份还原、清理'),
                 onPress: () => context.push('/settings/maintenance'),
               ),
               FItem(
-                prefix: const Icon(FIcons.logs),
+                prefix: const Icon(FLucideIcons.logs),
                 title: const Text('日志'),
                 subtitle: const Text('设置日志级别、导出日志'),
                 onPress: () => context.push('/settings/log'),

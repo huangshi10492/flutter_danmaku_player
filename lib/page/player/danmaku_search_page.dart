@@ -176,10 +176,7 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
             final episode = anime.episodes[(index / 2).round()];
             return FItem(
               style: .delta(
-                margin: .value(.symmetric(vertical: 2, horizontal: 0)),
-                contentStyle: .delta(
-                  // padding: .value(.symmetric(vertical: 10, horizontal: 6)),
-                ),
+                padding: .value(.symmetric(vertical: 2, horizontal: 0)),
               ),
               title: Text(
                 episode.episodeTitle,

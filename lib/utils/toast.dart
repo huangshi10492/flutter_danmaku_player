@@ -14,17 +14,21 @@ void showToast({
   Widget? icon;
   switch (level) {
     case 1:
-      icon = const Icon(FIcons.info, size: 22);
+      icon = const Icon(FLucideIcons.info, size: 22);
       break;
     case 2:
       icon = const Icon(
-        FIcons.triangleAlert,
+        FLucideIcons.triangleAlert,
         size: 22,
         color: Color.fromARGB(255, 234, 178, 8),
       );
       break;
     case 3:
-      icon = Icon(FIcons.circleX, size: 20, color: ctx.theme.colors.error);
+      icon = Icon(
+        FLucideIcons.circleX,
+        size: 20,
+        color: ctx.theme.colors.error,
+      );
       break;
   }
   showFToast(
@@ -37,7 +41,7 @@ void showToast({
       child: FButton.icon(
         variant: .ghost,
         onPress: entry.dismiss,
-        child: const Icon(FIcons.x),
+        child: const Icon(FLucideIcons.x),
       ),
     ),
   );

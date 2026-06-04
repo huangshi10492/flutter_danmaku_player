@@ -115,44 +115,48 @@ class RightDrawerContent extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(4),
         child: SingleChildScrollView(
-          child: Watch((context) {
-            final speed = playerService.playbackSpeed.value;
-            final configure = GetIt.I.get<ConfigureService>();
-            final doubleSpeed = configure.doublePlaySpeed.value;
-            return SettingsSection(
-              children: [
-                SettingsTile.sliderTile(
-                  title: '当前播放速度',
-                  details: '${speed.toStringAsFixed(2)}X',
-                  silderValue: Utils.speedToSlider(speed),
-                  silderMin: 1,
-                  silderMax: 28,
-                  silderDivisions: 27,
-                  onSilderChange: (value) {
-                    playerService.setPlaybackSpeed(Utils.sliderToSpeed(value));
-                  },
-                ),
-                SettingsTile.sliderTile(
-                  title: '长按加速播放速度',
-                  details: '${doubleSpeed.toStringAsFixed(2)}X',
-                  silderValue: doubleSpeed,
-                  silderMin: 1,
-                  silderMax: 8,
-                  silderDivisions: 28,
-                  onSilderChange: (value) {
-                    configure.doublePlaySpeed.value = value;
-                  },
-                ),
-                SettingsTile.switchTile(
-                  title: '跟随当前速度加速',
-                  onBoolChange: (value) {
-                    configure.doubleWithNowSpeed.value = value;
-                  },
-                  switchValue: configure.doubleWithNowSpeed.value,
-                ),
-              ],
-            );
-          }),
+          child: SignalBuilder(
+            builder: (context) {
+              final speed = playerService.playbackSpeed.value;
+              final configure = GetIt.I.get<ConfigureService>();
+              final doubleSpeed = configure.doublePlaySpeed.value;
+              return SettingsSection(
+                children: [
+                  SettingsTile.sliderTile(
+                    title: '当前播放速度',
+                    details: '${speed.toStringAsFixed(2)}X',
+                    silderValue: Utils.speedToSlider(speed),
+                    silderMin: 1,
+                    silderMax: 28,
+                    silderDivisions: 27,
+                    onSilderChange: (value) {
+                      playerService.setPlaybackSpeed(
+                        Utils.sliderToSpeed(value),
+                      );
+                    },
+                  ),
+                  SettingsTile.sliderTile(
+                    title: '长按加速播放速度',
+                    details: '${doubleSpeed.toStringAsFixed(2)}X',
+                    silderValue: doubleSpeed,
+                    silderMin: 1,
+                    silderMax: 8,
+                    silderDivisions: 28,
+                    onSilderChange: (value) {
+                      configure.doublePlaySpeed.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '跟随当前速度加速',
+                    onBoolChange: (value) {
+                      configure.doubleWithNowSpeed.value = value;
+                    },
+                    switchValue: configure.doubleWithNowSpeed.value,
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -161,52 +165,55 @@ class RightDrawerContent extends StatelessWidget {
   Widget _buildDanmakuActions(BuildContext context) {
     return Column(
       children: [
-        Watch((context) {
-          final configure = GetIt.I.get<ConfigureService>();
-          return FItemGroup(
-            style: settingsItemGroupStyle,
-            children: [
-              if (configure.danmakuServiceEnable.value) ...[
+        SignalBuilder(
+          builder: (context) {
+            final configure = GetIt.I.get<ConfigureService>();
+            return FItemGroup(
+              style: settingsItemGroupStyle,
+              children: [
+                if (configure.danmakuServiceEnable.value) ...[
+                  FItem(
+                    prefix: const Icon(MyIcon.danmaku, size: 20),
+                    title: Text('弹幕信息'),
+                    onPress: () => onDrawerChanged(RightDrawerType.danmakuInfo),
+                  ),
+                  FItem(
+                    prefix: const Icon(FLucideIcons.palette, size: 20),
+                    title: Text('弹幕外观'),
+                    onPress: () =>
+                        onDrawerChanged(RightDrawerType.danmakuSettings),
+                  ),
+                  FItem(
+                    prefix: const Icon(FLucideIcons.funnel, size: 20),
+                    title: Text('弹幕过滤与延迟'),
+                    onPress: () =>
+                        onDrawerChanged(RightDrawerType.danmakuFilter),
+                  ),
+                ],
                 FItem(
-                  prefix: const Icon(MyIcon.danmaku, size: 20),
-                  title: Text('弹幕信息'),
-                  onPress: () => onDrawerChanged(RightDrawerType.danmakuInfo),
+                  prefix: const Icon(Icons.audiotrack_outlined, size: 20),
+                  title: Text('音频选择'),
+                  onPress: () => onDrawerChanged(RightDrawerType.audioTrack),
                 ),
                 FItem(
-                  prefix: const Icon(FIcons.palette, size: 20),
-                  title: Text('弹幕外观'),
-                  onPress: () =>
-                      onDrawerChanged(RightDrawerType.danmakuSettings),
+                  prefix: const Icon(FLucideIcons.closedCaption, size: 20),
+                  title: Text('字幕选择'),
+                  onPress: () => onDrawerChanged(RightDrawerType.subtitleTrack),
                 ),
                 FItem(
-                  prefix: const Icon(FIcons.funnel, size: 20),
-                  title: Text('弹幕过滤与延迟'),
-                  onPress: () => onDrawerChanged(RightDrawerType.danmakuFilter),
+                  prefix: const Icon(FLucideIcons.wrench, size: 20),
+                  title: Text('播放器界面设置'),
+                  onPress: () => onDrawerChanged(RightDrawerType.playerUI),
+                ),
+                FItem(
+                  prefix: const Icon(FLucideIcons.info, size: 20),
+                  title: Text('播放信息'),
+                  onPress: () => onDrawerChanged(RightDrawerType.metadata),
                 ),
               ],
-              FItem(
-                prefix: const Icon(Icons.audiotrack_outlined, size: 20),
-                title: Text('音频选择'),
-                onPress: () => onDrawerChanged(RightDrawerType.audioTrack),
-              ),
-              FItem(
-                prefix: const Icon(FIcons.closedCaption, size: 20),
-                title: Text('字幕选择'),
-                onPress: () => onDrawerChanged(RightDrawerType.subtitleTrack),
-              ),
-              FItem(
-                prefix: const Icon(FIcons.wrench, size: 20),
-                title: Text('播放器界面设置'),
-                onPress: () => onDrawerChanged(RightDrawerType.playerUI),
-              ),
-              FItem(
-                prefix: const Icon(FIcons.info, size: 20),
-                title: Text('播放信息'),
-                onPress: () => onDrawerChanged(RightDrawerType.metadata),
-              ),
-            ],
-          );
-        }),
+            );
+          },
+        ),
       ],
     );
   }
@@ -287,8 +294,8 @@ class RightDrawerContent extends StatelessWidget {
         );
       case HistoriesType.fileStorage:
         final fileExplorerService = GetIt.I.get<FileExplorerService>();
-        return Watch(
-          (context) => fileExplorerService.files.value.map(
+        return SignalBuilder(
+          builder: (context) => fileExplorerService.files.value.map(
             data: (files) {
               if (files.isEmpty) {
                 return _buildEmptyPlaylistPlaceholder(context);
@@ -340,47 +347,49 @@ class RightDrawerContent extends StatelessWidget {
 
   Widget _buildPlayerUI(BuildContext context) {
     return Scaffold(
-      body: Watch((context) {
-        final configure = GetIt.I.get<ConfigureService>();
-        return ListView(
-          padding: const EdgeInsets.all(4),
-          children: [
-            SettingsSection(
-              children: [
-                SettingsTile.switchTile(
-                  title: '显示章节',
-                  switchValue: configure.showChapter.value,
-                  onBoolChange: (value) {
-                    configure.showChapter.value = value;
-                  },
-                ),
-                SettingsTile.switchTile(
-                  title: '显示弹幕趋势',
-                  switchValue: configure.showDanmakuTrend.value,
-                  onBoolChange: (value) {
-                    configure.showDanmakuTrend.value = value;
-                  },
-                ),
-                SettingsTile.switchTile(
-                  title: '始终显示进度条',
-                  switchValue: configure.alwaysShowProgressBar.value,
-                  onBoolChange: (value) {
-                    configure.alwaysShowProgressBar.value = value;
-                  },
-                ),
-              ],
-            ),
-            SettingsSectionTitle('下一章节按钮显示模式'),
-            RadioSettingsSection(
-              options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
-              value: configure.jumpButtonMode.value.toString(),
-              onChange: (value) {
-                configure.jumpButtonMode.value = int.parse(value);
-              },
-            ),
-          ],
-        );
-      }),
+      body: SignalBuilder(
+        builder: (context) {
+          final configure = GetIt.I.get<ConfigureService>();
+          return ListView(
+            padding: const EdgeInsets.all(4),
+            children: [
+              SettingsSection(
+                children: [
+                  SettingsTile.switchTile(
+                    title: '显示章节',
+                    switchValue: configure.showChapter.value,
+                    onBoolChange: (value) {
+                      configure.showChapter.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '显示弹幕趋势',
+                    switchValue: configure.showDanmakuTrend.value,
+                    onBoolChange: (value) {
+                      configure.showDanmakuTrend.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '始终显示进度条',
+                    switchValue: configure.alwaysShowProgressBar.value,
+                    onBoolChange: (value) {
+                      configure.alwaysShowProgressBar.value = value;
+                    },
+                  ),
+                ],
+              ),
+              SettingsSectionTitle('下一章节按钮显示模式'),
+              RadioSettingsSection(
+                options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
+                value: configure.jumpButtonMode.value.toString(),
+                onChange: (value) {
+                  configure.jumpButtonMode.value = int.parse(value);
+                },
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

@@ -224,15 +224,17 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
             },
             body: SafeArea(top: false, child: _buildBody()),
           ),
-          Watch((context) {
-            if (!_isPlaying.value) {
-              return const SizedBox.shrink();
-            }
-            return Container(
-              color: Colors.black45,
-              child: const Center(child: CircularProgressIndicator()),
-            );
-          }),
+          SignalBuilder(
+            builder: (context) {
+              if (!_isPlaying.value) {
+                return const SizedBox.shrink();
+              }
+              return Container(
+                color: Colors.black45,
+                child: const Center(child: CircularProgressIndicator()),
+              );
+            },
+          ),
         ],
       ),
     );

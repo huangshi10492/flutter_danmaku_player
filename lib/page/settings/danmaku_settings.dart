@@ -1,5 +1,5 @@
 import 'package:fldanplay/service/configure.dart';
-import 'package:fldanplay/theme/tile_style.dart';
+import 'package:fldanplay/theme/styles/tile_style.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/widget/danmaku_keyword_filter.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
@@ -96,53 +96,55 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
   Widget build(BuildContext context) {
     return SettingsScaffold(
       title: '弹幕设置',
-      child: Watch((context) {
-        final serverList = configure.danmakuServerList.value;
-        return Column(
-          children: [
-            SettingsSection(
-              children: [
-                SettingsTile.switchTile(
-                  title: '启用弹幕服务',
-                  switchValue: configure.danmakuServiceEnable.value,
-                  onBoolChange: (value) {
-                    configure.danmakuServiceEnable.value = value;
-                  },
-                ),
-                SettingsTile.switchTile(
-                  title: '默认启用弹幕',
-                  switchValue: configure.defaultDanmakuEnable.value,
-                  onBoolChange: (value) {
-                    configure.defaultDanmakuEnable.value = value;
-                  },
-                ),
-                SettingsTile.navigationTile(
-                  title: '关键词过滤',
-                  onPress: () {
-                    context.push('/settings/danmaku/filter');
-                  },
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: '弹幕服务器列表',
-              children: serverList.asMap().entries.map((entry) {
-                final index = entry.key;
-                final server = entry.value;
-                return _buildServerItem(server, index, serverList.length);
-              }).toList(),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              constraints: BoxConstraints(maxWidth: 1000),
-              child: FButton(
-                onPress: () => _showServerDialog(),
-                child: const Text('添加服务器'),
+      child: SignalBuilder(
+        builder: (context) {
+          final serverList = configure.danmakuServerList.value;
+          return Column(
+            children: [
+              SettingsSection(
+                children: [
+                  SettingsTile.switchTile(
+                    title: '启用弹幕服务',
+                    switchValue: configure.danmakuServiceEnable.value,
+                    onBoolChange: (value) {
+                      configure.danmakuServiceEnable.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '默认启用弹幕',
+                    switchValue: configure.defaultDanmakuEnable.value,
+                    onBoolChange: (value) {
+                      configure.defaultDanmakuEnable.value = value;
+                    },
+                  ),
+                  SettingsTile.navigationTile(
+                    title: '关键词过滤',
+                    onPress: () {
+                      context.push('/settings/danmaku/filter');
+                    },
+                  ),
+                ],
               ),
-            ),
-          ],
-        );
-      }),
+              SettingsSection(
+                title: '弹幕服务器列表',
+                children: serverList.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final server = entry.value;
+                  return _buildServerItem(server, index, serverList.length);
+                }).toList(),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                constraints: BoxConstraints(maxWidth: 1000),
+                child: FButton(
+                  onPress: () => _showServerDialog(),
+                  child: const Text('添加服务器'),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -168,21 +170,21 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
           FButton.icon(
             onPress: () => _showServerDialog(index: index),
             variant: .ghost,
-            child: const Icon(FIcons.pencil, size: 20),
+            child: const Icon(FLucideIcons.pencil, size: 20),
           ),
           index == 0
               ? SizedBox.shrink()
               : FButton.icon(
                   onPress: () => _moveServerUp(index),
                   variant: .ghost,
-                  child: const Icon(FIcons.chevronUp, size: 20),
+                  child: const Icon(FLucideIcons.chevronUp, size: 20),
                 ),
           index >= totalCount - 1
               ? SizedBox.shrink()
               : FButton.icon(
                   onPress: () => _moveServerDown(index),
                   variant: .ghost,
-                  child: const Icon(FIcons.chevronDown, size: 20),
+                  child: const Icon(FLucideIcons.chevronDown, size: 20),
                 ),
           FButton.icon(
             onPress: () => showConfirmDialog(
@@ -195,7 +197,7 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
             ),
             variant: .ghost,
             child: Icon(
-              FIcons.x,
+              FLucideIcons.x,
               size: 20,
               color: context.theme.colors.destructive,
             ),

@@ -58,13 +58,13 @@ class RootPageState extends State<RootPage> {
   Widget _buildPrefix(StorageType type) {
     switch (type) {
       case StorageType.webdav:
-        return const Icon(FIcons.server);
+        return const Icon(FLucideIcons.server);
       case StorageType.ftp:
         return const Icon(MyIcon.ftp);
       case StorageType.smb:
         return const Icon(MyIcon.smb);
       case StorageType.local:
-        return const Icon(FIcons.folder);
+        return const Icon(FLucideIcons.folder);
       case StorageType.jellyfin:
         return const Icon(MyIcon.jellyfin);
       case StorageType.emby:
@@ -157,114 +157,118 @@ class RootPageState extends State<RootPage> {
         actions: [
           FButton.icon(
             variant: .ghost,
-            child: const Icon(FIcons.settings, size: 24),
+            child: const Icon(FLucideIcons.settings, size: 24),
             onPress: () => context.push(settingsPath),
           ),
         ],
       ),
-      body: Watch((_) {
-        final storages = _storageService.storages.value;
-        return SingleChildScrollView(
-          child: SafeArea(
-            child: FItemGroup(
-              divider: FItemDivider.indented,
-              style: .delta(
-                itemStyles: .delta([
-                  .all(
-                    .delta(
-                      contentStyle: .delta(
-                        titleTextStyle: .delta([
-                          .base(.delta(fontSize: 18, height: 1.75)),
-                        ]),
-                        prefixIconStyle: .delta([.base(.delta(size: 32))]),
-                        subtitleTextStyle: .delta([
-                          .base(.delta(fontSize: 12, height: 1)),
-                        ]),
+      body: SignalBuilder(
+        builder: (_) {
+          final storages = _storageService.storages.value;
+          return SingleChildScrollView(
+            child: SafeArea(
+              child: FItemGroup(
+                divider: FItemDivider.indented,
+                style: .delta(
+                  itemStyles: .delta([
+                    .all(
+                      .delta(
+                        contentStyle: .delta(
+                          titleTextStyle: .delta([
+                            .base(.delta(fontSize: 18, height: 1.75)),
+                          ]),
+                          prefixIconStyle: .delta([.base(.delta(size: 32))]),
+                          subtitleTextStyle: .delta([
+                            .base(.delta(fontSize: 12, height: 1)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+                children: [
+                  FItem(
+                    prefix: const Icon(FLucideIcons.clock),
+                    title: const Text('观看历史'),
+                    subtitle: Text('查看观看历史'),
+                    onPress: () => context.push(historyPath),
+                  ),
+                  FItem(
+                    prefix: const Icon(FLucideIcons.download),
+                    title: const Text('离线缓存'),
+                    subtitle: Text('查看已缓存的视频'),
+                    onPress: () => context.push(offlineCachePath),
+                  ),
+                  FItem(
+                    prefix: const Icon(FLucideIcons.play),
+                    title: const Text('选择视频播放'),
+                    subtitle: Text('选择本地视频或网络视频'),
+                    onPress: () => _showPlayVideoDialog(),
+                  ),
+                  ...storages.map(
+                    (storage) => _PopoverMenu(
+                      edit: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          enableDrag: false,
+                          builder: (context) {
+                            return AnimatedPadding(
+                              padding: EdgeInsets.only(
+                                bottom: MediaQuery.of(
+                                  context,
+                                ).viewInsets.bottom,
+                              ),
+                              duration: Duration.zero,
+                              child: EditStorageSheet(
+                                storageKey: storage.key,
+                                storageType: storage.storageType,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      delete: () => showConfirmDialog(
+                        context,
+                        title: '删除媒体库',
+                        content: '是否删除媒体库"${storage.name}"？',
+                        onConfirm: () => storage.delete(),
+                        confirmText: '删除',
+                        destructive: true,
+                      ),
+                      child: (controller) => FItem(
+                        prefix: _buildPrefix(storage.storageType),
+                        title: Text(storage.name),
+                        subtitle: Text(storage.url),
+                        onPress: () {
+                          switch (storage.storageType) {
+                            case StorageType.webdav:
+                            case StorageType.ftp:
+                            case StorageType.smb:
+                            case StorageType.local:
+                              context.push(
+                                '$fileExplorerPath?key=${storage.key}',
+                              );
+                              break;
+                            case StorageType.jellyfin:
+                            case StorageType.emby:
+                              context.push(
+                                '$streamMediaExplorerPath?key=${storage.key}',
+                              );
+                              break;
+                          }
+                        },
+                        onLongPress: () => controller.toggle(),
+                        onSecondaryPress: () => controller.toggle(),
                       ),
                     ),
                   ),
-                ]),
+                ],
               ),
-              children: [
-                FItem(
-                  prefix: const Icon(FIcons.clock),
-                  title: const Text('观看历史'),
-                  subtitle: Text('查看观看历史'),
-                  onPress: () => context.push(historyPath),
-                ),
-                FItem(
-                  prefix: const Icon(FIcons.download),
-                  title: const Text('离线缓存'),
-                  subtitle: Text('查看已缓存的视频'),
-                  onPress: () => context.push(offlineCachePath),
-                ),
-                FItem(
-                  prefix: const Icon(FIcons.play),
-                  title: const Text('选择视频播放'),
-                  subtitle: Text('选择本地视频或网络视频'),
-                  onPress: () => _showPlayVideoDialog(),
-                ),
-                ...storages.map(
-                  (storage) => _PopoverMenu(
-                    edit: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        enableDrag: false,
-                        builder: (context) {
-                          return AnimatedPadding(
-                            padding: EdgeInsets.only(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                            ),
-                            duration: Duration.zero,
-                            child: EditStorageSheet(
-                              storageKey: storage.key,
-                              storageType: storage.storageType,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    delete: () => showConfirmDialog(
-                      context,
-                      title: '删除媒体库',
-                      content: '是否删除媒体库"${storage.name}"？',
-                      onConfirm: () => storage.delete(),
-                      confirmText: '删除',
-                      destructive: true,
-                    ),
-                    child: (controller) => FItem(
-                      prefix: _buildPrefix(storage.storageType),
-                      title: Text(storage.name),
-                      subtitle: Text(storage.url),
-                      onPress: () {
-                        switch (storage.storageType) {
-                          case StorageType.webdav:
-                          case StorageType.ftp:
-                          case StorageType.smb:
-                          case StorageType.local:
-                            context.push(
-                              '$fileExplorerPath?key=${storage.key}',
-                            );
-                            break;
-                          case StorageType.jellyfin:
-                          case StorageType.emby:
-                            context.push(
-                              '$streamMediaExplorerPath?key=${storage.key}',
-                            );
-                            break;
-                        }
-                      },
-                      onLongPress: () => controller.toggle(),
-                      onSecondaryPress: () => controller.toggle(),
-                    ),
-                  ),
-                ),
-              ],
             ),
-          ),
-        );
-      }),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showModalBottomSheet(
           context: context,
@@ -273,7 +277,7 @@ class RootPageState extends State<RootPage> {
           },
         ),
         shape: CircleBorder(),
-        child: const Icon(FIcons.plus),
+        child: const Icon(FLucideIcons.plus),
       ),
     );
   }
@@ -320,7 +324,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
           divider: .full,
           children: [
             .item(
-              prefix: const Icon(FIcons.pencil),
+              prefix: const Icon(FLucideIcons.pencil),
               title: Text('编辑'),
               onPress: () {
                 controller.toggle();
@@ -329,7 +333,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
             ),
             .item(
               variant: .destructive,
-              prefix: Icon(FIcons.trash),
+              prefix: Icon(FLucideIcons.trash),
               title: Text('删除'),
               onPress: () {
                 controller.toggle();

@@ -28,7 +28,6 @@ Essential: no
 Installed-Size: ${size_kb}
 Description: fldanplay
 Homepage: https://github.com/huangshi10492/flutter_danmaku_player
-Depends: libmpv2
 EOF
 
 cp ../assets/linux/com.huangshi10492.fldanplay.desktop usr/share/applications/com.huangshi10492.fldanplay.desktop

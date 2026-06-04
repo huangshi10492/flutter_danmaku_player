@@ -122,28 +122,30 @@ class GeneralSettingsPage extends StatelessWidget {
           direction: .horizontal,
           animation: animation,
           title: Text('界面缩放'),
-          body: Watch((context) {
-            return Material(
-              color: Colors.transparent,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: .start,
-                children: [
-                  Slider(
-                    value: uiScale.value,
-                    min: 0.5,
-                    max: 2.0,
-                    divisions: 15,
-                    label: uiScale.value.toStringAsFixed(1),
-                    onChanged: (value) {
-                      uiScale.value = value;
-                    },
-                  ),
-                  Text('当前缩放：${uiScale.value.toStringAsFixed(1)}'),
-                ],
-              ),
-            );
-          }),
+          body: SignalBuilder(
+            builder: (context) {
+              return Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: .start,
+                  children: [
+                    Slider(
+                      value: uiScale.value,
+                      min: 0.5,
+                      max: 2.0,
+                      divisions: 15,
+                      label: uiScale.value.toStringAsFixed(1),
+                      onChanged: (value) {
+                        uiScale.value = value;
+                      },
+                    ),
+                    Text('当前缩放：${uiScale.value.toStringAsFixed(1)}'),
+                  ],
+                ),
+              );
+            },
+          ),
           actions: [
             FButton(
               onPress: () {
@@ -170,48 +172,50 @@ class GeneralSettingsPage extends StatelessWidget {
     final configure = GetIt.I<ConfigureService>();
     return SettingsScaffold(
       title: '通用设置',
-      child: Watch((context) {
-        return Column(
-          children: [
-            SettingsSection(
-              title: '外观',
-              children: [
-                SettingsTile.radioTile(
-                  title: '主题模式',
-                  radioValue: configure.themeMode.value,
-                  onRadioChange: (value) {
-                    configure.themeMode.value = value;
-                  },
-                  radioOptions: {'跟随系统': '0', '浅色模式': '1', '深色模式': '2'},
-                ),
-                SettingsTile.navigationTile(
-                  title: '主题颜色',
-                  details: _getThemeColorName(configure.themeColor.value),
-                  onPress: () => _showThemeColorDialog(context, configure),
-                ),
-                SettingsTile.navigationTile(
-                  title: 'ui缩放',
-                  details: configure.uiScale.value.toStringAsFixed(1),
-                  onPress: () => _showUiScaleDialog(context, configure),
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: '缓存',
-              children: [
-                SettingsTile.switchTile(
-                  title: '优先使用离线缓存',
-                  subtitle: '开启后，优先使用离线缓存播放视频',
-                  switchValue: configure.offlineCacheFirst.value,
-                  onBoolChange: (value) {
-                    configure.offlineCacheFirst.value = value;
-                  },
-                ),
-              ],
-            ),
-          ],
-        );
-      }),
+      child: SignalBuilder(
+        builder: (context) {
+          return Column(
+            children: [
+              SettingsSection(
+                title: '外观',
+                children: [
+                  SettingsTile.radioTile(
+                    title: '主题模式',
+                    radioValue: configure.themeMode.value,
+                    onRadioChange: (value) {
+                      configure.themeMode.value = value;
+                    },
+                    radioOptions: {'跟随系统': '0', '浅色模式': '1', '深色模式': '2'},
+                  ),
+                  SettingsTile.navigationTile(
+                    title: '主题颜色',
+                    details: _getThemeColorName(configure.themeColor.value),
+                    onPress: () => _showThemeColorDialog(context, configure),
+                  ),
+                  SettingsTile.navigationTile(
+                    title: 'ui缩放',
+                    details: configure.uiScale.value.toStringAsFixed(1),
+                    onPress: () => _showUiScaleDialog(context, configure),
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: '缓存',
+                children: [
+                  SettingsTile.switchTile(
+                    title: '优先使用离线缓存',
+                    subtitle: '开启后，优先使用离线缓存播放视频',
+                    switchValue: configure.offlineCacheFirst.value,
+                    onBoolChange: (value) {
+                      configure.offlineCacheFirst.value = value;
+                    },
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

@@ -74,7 +74,7 @@ class SelectStorageTypeSheet extends StatelessWidget {
               children: [
                 FItem(
                   title: const Text('WebDAV'),
-                  prefix: const Icon(FIcons.server),
+                  prefix: const Icon(FLucideIcons.server),
                   onPress: () => select(context, StorageType.webdav),
                 ),
                 // FItem(
@@ -89,7 +89,7 @@ class SelectStorageTypeSheet extends StatelessWidget {
                 // ),
                 FItem(
                   title: const Text('本地文件夹'),
-                  prefix: const Icon(FIcons.folder),
+                  prefix: const Icon(FLucideIcons.folder),
                   onPress: () => select(context, StorageType.local),
                 ),
                 FItem(

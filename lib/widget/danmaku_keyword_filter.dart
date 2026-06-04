@@ -1,7 +1,7 @@
+import 'package:fldanplay/theme/styles/tile_style.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:fldanplay/service/configure.dart';
-import 'package:fldanplay/theme/tile_style.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:forui/forui.dart';
@@ -88,22 +88,24 @@ class _DanmakuKeywordFilterState extends State<DanmakuKeywordFilter> {
 
   @override
   Widget build(BuildContext context) {
-    return Watch((context) {
-      final keywordList = configure.danmakuFilterKeywords.value;
-      return Column(
-        children: [
-          _buildKeywordSection(keywordList),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            constraints: BoxConstraints(maxWidth: 1000),
-            child: FButton(
-              onPress: () => _showKeywordDialog(),
-              child: const Text('添加关键词'),
+    return SignalBuilder(
+      builder: (context) {
+        final keywordList = configure.danmakuFilterKeywords.value;
+        return Column(
+          children: [
+            _buildKeywordSection(keywordList),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              constraints: BoxConstraints(maxWidth: 1000),
+              child: FButton(
+                onPress: () => _showKeywordDialog(),
+                child: const Text('添加关键词'),
+              ),
             ),
-          ),
-        ],
-      );
-    });
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildKeywordSection(List<String> keywordList) {
@@ -143,7 +145,7 @@ class _DanmakuKeywordFilterState extends State<DanmakuKeywordFilter> {
             ),
             variant: .ghost,
             child: Icon(
-              FIcons.x,
+              FLucideIcons.x,
               size: 20,
               color: context.theme.colors.destructive,
             ),

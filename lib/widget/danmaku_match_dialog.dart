@@ -221,24 +221,26 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   }
 
   Widget _buildServerSelector() {
-    return Watch((context) {
-      final serverList = configure.danmakuServerList.value;
-      if (serverList.isEmpty) return const SizedBox.shrink();
-      if (_selectedServer.isEmpty && serverList.isNotEmpty) {
-        _selectedServer = serverList.first;
-      }
-      return FSelect<String>(
-        control: .lifted(
-          value: _selectedServer,
-          onChange: (v) {
-            setState(() {
-              _selectedServer = v ?? '';
-            });
-          },
-        ),
-        items: {for (var server in serverList) server: server},
-      );
-    });
+    return SignalBuilder(
+      builder: (context) {
+        final serverList = configure.danmakuServerList.value;
+        if (serverList.isEmpty) return const SizedBox.shrink();
+        if (_selectedServer.isEmpty && serverList.isNotEmpty) {
+          _selectedServer = serverList.first;
+        }
+        return FSelect<String>(
+          control: .lifted(
+            value: _selectedServer,
+            onChange: (v) {
+              setState(() {
+                _selectedServer = v ?? '';
+              });
+            },
+          ),
+          items: {for (var server in serverList) server: server},
+        );
+      },
+    );
   }
 
   Widget _buildSearchBar() {
@@ -308,10 +310,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             final episode = anime.episodes[(index / 2).round()];
             return FItem(
               style: .delta(
-                margin: .value(.symmetric(vertical: 2, horizontal: 0)),
-                contentStyle: .delta(
-                  // padding: .value(.symmetric(vertical: 10, horizontal: 6)),
-                ),
+                padding: .value(.symmetric(vertical: 2, horizontal: 0)),
               ),
               title: Text(
                 episode.episodeTitle,

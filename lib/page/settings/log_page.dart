@@ -35,21 +35,23 @@ class _LogPageState extends State<LogPage> {
         children: [
           SettingsSection(
             children: [
-              Watch((context) {
-                return SettingsTile.radioTile(
-                  title: '日志级别',
-                  radioValue: _configureService.logLevel.value,
-                  onRadioChange: (value) {
-                    _configureService.logLevel.value = value;
-                  },
-                  radioOptions: {
-                    'DEBUG': '0',
-                    'INFO': '1',
-                    'WARNING': '2',
-                    'ERROR': '3',
-                  },
-                );
-              }),
+              SignalBuilder(
+                builder: (context) {
+                  return SettingsTile.radioTile(
+                    title: '日志级别',
+                    radioValue: _configureService.logLevel.value,
+                    onRadioChange: (value) {
+                      _configureService.logLevel.value = value;
+                    },
+                    radioOptions: {
+                      'DEBUG': '0',
+                      'INFO': '1',
+                      'WARNING': '2',
+                      'ERROR': '3',
+                    },
+                  );
+                },
+              ),
             ],
           ),
           FutureBuilder<List<File>>(

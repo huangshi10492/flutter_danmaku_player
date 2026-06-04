@@ -156,18 +156,20 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                 ),
               ),
         floatingActionButton: isFABVisible
-            ? Watch((context) {
-                bool isFiltered = _fileExplorerService.filter.value
-                    .isFiltered();
-                return FloatingActionButton(
-                  onPressed: () => _openConfigSheet(),
-                  shape: CircleBorder(),
-                  child: isFiltered
-                      ? const Icon(FIcons.listFilterPlus)
-                      : const Icon(FIcons.listFilter),
-                  // backgroundColor: ,
-                );
-              })
+            ? SignalBuilder(
+                builder: (context) {
+                  bool isFiltered = _fileExplorerService.filter.value
+                      .isFiltered();
+                  return FloatingActionButton(
+                    onPressed: () => _openConfigSheet(),
+                    shape: CircleBorder(),
+                    child: isFiltered
+                        ? const Icon(FLucideIcons.listFilterPlus)
+                        : const Icon(FLucideIcons.listFilter),
+                    // backgroundColor: ,
+                  );
+                },
+              )
             : null,
       ),
     );
@@ -184,60 +186,65 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             controller: _scrollController,
-            child: Watch((context) {
-              final path = _fileExplorerService.path.watch(context);
-              final parts = path.split('/').where((p) => p.isNotEmpty).toList();
-              final children = <Widget>[
-                FBreadcrumbItem(
-                  onPress: () => _fileExplorerService.cd('/'),
-                  child: Text(
-                    '根目录',
-                    style: TextStyle(
-                      color: parts.isEmpty
-                          ? context.theme.colors.primary
-                          : context.theme.colors.foreground,
-                    ),
-                  ),
-                ),
-              ];
-              var currentPath = '';
-              for (var i = 0; i < parts.length; i++) {
-                final part = parts[i];
-                currentPath += '$part/';
-                final targetPath = currentPath;
-                final isLast = i == parts.length - 1;
-                children.add(
+            child: SignalBuilder(
+              builder: (context) {
+                final path = _fileExplorerService.path;
+                final parts = path
+                    .split('/')
+                    .where((p) => p.isNotEmpty)
+                    .toList();
+                final children = <Widget>[
                   FBreadcrumbItem(
-                    onPress: isLast
-                        ? null
-                        : () {
-                            _fileExplorerService.cd(targetPath);
-                            _scrollToRight();
-                          },
+                    onPress: () => _fileExplorerService.cd('/'),
                     child: Text(
-                      part,
+                      '根目录',
                       style: TextStyle(
-                        color: isLast
+                        color: parts.isEmpty
                             ? context.theme.colors.primary
                             : context.theme.colors.foreground,
                       ),
                     ),
                   ),
+                ];
+                var currentPath = '';
+                for (var i = 0; i < parts.length; i++) {
+                  final part = parts[i];
+                  currentPath += '$part/';
+                  final targetPath = currentPath;
+                  final isLast = i == parts.length - 1;
+                  children.add(
+                    FBreadcrumbItem(
+                      onPress: isLast
+                          ? null
+                          : () {
+                              _fileExplorerService.cd(targetPath);
+                              _scrollToRight();
+                            },
+                      child: Text(
+                        part,
+                        style: TextStyle(
+                          color: isLast
+                              ? context.theme.colors.primary
+                              : context.theme.colors.foreground,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: FBreadcrumb(children: children),
                 );
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: FBreadcrumb(children: children),
-              );
-            }),
+              },
+            ),
           ),
         ),
         Expanded(
-          child: Watch(
-            (context) => _fileExplorerService.files.value.map(
+          child: SignalBuilder(
+            builder: (context) => _fileExplorerService.files.value.map(
               data: (files) {
                 if (files.isEmpty) {
                   return Center(
@@ -245,7 +252,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          FIcons.folder,
+                          FLucideIcons.folder,
                           size: 48,
                           color: context.theme.colors.mutedForeground,
                         ),
@@ -326,7 +333,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       if (file.isFolder) {
         widgetList.add(
           FItem(
-            prefix: const Icon(FIcons.folder, size: 40),
+            prefix: const Icon(FLucideIcons.folder, size: 40),
             title: Text(file.name, maxLines: 2),
             subtitle: Text('目录'),
             onPress: () {
@@ -457,7 +464,7 @@ class _FileExplorerFilterSheetState extends State<FileExplorerFilterSheet> {
                       sortOrder = !sortOrder;
                     });
                   },
-                  icon: FIcons.arrowDownAZ,
+                  icon: FLucideIcons.arrowDownAZ,
                   title: '升序',
                 ),
               ),
@@ -472,7 +479,7 @@ class _FileExplorerFilterSheetState extends State<FileExplorerFilterSheet> {
                       sortOrder = !sortOrder;
                     });
                   },
-                  icon: FIcons.arrowDownZA,
+                  icon: FLucideIcons.arrowDownZA,
                   title: '降序',
                 ),
               ),

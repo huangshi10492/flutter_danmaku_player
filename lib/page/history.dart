@@ -190,28 +190,30 @@ class _HistoryPageState extends State<HistoryPage> {
       appBar: SysAppBar(
         title: '观看历史',
         actions: [
-          Watch((context) {
-            final syncStatus = _webDAVSyncService.syncStatus.value;
-            late IconData icon;
-            switch (syncStatus) {
-              case SyncStatus.idle:
-                icon = Icons.cloud_outlined;
-                break;
-              case SyncStatus.syncing:
-                return const FCircularProgress();
-              case SyncStatus.success:
-                icon = Icons.cloud_done_outlined;
-                break;
-              case SyncStatus.failed:
-                icon = Icons.cloud_off_outlined;
-                break;
-            }
-            return FButton.icon(
-              variant: .ghost,
-              onPress: _webDAVSyncService.syncHistories,
-              child: Icon(icon, size: 24),
-            );
-          }),
+          SignalBuilder(
+            builder: (context) {
+              final syncStatus = _webDAVSyncService.syncStatus.value;
+              late IconData icon;
+              switch (syncStatus) {
+                case SyncStatus.idle:
+                  icon = Icons.cloud_outlined;
+                  break;
+                case SyncStatus.syncing:
+                  return const FCircularProgress();
+                case SyncStatus.success:
+                  icon = Icons.cloud_done_outlined;
+                  break;
+                case SyncStatus.failed:
+                  icon = Icons.cloud_off_outlined;
+                  break;
+              }
+              return FButton.icon(
+                variant: .ghost,
+                onPress: _webDAVSyncService.syncHistories,
+                child: Icon(icon, size: 24),
+              );
+            },
+          ),
           FButton.icon(
             variant: .ghost,
             onPress: () => showConfirmDialog(

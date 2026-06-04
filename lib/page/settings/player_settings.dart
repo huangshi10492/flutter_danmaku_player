@@ -20,192 +20,194 @@ class PlayerSettingsPage extends StatelessWidget {
     final configure = GetIt.I<ConfigureService>();
     return SettingsScaffold(
       title: '播放器设置',
-      child: Watch((context) {
-        return Column(
-          children: [
-            SettingsSection(
-              title: '播放',
-              children: [
-                SettingsTile.sliderTile(
-                  title: '默认播放速度',
-                  silderValue: Utils.speedToSlider(
-                    configure.defaultPlaySpeed.value,
-                  ),
-                  silderMin: 1,
-                  silderMax: 28,
-                  silderDivisions: 27,
-                  onSilderChange: (value) {
-                    configure.defaultPlaySpeed.value = Utils.sliderToSpeed(
-                      value,
-                    );
-                  },
-                  details:
-                      '${configure.defaultPlaySpeed.value.toStringAsFixed(2)}x',
-                ),
-                SettingsTile.sliderTile(
-                  title: '长按加速播放速度',
-                  silderValue: configure.doublePlaySpeed.value,
-                  silderMin: 1,
-                  silderMax: 8,
-                  silderDivisions: 28,
-                  onSilderChange: (value) {
-                    configure.doublePlaySpeed.value = value;
-                  },
-                  details:
-                      '${configure.doublePlaySpeed.value.toStringAsFixed(2)}x',
-                ),
-                SettingsTile.sliderTile(
-                  title: '快进秒数(方向键右)',
-                  silderValue: configure.forwardSeconds.value.toDouble(),
-                  silderMin: 1,
-                  silderMax: 30,
-                  silderDivisions: 29,
-                  onSilderChange: (value) {
-                    configure.forwardSeconds.value = value.round();
-                  },
-                  details: '${configure.forwardSeconds.value}秒',
-                ),
-                SettingsTile.sliderTile(
-                  title: '后退秒数(方向键左)',
-                  silderValue: configure.backwardSeconds.value.toDouble(),
-                  silderMin: 1,
-                  silderMax: 30,
-                  silderDivisions: 29,
-                  onSilderChange: (value) {
-                    configure.backwardSeconds.value = value.round();
-                  },
-                  details: '${configure.backwardSeconds.value}秒',
-                ),
-                SettingsTile.sliderTile(
-                  title: '快进按钮秒数(可跳过OP/ED)',
-                  silderValue: configure.seekOPSeconds.value.toDouble(),
-                  silderMin: 30,
-                  silderMax: 120,
-                  silderDivisions: 90,
-                  onSilderChange: (value) {
-                    configure.seekOPSeconds.value = value.round();
-                  },
-                  details: '${configure.seekOPSeconds.value}秒',
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: '界面',
-              children: [
-                SettingsTile.switchTile(
-                  title: '显示章节',
-                  switchValue: configure.showChapter.value,
-                  onBoolChange: (value) {
-                    configure.showChapter.value = value;
-                  },
-                ),
-                SettingsTile.switchTile(
-                  title: '显示弹幕趋势',
-                  switchValue: configure.showDanmakuTrend.value,
-                  onBoolChange: (value) {
-                    configure.showDanmakuTrend.value = value;
-                  },
-                ),
-                SettingsTile.switchTile(
-                  title: '始终显示进度条',
-                  switchValue: configure.alwaysShowProgressBar.value,
-                  onBoolChange: (value) {
-                    configure.alwaysShowProgressBar.value = value;
-                  },
-                ),
-                SettingsTile.radioTile(
-                  title: '下一章节按钮显示模式',
-                  onRadioChange: (value) {
-                    configure.jumpButtonMode.value = int.parse(value);
-                  },
-                  radioOptions: {
-                    '优先显示章节跳转': '0',
-                    '只显示时间跳转': '1',
-                    '同时显示章节和时间跳转': '2',
-                  },
-                  radioValue: configure.jumpButtonMode.value.toString(),
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: '语言',
-              children: [
-                SettingsTile.radioTile(
-                  title: '自动为字幕和弹幕选择语言',
-                  onRadioChange: (value) {
-                    configure.autoLanguage.value = int.parse(value);
-                  },
-                  radioOptions: {'关闭': '0', '中文简体': '1', '中文繁体': '2'},
-                  radioValue: configure.autoLanguage.value.toString(),
-                ),
-                SettingsTile.switchTile(
-                  title: '自动为音频选择日语',
-                  switchValue: configure.autoAudioLanguage.value,
-                  onBoolChange: (value) {
-                    configure.autoAudioLanguage.value = value;
-                  },
-                ),
-              ],
-            ),
-            if (Platform.isAndroid)
+      child: SignalBuilder(
+        builder: (context) {
+          return Column(
+            children: [
               SettingsSection(
-                title: '音频',
+                title: '播放',
+                children: [
+                  SettingsTile.sliderTile(
+                    title: '默认播放速度',
+                    silderValue: Utils.speedToSlider(
+                      configure.defaultPlaySpeed.value,
+                    ),
+                    silderMin: 1,
+                    silderMax: 28,
+                    silderDivisions: 27,
+                    onSilderChange: (value) {
+                      configure.defaultPlaySpeed.value = Utils.sliderToSpeed(
+                        value,
+                      );
+                    },
+                    details:
+                        '${configure.defaultPlaySpeed.value.toStringAsFixed(2)}x',
+                  ),
+                  SettingsTile.sliderTile(
+                    title: '长按加速播放速度',
+                    silderValue: configure.doublePlaySpeed.value,
+                    silderMin: 1,
+                    silderMax: 8,
+                    silderDivisions: 28,
+                    onSilderChange: (value) {
+                      configure.doublePlaySpeed.value = value;
+                    },
+                    details:
+                        '${configure.doublePlaySpeed.value.toStringAsFixed(2)}x',
+                  ),
+                  SettingsTile.sliderTile(
+                    title: '快进秒数(方向键右)',
+                    silderValue: configure.forwardSeconds.value.toDouble(),
+                    silderMin: 1,
+                    silderMax: 30,
+                    silderDivisions: 29,
+                    onSilderChange: (value) {
+                      configure.forwardSeconds.value = value.round();
+                    },
+                    details: '${configure.forwardSeconds.value}秒',
+                  ),
+                  SettingsTile.sliderTile(
+                    title: '后退秒数(方向键左)',
+                    silderValue: configure.backwardSeconds.value.toDouble(),
+                    silderMin: 1,
+                    silderMax: 30,
+                    silderDivisions: 29,
+                    onSilderChange: (value) {
+                      configure.backwardSeconds.value = value.round();
+                    },
+                    details: '${configure.backwardSeconds.value}秒',
+                  ),
+                  SettingsTile.sliderTile(
+                    title: '快进按钮秒数(可跳过OP/ED)',
+                    silderValue: configure.seekOPSeconds.value.toDouble(),
+                    silderMin: 30,
+                    silderMax: 120,
+                    silderDivisions: 90,
+                    onSilderChange: (value) {
+                      configure.seekOPSeconds.value = value.round();
+                    },
+                    details: '${configure.seekOPSeconds.value}秒',
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: '界面',
                 children: [
                   SettingsTile.switchTile(
-                    title: '优先使用AudioTrack输出音频',
-                    subtitle: '关闭则优先使用OpenSL ES输出音频',
-                    switchValue: configure.audioTrack.value,
+                    title: '显示章节',
+                    switchValue: configure.showChapter.value,
                     onBoolChange: (value) {
-                      configure.audioTrack.value = value;
+                      configure.showChapter.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '显示弹幕趋势',
+                    switchValue: configure.showDanmakuTrend.value,
+                    onBoolChange: (value) {
+                      configure.showDanmakuTrend.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '始终显示进度条',
+                    switchValue: configure.alwaysShowProgressBar.value,
+                    onBoolChange: (value) {
+                      configure.alwaysShowProgressBar.value = value;
+                    },
+                  ),
+                  SettingsTile.radioTile(
+                    title: '下一章节按钮显示模式',
+                    onRadioChange: (value) {
+                      configure.jumpButtonMode.value = int.parse(value);
+                    },
+                    radioOptions: {
+                      '优先显示章节跳转': '0',
+                      '只显示时间跳转': '1',
+                      '同时显示章节和时间跳转': '2',
+                    },
+                    radioValue: configure.jumpButtonMode.value.toString(),
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: '语言',
+                children: [
+                  SettingsTile.radioTile(
+                    title: '自动为字幕和弹幕选择语言',
+                    onRadioChange: (value) {
+                      configure.autoLanguage.value = int.parse(value);
+                    },
+                    radioOptions: {'关闭': '0', '中文简体': '1', '中文繁体': '2'},
+                    radioValue: configure.autoLanguage.value.toString(),
+                  ),
+                  SettingsTile.switchTile(
+                    title: '自动为音频选择日语',
+                    switchValue: configure.autoAudioLanguage.value,
+                    onBoolChange: (value) {
+                      configure.autoAudioLanguage.value = value;
                     },
                   ),
                 ],
               ),
-            SettingsSection(
-              title: '解码',
-              children: [
-                SettingsTile.switchTile(
-                  title: '启用硬解',
-                  switchValue: configure.hardwareDecoderEnable.value,
-                  onBoolChange: (value) {
-                    configure.hardwareDecoderEnable.value = value;
-                  },
+              if (Platform.isAndroid)
+                SettingsSection(
+                  title: '音频',
+                  children: [
+                    SettingsTile.switchTile(
+                      title: '优先使用AudioTrack输出音频',
+                      subtitle: '关闭则优先使用OpenSL ES输出音频',
+                      switchValue: configure.audioTrack.value,
+                      onBoolChange: (value) {
+                        configure.audioTrack.value = value;
+                      },
+                    ),
+                  ],
                 ),
-                SettingsTile.navigationTile(
-                  title: '硬件解码器',
-                  subtitle: configure.hardwareDecoder.value,
-                  onPress: () {
-                    context.push('/settings/player/hardware-decoder');
-                  },
-                ),
-              ],
-            ),
-            SettingsSection(
-              title: '其他',
-              children: [
-                SettingsTile.sliderTile(
-                  title: '缓冲区大小',
-                  onSilderChange: (value) {
-                    configure.playerMemory.value = value.round();
-                  },
-                  details: '${pow(2, configure.playerMemory.value)}MB',
-                  silderValue: configure.playerMemory.value.toDouble(),
-                  silderMin: 3,
-                  silderMax: 11,
-                  silderDivisions: 8,
-                ),
-                SettingsTile.switchTile(
-                  title: '播放器调试模式',
-                  switchValue: configure.playerDebugMode.value,
-                  onBoolChange: (value) {
-                    configure.playerDebugMode.value = value;
-                  },
-                ),
-              ],
-            ),
-          ],
-        );
-      }),
+              SettingsSection(
+                title: '解码',
+                children: [
+                  SettingsTile.switchTile(
+                    title: '启用硬解',
+                    switchValue: configure.hardwareDecoderEnable.value,
+                    onBoolChange: (value) {
+                      configure.hardwareDecoderEnable.value = value;
+                    },
+                  ),
+                  SettingsTile.navigationTile(
+                    title: '硬件解码器',
+                    subtitle: configure.hardwareDecoder.value,
+                    onPress: () {
+                      context.push('/settings/player/hardware-decoder');
+                    },
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: '其他',
+                children: [
+                  SettingsTile.sliderTile(
+                    title: '缓冲区大小',
+                    onSilderChange: (value) {
+                      configure.playerMemory.value = value.round();
+                    },
+                    details: '${pow(2, configure.playerMemory.value)}MB',
+                    silderValue: configure.playerMemory.value.toDouble(),
+                    silderMin: 3,
+                    silderMax: 11,
+                    silderDivisions: 8,
+                  ),
+                  SettingsTile.switchTile(
+                    title: '播放器调试模式',
+                    switchValue: configure.playerDebugMode.value,
+                    onBoolChange: (value) {
+                      configure.playerDebugMode.value = value;
+                    },
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -247,15 +249,17 @@ class HardwareDecoderPage extends StatelessWidget {
     final configure = GetIt.I<ConfigureService>();
     return SettingsScaffold(
       title: '硬件解码器',
-      child: Watch((context) {
-        return RadioSettingsSection(
-          options: hardwareDecodersList,
-          value: configure.hardwareDecoder.value,
-          onChange: (value) {
-            configure.hardwareDecoder.value = value;
-          },
-        );
-      }),
+      child: SignalBuilder(
+        builder: (context) {
+          return RadioSettingsSection(
+            options: hardwareDecodersList,
+            value: configure.hardwareDecoder.value,
+            onChange: (value) {
+              configure.hardwareDecoder.value = value;
+            },
+          );
+        },
+      ),
     );
   }
 }

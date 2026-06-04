@@ -1,4 +1,4 @@
-import 'package:fldanplay/theme/tile_style.dart';
+import 'package:fldanplay/theme/styles/tile_style.dart';
 import 'package:forui/forui.dart';
 import 'package:flutter/material.dart';
 
@@ -78,7 +78,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
     this.details,
     this.onPress,
   }) {
-    suffix = const Icon(FIcons.chevronRight);
+    suffix = const Icon(FLucideIcons.chevronRight);
     onBoolChange = null;
     onSilderChange = null;
     onRadioChange = null;
@@ -269,7 +269,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
             suffixedPadding: .value(.symmetric(horizontal: 15, vertical: 8)),
           ),
           backgroundColor: FVariants.all(Colors.transparent),
-          decoration: .delta([
+          contentDecoration: .delta([
             .all(.boxDelta(border: null)),
             .base(.boxDelta(color: Colors.transparent)),
           ]),

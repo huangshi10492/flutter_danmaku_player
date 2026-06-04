@@ -62,7 +62,12 @@ Future<void> init() async {
   ScaledWidgetsFlutterBinding.instance.scaleFactor = cs.uiScale.value;
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    // TODO fix
+    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setEnabledSystemUIMode(
+      .manual,
+      overlays: SystemUiOverlay.values,
+    );
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,
@@ -120,68 +125,70 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Watch((context) {
-      final configureService = GetIt.I.get<ConfigureService>();
-      final themeMode = configureService.themeMode.value;
-      final themeColor = configureService.themeColor.value;
-      var materialThemeMode = ThemeMode.system;
-      switch (themeMode) {
-        case '0':
-          materialThemeMode = ThemeMode.system;
-          break;
-        case '1':
-          materialThemeMode = ThemeMode.light;
-          break;
-        case '2':
-          materialThemeMode = ThemeMode.dark;
-          break;
-      }
-      late FThemeData fTheme;
-      switch (themeMode) {
-        case '0':
-          fTheme = getTheme(themeColor, _isDark.value);
-          break;
-        case '1':
-          fTheme = getTheme(themeColor, false);
-          break;
-        case '2':
-          fTheme = getTheme(themeColor, true);
-          break;
-      }
-      return MaterialApp.router(
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: const [
-          Locale.fromSubtags(
+    return SignalBuilder(
+      builder: (context) {
+        final configureService = GetIt.I.get<ConfigureService>();
+        final themeMode = configureService.themeMode.value;
+        final themeColor = configureService.themeColor.value;
+        var materialThemeMode = ThemeMode.system;
+        switch (themeMode) {
+          case '0':
+            materialThemeMode = ThemeMode.system;
+            break;
+          case '1':
+            materialThemeMode = ThemeMode.light;
+            break;
+          case '2':
+            materialThemeMode = ThemeMode.dark;
+            break;
+        }
+        late FThemeData fTheme;
+        switch (themeMode) {
+          case '0':
+            fTheme = getTheme(themeColor, _isDark.value);
+            break;
+          case '1':
+            fTheme = getTheme(themeColor, false);
+            break;
+          case '2':
+            fTheme = getTheme(themeColor, true);
+            break;
+        }
+        return MaterialApp.router(
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          supportedLocales: const [
+            Locale.fromSubtags(
+              languageCode: 'zh',
+              scriptCode: 'Hans',
+              countryCode: "CN",
+            ),
+          ],
+          locale: const Locale.fromSubtags(
             languageCode: 'zh',
             scriptCode: 'Hans',
             countryCode: "CN",
           ),
-        ],
-        locale: const Locale.fromSubtags(
-          languageCode: 'zh',
-          scriptCode: 'Hans',
-          countryCode: "CN",
-        ),
-        theme: getTheme(themeColor, false).toApproximateMaterialTheme(),
-        darkTheme: getTheme(themeColor, true).toApproximateMaterialTheme(),
-        themeMode: materialThemeMode,
-        builder: (context, child) => FTheme(
-          data: fTheme,
-          child: FToaster(
-            child: _builder(
-              context,
-              Builder(
-                builder: (context) {
-                  GetIt.I.get<GlobalService>().appContext = context;
-                  return child!;
-                },
+          theme: getTheme(themeColor, false).toApproximateMaterialTheme(),
+          darkTheme: getTheme(themeColor, true).toApproximateMaterialTheme(),
+          themeMode: materialThemeMode,
+          builder: (context, child) => FTheme(
+            data: fTheme,
+            child: FToaster(
+              child: _builder(
+                context,
+                Builder(
+                  builder: (context) {
+                    GetIt.I.get<GlobalService>().appContext = context;
+                    return child!;
+                  },
+                ),
               ),
             ),
           ),
-        ),
-        routerConfig: router,
-      );
-    });
+          routerConfig: router,
+        );
+      },
+    );
   }
 
   static Widget _builder(BuildContext context, Widget child) {

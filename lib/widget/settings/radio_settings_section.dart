@@ -28,7 +28,9 @@ class RadioSettingsSection extends StatelessWidget {
         tileStyles: .delta([
           .all(
             .delta(
-              decoration: .delta([.base(.boxDelta(color: Colors.transparent))]),
+              contentDecoration: .delta([
+                .base(.boxDelta(color: Colors.transparent)),
+              ]),
               backgroundColor: .delta([.all(Colors.transparent)]),
               contentStyle: .delta(
                 suffixedPadding: .value(

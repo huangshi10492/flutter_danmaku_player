@@ -114,7 +114,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                     onPress: () => _showDeleteConfirmDialog(cache),
                     variant: .ghost,
                     child: Icon(
-                      FIcons.trash,
+                      FLucideIcons.trash,
                       color: context.theme.colors.destructive,
                     ),
                   ),
@@ -143,13 +143,13 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                         onPress: () =>
                             _cacheService.resumeDownload(cache.uniqueKey),
                         variant: .ghost,
-                        child: const Icon(FIcons.rotateCw, size: 20),
+                        child: const Icon(FLucideIcons.rotateCw, size: 20),
                       ),
                     FButton.icon(
                       onPress: () => _showDeleteConfirmDialog(cache),
                       variant: .ghost,
                       child: Icon(
-                        FIcons.x,
+                        FLucideIcons.x,
                         color: context.theme.colors.destructive,
                       ),
                     ),

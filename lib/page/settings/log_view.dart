@@ -26,7 +26,7 @@ class LogViewPage extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () => _exportLogFile(file),
-            icon: Icon(FIcons.upload),
+            icon: Icon(FLucideIcons.upload),
           ),
         ],
       ),

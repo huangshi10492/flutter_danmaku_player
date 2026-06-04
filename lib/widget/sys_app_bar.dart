@@ -26,7 +26,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
               onPressed: () {
                 Navigator.maybePop(context);
               },
-              icon: Icon(FIcons.arrowLeft),
+              icon: Icon(FLucideIcons.arrowLeft),
             )
           : null,
       systemOverlayStyle: SystemUiOverlayStyle(

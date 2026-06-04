@@ -40,35 +40,37 @@ class TrackPage extends StatelessWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
-          Watch((context) {
-            final tracks = isAudio
-                ? playerService.audioTracks.value
-                : playerService.subtitleTracks.value;
-            final activeTrack = isAudio
-                ? playerService.activeAudioTrack.value
-                : playerService.activeSubtitleTrack.value;
-            return FSelectTileGroup<int>(
-              control: .lifted(
-                value: {activeTrack},
-                onChange: (value) {
-                  if (isAudio) {
-                    playerService.setActiveAudioTrack(value.first);
-                  } else {
-                    playerService.setActiveSubtitleTrack(value.first);
-                  }
-                  context.pop();
-                },
-              ),
-              children: tracks.map((track) {
-                final name = VideoPlayerUtils.trackNameTranslation(
-                  track.id,
-                  track.title,
-                  track.language,
-                );
-                return FSelectTile(title: Text(name), value: track.index);
-              }).toList(),
-            );
-          }),
+          SignalBuilder(
+            builder: (context) {
+              final tracks = isAudio
+                  ? playerService.audioTracks.value
+                  : playerService.subtitleTracks.value;
+              final activeTrack = isAudio
+                  ? playerService.activeAudioTrack.value
+                  : playerService.activeSubtitleTrack.value;
+              return FSelectTileGroup<int>(
+                control: .lifted(
+                  value: {activeTrack},
+                  onChange: (value) {
+                    if (isAudio) {
+                      playerService.setActiveAudioTrack(value.first);
+                    } else {
+                      playerService.setActiveSubtitleTrack(value.first);
+                    }
+                    context.pop();
+                  },
+                ),
+                children: tracks.map((track) {
+                  final name = VideoPlayerUtils.trackNameTranslation(
+                    track.id,
+                    track.title,
+                    track.language,
+                  );
+                  return FSelectTile(title: Text(name), value: track.index);
+                }).toList(),
+              );
+            },
+          ),
           isAudio
               ? const SizedBox()
               : Padding(

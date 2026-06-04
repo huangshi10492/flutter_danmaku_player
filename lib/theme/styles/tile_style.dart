@@ -8,7 +8,7 @@ FTileStyle tileStyle({
   required FStyle style,
 }) => FTileStyle(
   backgroundColor: .all(Colors.transparent),
-  decoration: FVariants.from(
+  contentDecoration: FVariants.from(
     ShapeDecoration(
       shape: RoundedSuperellipseBorder(
         side: BorderSide(color: Colors.transparent, width: style.borderWidth),
@@ -28,7 +28,7 @@ FTileStyle tileStyle({
     foreground: colors.foreground,
     mutedForeground: colors.mutedForeground,
   ),
-  rawItemContentStyle: _rawTileContentStyle(
+  rawContentStyle: _rawTileContentStyle(
     colors: colors,
     typography: typography,
     prefix: colors.primary,
@@ -39,9 +39,11 @@ FTileStyle tileStyle({
     pressedEnterDuration: .zero,
     pressedExitDuration: const Duration(milliseconds: 25),
   ),
-  focusedOutlineStyle: style.focusedOutlineStyle,
+  focusedOutlineStyle: style.focusedOutlineStyle.copyWith(
+    spacing: -style.borderWidth * 2,
+  ),
   shape: RoundedSuperellipseBorder(borderRadius: style.borderRadius.md),
-  margin: .zero,
+  padding: .zero,
 );
 
 FTileContentStyle _tileContentStyle({
@@ -83,8 +85,8 @@ FTileContentStyle _tileContentStyle({
         [.disabled]: .delta(color: disabledMutedForeground),
       },
     ),
-    suffixedPadding: .symmetric(horizontal: 15, vertical: 8),
-    unsuffixedPadding: .symmetric(horizontal: 15, vertical: 8),
+    suffixedPadding: const .symmetric(horizontal: 15, vertical: 8),
+    unsuffixedPadding: const .symmetric(horizontal: 15, vertical: 8),
     prefixIconSpacing: 10,
     titleSpacing: 3,
     middleSpacing: 4,
@@ -110,6 +112,6 @@ FRawTileContentStyle _rawTileContentStyle({
       [.disabled]: .delta(color: colors.disable(color)),
     },
   ),
-  padding: .symmetric(horizontal: 15, vertical: 8),
+  padding: const .symmetric(horizontal: 15, vertical: 8),
   prefixIconSpacing: 10,
 );
