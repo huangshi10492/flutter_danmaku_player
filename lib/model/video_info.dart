@@ -69,12 +69,14 @@ class TrackInfo {
 class Metadata {
   final String media;
   final String hwdec;
+  final String videoOutput;
   final String videoParams;
   final String audioParams;
 
   const Metadata({
     required this.media,
     required this.hwdec,
+    required this.videoOutput,
     required this.videoParams,
     required this.audioParams,
   });

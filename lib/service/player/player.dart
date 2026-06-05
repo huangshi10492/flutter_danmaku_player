@@ -102,6 +102,8 @@ class VideoPlayerService {
   late DanmakuService danmakuService;
   late History _history;
   StreamSubscription<PlayerLog>? playerLogSubscription;
+  late PlayerConfiguration _pc;
+  late VideoControllerConfiguration _vc;
 
   // 定时器组
   late final Map<TimerType, UpdateTimer> _timerGroup = {
@@ -123,22 +125,8 @@ class VideoPlayerService {
   }
 
   Future<void> _createPlayer() async {
-    _player = Player(
-      configuration: PlayerConfiguration(
-        bufferSize:
-            pow(2, _configureService.playerMemory.value).round() * 1024 * 1024,
-        logLevel: _configureService.playerDebugMode.value ? .debug : .error,
-        libass: true,
-      ),
-    );
-    controller.value = VideoController(
-      _player,
-      configuration: VideoControllerConfiguration(
-        enableHardwareAcceleration:
-            _configureService.hardwareDecoderEnable.value,
-        hwdec: _configureService.hardwareDecoder.value,
-      ),
-    );
+    _player = Player(configuration: _pc);
+    controller.value = VideoController(_player, configuration: _vc);
     _listenPlayerStreams();
     await _setProperty();
     await setPlaybackSpeed(playbackSpeed.value);
@@ -193,6 +181,7 @@ class VideoPlayerService {
       playerState.value = .loading;
       _timerGroup.forEach((_, value) => value.init());
       playbackSpeed.value = _configureService.defaultPlaySpeed.value;
+      _setConfiguration();
       await _createPlayer();
       await _initSession();
       await _setVideoInfo(_videoInfo);
@@ -202,6 +191,38 @@ class VideoPlayerService {
       errorMessage.value = e.toString();
       _log.error('initialize', '视频播放器初始化失败', error: e, stackTrace: stackTrace);
     }
+  }
+
+  void _setConfiguration() {
+    String? videoRenderer;
+    if (Platform.isAndroid) {
+      final String androidVideoOutput = _configureService.videoOutput.value;
+      if (androidVideoOutput == 'auto') {
+        // from Kazumi
+        // Android 14 及以上使用基于 Vulkan 的 MPV GPU-NEXT 视频输出，着色器性能更好
+        // GPU-NEXT 需要 Vulkan 1.2 支持
+        // 避免 Android 14 及以下设备上部分机型 Vulkan 支持不佳导致的黑屏问题
+        if (_globalService.androidSdkVersion >= 34) {
+          videoRenderer = 'gpu-next';
+        } else {
+          videoRenderer = 'gpu';
+        }
+      } else {
+        videoRenderer = androidVideoOutput;
+      }
+    }
+    _pc = PlayerConfiguration(
+      bufferSize:
+          pow(2, _configureService.playerMemory.value).round() * 1024 * 1024,
+      logLevel: _configureService.playerDebugMode.value ? .debug : .error,
+      libass: true,
+    );
+    _vc = VideoControllerConfiguration(
+      vo: videoRenderer,
+      enableHardwareAcceleration: _configureService.hardwareDecoderEnable.value,
+      hwdec: _configureService.hardwareDecoder.value,
+      androidAttachSurfaceAfterVideoParameters: false,
+    );
   }
 
   Future<void> _setVideoInfo(VideoInfo videoInfo) async {
@@ -218,8 +239,8 @@ class VideoPlayerService {
       fileName: videoInfo.videoName,
     );
     if (videoInfo.historiesType == .streamMediaStorage) {
-      GetIt.I.get<GlobalService>().position.value = _history.position;
-      GetIt.I.get<GlobalService>().isPlaying.value = true;
+      _globalService.position.value = _history.position;
+      _globalService.isPlaying.value = true;
       GetIt.I.get<StreamMediaExplorerService>().startPlayback(
         videoInfo.virtualVideoPath,
       );
@@ -331,11 +352,11 @@ class VideoPlayerService {
   }
 
   Future<Metadata> getMetadata() async {
+    final pp = _player.platform! as NativePlayer;
     return Metadata(
       media: _player.state.playlist.medias.first.uri,
-      hwdec: await (_player.platform! as NativePlayer).getProperty(
-        'hwdec-current',
-      ),
+      hwdec: await pp.getProperty('hwdec-current'),
+      videoOutput: await pp.getProperty('current-vo'),
       videoParams: _player.state.videoParams.toString(),
       audioParams: _player.state.audioParams.toString(),
     );

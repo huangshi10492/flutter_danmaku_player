@@ -163,7 +163,7 @@ class PlayerSettingsPage extends StatelessWidget {
                   ],
                 ),
               SettingsSection(
-                title: '解码',
+                title: '解码与渲染',
                 children: [
                   SettingsTile.switchTile(
                     title: '启用硬解',
@@ -179,6 +179,14 @@ class PlayerSettingsPage extends StatelessWidget {
                       context.push('/settings/player/hardware-decoder');
                     },
                   ),
+                  if (Platform.isAndroid)
+                    SettingsTile.navigationTile(
+                      title: '视频渲染器',
+                      subtitle: configure.videoOutput.value,
+                      onPress: () {
+                        context.push('/settings/player/video-renderer');
+                      },
+                    ),
                 ],
               ),
               SettingsSection(
@@ -256,6 +264,36 @@ class HardwareDecoderPage extends StatelessWidget {
             value: configure.hardwareDecoder.value,
             onChange: (value) {
               configure.hardwareDecoder.value = value;
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class VideoOutputPage extends StatelessWidget {
+  const VideoOutputPage({super.key});
+
+  /// Android 可选视频输出
+  static const Map<String, String> videoOutputList = {
+    'auto': '自动选择',
+    'gpu': '基于 OpenGL, 通用和稳健的选项',
+    'gpu-next': '基于 Vulkan, 在新设备上表现最好',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final configure = GetIt.I<ConfigureService>();
+    return SettingsScaffold(
+      title: '视频输出',
+      child: SignalBuilder(
+        builder: (context) {
+          return RadioSettingsSection(
+            options: videoOutputList,
+            value: configure.videoOutput.value,
+            onChange: (value) {
+              configure.videoOutput.value = value;
             },
           );
         },

@@ -27,6 +27,7 @@ class GlobalService {
   Function(String)? updateListener;
   String device = 'Unknown';
   String deviceId = 'Unknown';
+  int androidSdkVersion = 0;
 
   static Future<void> register() async {
     final service = GlobalService();
@@ -39,9 +40,19 @@ class GlobalService {
     if (deviceInfo is AndroidDeviceInfo) {
       device = deviceInfo.name;
       deviceId = deviceInfo.id;
+      androidSdkVersion = deviceInfo.version.sdkInt;
     } else if (deviceInfo is IosDeviceInfo) {
       device = deviceInfo.name;
       deviceId = deviceInfo.identifierForVendor!;
+    } else if (deviceInfo is MacOsDeviceInfo) {
+      device = deviceInfo.hostName;
+      deviceId = deviceInfo.systemGUID ?? 'null';
+    } else if (deviceInfo is WindowsDeviceInfo) {
+      device = deviceInfo.computerName;
+      deviceId = deviceInfo.deviceId;
+    } else if (deviceInfo is LinuxDeviceInfo) {
+      device = deviceInfo.name;
+      deviceId = deviceInfo.id;
     }
   }
 

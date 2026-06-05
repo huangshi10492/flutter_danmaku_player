@@ -69,6 +69,13 @@ final router = GoRouter(
                 child: const HardwareDecoderPage(),
               ),
             ),
+            GoRoute(
+              path: 'video-output',
+              pageBuilder: (context, state) => SlideAndExitTransitionPage(
+                key: state.pageKey,
+                child: const VideoOutputPage(),
+              ),
+            ),
           ],
         ),
         GoRoute(

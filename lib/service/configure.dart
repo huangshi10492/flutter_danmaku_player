@@ -99,6 +99,10 @@ class ConfigureService {
     key: 'hardwareDecoder',
     defaultValue: 'auto',
   );
+  late final Signal<String> videoOutput = _config(
+    key: 'videoOutput',
+    defaultValue: 'auto',
+  );
   late final Signal<int> playerMemory = _config(
     key: 'playerMemory',
     defaultValue: 8,
