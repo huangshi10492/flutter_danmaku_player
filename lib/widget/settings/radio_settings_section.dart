@@ -8,11 +8,17 @@ class RadioSettingsSection extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChange,
+    this.showOnlySubtitle = false,
   });
   final String? title;
   final Map<String, String> options;
   final String value;
   final void Function(String) onChange;
+  final bool showOnlySubtitle;
+
+  static const double minHeight = 40;
+  TextStyle subtitleStyle(BuildContext context) =>
+      context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +53,20 @@ class RadioSettingsSection extends StatelessWidget {
       children: options.entries
           .map(
             (e) => FSelectTile(
-              title: Text(e.key),
-              subtitle: Text(e.value),
+              title: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: minHeight),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: showOnlySubtitle
+                      ? [Text(e.value)]
+                      : [
+                          Text(e.key),
+                          SizedBox(height: 2),
+                          Text(e.value, style: subtitleStyle(context)),
+                        ],
+                ),
+              ),
               value: e.key,
             ),
           )

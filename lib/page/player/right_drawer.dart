@@ -385,6 +385,7 @@ class RightDrawerContent extends StatelessWidget {
               ),
               SettingsSectionTitle('下一章节按钮显示模式'),
               RadioSettingsSection(
+                showOnlySubtitle: true,
                 options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
                 value: configure.jumpButtonMode.value.toString(),
                 onChange: (value) {
