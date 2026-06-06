@@ -202,7 +202,7 @@ class RightDrawerContent extends StatelessWidget {
                 ),
                 FItem(
                   prefix: const Icon(FLucideIcons.wrench, size: 20),
-                  title: Text('播放器界面设置'),
+                  title: Text('播放器显示设置'),
                   onPress: () => onDrawerChanged(RightDrawerType.playerUI),
                 ),
                 FItem(
@@ -358,6 +358,7 @@ class RightDrawerContent extends StatelessWidget {
             padding: const EdgeInsets.all(4),
             children: [
               SettingsSection(
+                title: '控制栏显示',
                 children: [
                   SettingsTile.switchTile(
                     title: '显示章节',
@@ -388,6 +389,51 @@ class RightDrawerContent extends StatelessWidget {
                 value: configure.jumpButtonMode.value.toString(),
                 onChange: (value) {
                   configure.jumpButtonMode.value = int.parse(value);
+                },
+              ),
+              StatefulBuilder(
+                builder: (context, setState) {
+                  final configure = GetIt.I.get<ConfigureService>();
+                  final settings = configure.subtitleSettings.value;
+                  return SettingsSection(
+                    title: '字幕设置',
+                    children: [
+                      SettingsTile.sliderTile(
+                        title: '字体大小',
+                        onSilderChange: (value) {
+                          setState(() => settings.fontSize = value.round());
+                        },
+                        onSilderEnd: (value) {
+                          configure.subtitleSettings.value = configure
+                              .subtitleSettings
+                              .value
+                              .copyWith(fontSize: value.round());
+                        },
+                        details: settings.fontSize.round().toString(),
+                        silderValue: settings.fontSize.toDouble(),
+                        silderDivisions: 20,
+                        silderMin: 30,
+                        silderMax: 70,
+                      ),
+                      SettingsTile.sliderTile(
+                        title: '显示位置',
+                        onSilderChange: (value) {
+                          setState(() => settings.marginY = value.round());
+                        },
+                        onSilderEnd: (value) {
+                          configure.subtitleSettings.value = configure
+                              .subtitleSettings
+                              .value
+                              .copyWith(marginY: value.round());
+                        },
+                        details: settings.marginY.round().toString(),
+                        silderValue: settings.marginY.toDouble(),
+                        silderDivisions: 20,
+                        silderMin: 10,
+                        silderMax: 50,
+                      ),
+                    ],
+                  );
                 },
               ),
             ],

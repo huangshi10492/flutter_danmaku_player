@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:fldanplay/model/danmaku.dart';
+import 'package:fldanplay/model/player.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -119,6 +120,10 @@ class ConfigureService {
     load: getDanmakuSettings,
     save: setDanmakuSettings,
   );
+  late final Signal<SubtitleStyle> subtitleSettings = _configWithLoader(
+    load: getSubtitleStyle,
+    save: setSubtitleStyle,
+  );
   late final Signal<String> themeMode = _config(
     key: 'themeMode',
     defaultValue: '0',
@@ -203,6 +208,23 @@ class ConfigureService {
     await _box.put(
       'danmakuSettings',
       base64Encode(utf8.encode(jsonEncode(settings.toJson()))),
+    );
+  }
+
+  SubtitleStyle getSubtitleStyle() {
+    final jsonString = _box.get('subtitleStyle');
+    if (jsonString == null) {
+      return SubtitleStyle();
+    }
+    return SubtitleStyle.fromJson(
+      jsonDecode(utf8.decode(base64Decode(jsonString))),
+    );
+  }
+
+  Future<void> setSubtitleStyle(SubtitleStyle style) async {
+    await _box.put(
+      'subtitleStyle',
+      base64Encode(utf8.encode(jsonEncode(style.toJson()))),
     );
   }
 }

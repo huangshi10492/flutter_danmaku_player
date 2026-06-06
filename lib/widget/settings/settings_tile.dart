@@ -21,6 +21,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   }) {
     onBoolChange = null;
     onSilderChange = null;
+    onSilderEnd = null;
     onRadioChange = null;
     radioOptions = null;
     switchValue = null;
@@ -42,6 +43,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   }) {
     onPress = () => onBoolChange!(!switchValue!);
     onSilderChange = null;
+    onSilderEnd = null;
     onRadioChange = null;
     radioOptions = null;
     silderValue = null;
@@ -58,6 +60,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
     this.subtitle,
     this.suffix,
     required this.onSilderChange,
+    this.onSilderEnd,
     required this.silderValue,
     required this.silderDivisions,
     required this.silderMin,
@@ -81,6 +84,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
     suffix = const Icon(FLucideIcons.chevronRight);
     onBoolChange = null;
     onSilderChange = null;
+    onSilderEnd = null;
     onRadioChange = null;
     radioOptions = null;
     switchValue = null;
@@ -104,6 +108,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
     onPress = null;
     onBoolChange = null;
     onSilderChange = null;
+    onSilderEnd = null;
     switchValue = null;
     silderValue = null;
     silderDivisions = null;
@@ -120,6 +125,7 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   late final Widget? suffix;
   late final void Function(bool)? onBoolChange;
   late final void Function(double)? onSilderChange;
+  late final void Function(double)? onSilderEnd;
   late final void Function(String)? onRadioChange;
   late final Map<String, String>? radioOptions;
   late final bool? switchValue;
@@ -245,7 +251,8 @@ class SettingsTile extends StatelessWidget with FTileMixin {
               min: silderMin!,
               max: silderMax!,
               divisions: silderDivisions,
-              onChanged: (value) => onSilderChange!(value),
+              onChanged: onSilderChange,
+              onChangeEnd: onSilderEnd,
             ),
           ],
         ),

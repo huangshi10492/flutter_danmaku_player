@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:audio_session/audio_session.dart';
 import 'package:fldanplay/model/history.dart';
+import 'package:fldanplay/model/player.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/history.dart';
@@ -104,6 +105,7 @@ class VideoPlayerService {
   StreamSubscription<PlayerLog>? playerLogSubscription;
   late PlayerConfiguration _pc;
   late VideoControllerConfiguration _vc;
+  Function()? _subtitleStyleEffect;
 
   // 定时器组
   late final Map<TimerType, UpdateTimer> _timerGroup = {
@@ -342,13 +344,21 @@ class VideoPlayerService {
     final fontsDir = await getApplicationSupportDirectory();
     await pp.setProperty("sub-fonts-dir", '${fontsDir.path}/fonts');
     await pp.setProperty("sub-font", _configureService.subtitleFontName.value);
-    await pp.setProperty("sub-font-size", "50");
+    _subtitleStyleEffect = effect(
+      () => _setSubtitleStyle(_configureService.subtitleSettings.value),
+    );
     if (Utils.isDesktop()) {
       final volume = _configureService.desktopVolume.value;
       final mpvVolume = (volume * 100).toInt();
       await pp.setProperty("volume", mpvVolume.toString());
       _log.info('_setProperty', '设置桌面端音量: $mpvVolume');
     }
+  }
+
+  void _setSubtitleStyle(SubtitleStyle style) {
+    var pp = _player.platform as NativePlayer;
+    pp.setProperty("sub-font-size", style.fontSize.toString());
+    pp.setProperty("sub-margin-y", style.marginY.toString());
   }
 
   Future<Metadata> getMetadata() async {
@@ -602,6 +612,7 @@ class VideoPlayerService {
 
   Future<void> dispose() async {
     try {
+      _subtitleStyleEffect?.call();
       _timerGroup.forEach((_, value) => value.dispose());
       await closeVideo();
     } catch (e, t) {
