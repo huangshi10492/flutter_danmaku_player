@@ -37,6 +37,7 @@ enum RightDrawerType {
   metadata,
   playerUI,
   danmakuKeywordFilter,
+  superResolution,
 }
 
 class RightDrawerContent extends StatelessWidget {
@@ -107,6 +108,8 @@ class RightDrawerContent extends StatelessWidget {
             child: SingleChildScrollView(child: DanmakuKeywordFilter()),
           ),
         );
+      case .superResolution:
+        return _buildSuperResolution(context);
     }
   }
 
@@ -163,56 +166,51 @@ class RightDrawerContent extends StatelessWidget {
   }
 
   Widget _buildDanmakuActions(BuildContext context) {
-    return Column(
+    final configure = GetIt.I.get<ConfigureService>();
+    return FItemGroup(
+      style: settingsItemGroupStyle,
       children: [
-        SignalBuilder(
-          builder: (context) {
-            final configure = GetIt.I.get<ConfigureService>();
-            return FItemGroup(
-              style: settingsItemGroupStyle,
-              children: [
-                if (configure.danmakuServiceEnable.value) ...[
-                  FItem(
-                    prefix: const Icon(MyIcon.danmaku, size: 20),
-                    title: Text('弹幕信息'),
-                    onPress: () => onDrawerChanged(RightDrawerType.danmakuInfo),
-                  ),
-                  FItem(
-                    prefix: const Icon(FLucideIcons.palette, size: 20),
-                    title: Text('弹幕外观'),
-                    onPress: () =>
-                        onDrawerChanged(RightDrawerType.danmakuSettings),
-                  ),
-                  FItem(
-                    prefix: const Icon(FLucideIcons.funnel, size: 20),
-                    title: Text('弹幕过滤与延迟'),
-                    onPress: () =>
-                        onDrawerChanged(RightDrawerType.danmakuFilter),
-                  ),
-                ],
-                FItem(
-                  prefix: const Icon(Icons.audiotrack_outlined, size: 20),
-                  title: Text('音频选择'),
-                  onPress: () => onDrawerChanged(RightDrawerType.audioTrack),
-                ),
-                FItem(
-                  prefix: const Icon(FLucideIcons.closedCaption, size: 20),
-                  title: Text('字幕选择'),
-                  onPress: () => onDrawerChanged(RightDrawerType.subtitleTrack),
-                ),
-                FItem(
-                  prefix: const Icon(FLucideIcons.wrench, size: 20),
-                  title: Text('播放器显示设置'),
-                  onPress: () => onDrawerChanged(RightDrawerType.playerUI),
-                ),
-                FItem(
-                  prefix: const Icon(FLucideIcons.info, size: 20),
-                  title: Text('播放信息'),
-                  onPress: () => onDrawerChanged(RightDrawerType.metadata),
-                ),
-              ],
-            );
-          },
+        if (configure.danmakuServiceEnable.value) ...[
+          FItem(
+            prefix: const Icon(MyIcon.danmaku, size: 20),
+            title: Text('弹幕信息'),
+            onPress: () => onDrawerChanged(.danmakuInfo),
+          ),
+          FItem(
+            prefix: const Icon(FLucideIcons.palette, size: 20),
+            title: Text('弹幕外观'),
+            onPress: () => onDrawerChanged(.danmakuSettings),
+          ),
+          FItem(
+            prefix: const Icon(FLucideIcons.funnel, size: 20),
+            title: Text('弹幕过滤与延迟'),
+            onPress: () => onDrawerChanged(.danmakuFilter),
+          ),
+        ],
+        FItem(
+          prefix: const Icon(Icons.audiotrack_outlined, size: 20),
+          title: Text('音频选择'),
+          onPress: () => onDrawerChanged(.audioTrack),
+        ),
+        FItem(
+          prefix: const Icon(FLucideIcons.closedCaption, size: 20),
+          title: Text('字幕选择'),
+          onPress: () => onDrawerChanged(.subtitleTrack),
+        ),
+        FItem(
+          prefix: const Icon(FLucideIcons.wrench, size: 20),
+          title: Text('播放器显示设置'),
+          onPress: () => onDrawerChanged(.playerUI),
+        ),
+        FItem(
+          prefix: const Icon(FLucideIcons.hd, size: 20),
+          title: Text('超分辨率'),
+          onPress: () => onDrawerChanged(.superResolution),
+        ),
+        FItem(
+          prefix: const Icon(FLucideIcons.info, size: 20),
+          title: Text('播放信息'),
+          onPress: () => onDrawerChanged(.metadata),
         ),
       ],
     );
@@ -440,6 +438,58 @@ class RightDrawerContent extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildSuperResolution(BuildContext context) {
+    final configure = GetIt.I.get<ConfigureService>();
+    final type = Signal(playerService.superResolutionType);
+    return Scaffold(
+      body: Padding(
+        padding: const .all(4),
+        child: ListView(
+          children: [
+            const SizedBox(height: 4),
+            SignalBuilder(
+              builder: (context) {
+                return RadioSettingsSection(
+                  showOnlySubtitle: true,
+                  options: const {
+                    '0': '关闭',
+                    '1': 'Mode A (HQ)',
+                    '2': 'Mode A (Fast)',
+                    '3': 'Mode B (HQ)',
+                    '4': 'Mode B (Fast)',
+                  },
+                  value: type.value.toString(),
+                  onChange: (value) {
+                    type.value = int.parse(value);
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+            FButton(
+              variant: .secondary,
+              onPress: () {
+                playerService.superResolutionType = type.value;
+                playerService.setSuperResolution();
+              },
+              child: Text('仅本次有效'),
+            ),
+            const SizedBox(height: 8),
+            FButton(
+              variant: .secondary,
+              onPress: () {
+                playerService.superResolutionType = type.value;
+                configure.superResolutionType.value = type.value;
+                playerService.setSuperResolution();
+              },
+              child: Text('保存为默认设置'),
+            ),
+          ],
+        ),
       ),
     );
   }

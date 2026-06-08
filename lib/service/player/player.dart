@@ -14,6 +14,7 @@ import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
 import 'package:fldanplay/utils/log.dart';
+import 'package:fldanplay/utils/shader.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:get_it/get_it.dart';
@@ -106,6 +107,7 @@ class VideoPlayerService {
   late PlayerConfiguration _pc;
   late VideoControllerConfiguration _vc;
   Function()? _subtitleStyleEffect;
+  int superResolutionType = 0;
 
   // 定时器组
   late final Map<TimerType, UpdateTimer> _timerGroup = {
@@ -132,6 +134,7 @@ class VideoPlayerService {
     _listenPlayerStreams();
     await _setProperty();
     await setPlaybackSpeed(playbackSpeed.value);
+    setSuperResolution();
   }
 
   void _listenPlayerStreams() {
@@ -183,6 +186,7 @@ class VideoPlayerService {
       playerState.value = .loading;
       _timerGroup.forEach((_, value) => value.init());
       playbackSpeed.value = _configureService.defaultPlaySpeed.value;
+      superResolutionType = _configureService.superResolutionType.value;
       _setConfiguration();
       await _createPlayer();
       await _initSession();
@@ -359,6 +363,22 @@ class VideoPlayerService {
     var pp = _player.platform as NativePlayer;
     pp.setProperty("sub-font-size", style.fontSize.toString());
     pp.setProperty("sub-margin-y", style.marginY.toString());
+  }
+
+  Future<void> setSuperResolution() async {
+    var pp = _player.platform as NativePlayer;
+    try {
+      await pp.waitForPlayerInitialization;
+      await pp.waitForVideoControllerInitializationIfAttached;
+      await pp.command([
+        'change-list',
+        'glsl-shaders',
+        superResolutionType == 0 ? 'clr' : 'set',
+        await SuperResolutionUtils.buildPath(superResolutionType),
+      ]);
+    } catch (e, s) {
+      _log.error('_setSuperResolution', '设置着色器失败', error: e, stackTrace: s);
+    }
   }
 
   Future<Metadata> getMetadata() async {

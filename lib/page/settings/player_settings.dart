@@ -184,9 +184,16 @@ class PlayerSettingsPage extends StatelessWidget {
                       title: '视频渲染器',
                       subtitle: configure.videoOutput.value,
                       onPress: () {
-                        context.push('/settings/player/video-renderer');
+                        context.push('/settings/player/video-output');
                       },
                     ),
+                  SettingsTile.navigationTile(
+                    title: '超分辨率',
+                    subtitle: '使用Anime4K，可用于提升动画画质',
+                    onPress: () {
+                      context.push('/settings/player/super-resolution');
+                    },
+                  ),
                 ],
               ),
               SettingsSection(
@@ -297,6 +304,53 @@ class VideoOutputPage extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class SuperResolutionPage extends StatelessWidget {
+  const SuperResolutionPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final configure = GetIt.I<ConfigureService>();
+    return SettingsScaffold(
+      title: '超分辨率',
+      child: Column(
+        crossAxisAlignment: .start,
+        children: [
+          SignalBuilder(
+            builder: (context) {
+              return RadioSettingsSection(
+                showOnlySubtitle: true,
+                options: const {
+                  '0': '关闭',
+                  '1': 'Mode A (HQ)',
+                  '2': 'Mode A (Fast)',
+                  '3': 'Mode B (HQ)',
+                  '4': 'Mode B (Fast)',
+                },
+                value: configure.superResolutionType.value.toString(),
+                onChange: (value) {
+                  configure.superResolutionType.value = int.parse(value);
+                },
+              );
+            },
+          ),
+          Padding(
+            padding: const .all(8),
+            child: Column(
+              crossAxisAlignment: .start,
+              children: [
+                Text(
+                  'Mode A 适用于大多数 1080p 动画，Mode B 适用于大多数 720p 动画\nHQ 模式画质高，但消耗资源，Fast 模式适用于低端 GPU',
+                  style: TextStyle(fontSize: 14, height: 1.5),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

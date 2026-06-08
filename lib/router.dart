@@ -76,6 +76,13 @@ final router = GoRouter(
                 child: const VideoOutputPage(),
               ),
             ),
+            GoRoute(
+              path: 'super-resolution',
+              pageBuilder: (context, state) => SlideAndExitTransitionPage(
+                key: state.pageKey,
+                child: const SuperResolutionPage(),
+              ),
+            ),
           ],
         ),
         GoRoute(

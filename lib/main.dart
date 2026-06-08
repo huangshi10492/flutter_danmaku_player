@@ -8,6 +8,7 @@ import 'package:fldanplay/hive/hive_registrar.g.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/service_locator.dart';
+import 'package:fldanplay/utils/shader.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/scale_app.dart';
@@ -76,6 +77,7 @@ Future<void> init() async {
       ),
     );
   }
+  SuperResolutionUtils.initFile();
 }
 
 void upgrade() {

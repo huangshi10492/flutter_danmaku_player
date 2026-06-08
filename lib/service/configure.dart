@@ -116,6 +116,10 @@ class ConfigureService {
     key: 'audioTrack',
     defaultValue: false,
   );
+  late final Signal<int> superResolutionType = _config(
+    key: 'superResolutionType',
+    defaultValue: 0,
+  );
   late final Signal<DanmakuSettings> danmakuSettings = _configWithLoader(
     load: getDanmakuSettings,
     save: setDanmakuSettings,
