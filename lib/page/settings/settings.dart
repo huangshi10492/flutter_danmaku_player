@@ -61,6 +61,12 @@ class SettingsPage extends StatelessWidget {
                 subtitle: const Text('设置日志级别、导出日志'),
                 onPress: () => context.push('/settings/log'),
               ),
+              FItem(
+                prefix: const Icon(FLucideIcons.info),
+                title: const Text('关于'),
+                subtitle: const Text('版本信息、项目主页、开源许可'),
+                onPress: () => context.push('/settings/about'),
+              ),
             ],
           ),
         ),
