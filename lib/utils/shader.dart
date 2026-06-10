@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:archive/archive_io.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
@@ -50,34 +51,25 @@ class SuperResolutionUtils {
   ];
 
   static Future<void> initFile() async {
-    final dir = '${(await getApplicationSupportDirectory()).path}/shaders';
-    await Directory(dir).create(recursive: true);
-    // 检查shader版本文件
-    final file = File('$dir/version.txt');
-    if (file.existsSync()) {
-      final oldVersion = await file.readAsString();
-      if (oldVersion == version) return;
-      await Directory(dir).delete(recursive: true);
-      await Directory(dir).create(recursive: true);
-    }
-    await file.writeAsString(version);
-    final assetManifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final assets = assetManifest.listAssets();
-    final shaderFiles = assets.where(
-      (String asset) =>
-          asset.startsWith('assets/shaders/') && asset.endsWith('.glsl'),
-    );
+    final shaderDir =
+        '${(await getApplicationSupportDirectory()).path}/shaders';
+    final versionFile = File('$shaderDir/version.txt');
     try {
-      for (var filePath in shaderFiles) {
-        final fileName = filePath.split('/').last;
-        final targetFile = File(path.join(dir, fileName));
-        if (await targetFile.exists()) continue;
-        final data = await rootBundle.load(filePath);
-        final List<int> bytes = data.buffer.asUint8List();
-        await targetFile.writeAsBytes(bytes);
+      if (await versionFile.exists()) {
+        final oldVersion = await versionFile.readAsString();
+        if (oldVersion == version) return;
       }
+      final dir = Directory(shaderDir);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+      }
+      await dir.create(recursive: true);
+      final data = await rootBundle.load('assets/anime4k/anime4k.zip');
+      final archive = ZipDecoder().decodeBytes(data.buffer.asUint8List());
+      await extractArchiveToDisk(archive, shaderDir);
+      await versionFile.writeAsString(version);
     } catch (e, s) {
-      _logger.error('initFile', '创建shader文件失败', error: e, stackTrace: s);
+      _logger.error('initFile', '解压shader失败', error: e, stackTrace: s);
     }
   }
 

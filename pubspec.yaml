@@ -149,7 +149,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/shaders/
+    - assets/anime4k/
 
   fonts:
     - family: IconFont
