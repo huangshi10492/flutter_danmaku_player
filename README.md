@@ -1,18 +1,13 @@
 # fldanplay
 
+![GitHub Release](https://img.shields.io/github/v/release/huangshi10492/flutter_danmaku_player)
+
 fldanplay 是一款跨平台的本地/网络媒体播放应用，支持弹幕显示。
-
-#### ⚠️ 本项目处于开发阶段，不保证稳定性和数据安全。
----
-
-## 开发计划
-
-[Link](https://github.com/users/huangshi10492/projects/2)
 
 ---
 ## 支持平台
 - Android
-- Windows (beta)
+- Windows
 - Linux
 
 ## 计划支持平台
@@ -22,31 +17,34 @@ fldanplay 是一款跨平台的本地/网络媒体播放应用，支持弹幕显
 ---
 
 ## 功能/开发中
-- [x] 视频播放(MPV)
-- [x] 弹幕显示
+- 视频播放(使用[Predidit/media-kit](https://github.com/Predidit/media-kit))
+  - [x] Anime4K超分辨率
+  - [x] 自定义字幕字体和大小位置
+  - [ ] 外部字幕导入
+- 弹幕显示
   - [x] 外观配置
   - [x] 自定义弹幕源
-  - [x] 弹幕分源设置延迟
-  - [x] 弹幕自动匹配
+  - [x] 分源设置延迟
+  - [x] 自动匹配
   - [x] 接入[弹弹play开放平台](https://www.dandanplay.com)
-- [ ] 媒体源
+- 媒体源
   - [x] 本地文件夹
   - [x] WebDAV
-  - [x] Jellyfin
-  - [x] Emby
+  - [x] Jellyfin/Emby
   - [ ] FTP
   - [ ] SMB
-- [x] 历史记录
+- 历史记录
   - [x] Webdav同步
-- [x] 离线缓存
-- [ ] 更多……
+- 其他
+  - [x] 离线缓存
+- 更多……
 ---
 
 ## 快速上手
-1) 安装并启动应用。
-2) 首次进入推荐在设置中进行配置（Android推荐下载字体作为字幕字体）。
-3) 在设置中配置弹幕服务。
-4) 在首页右下角添加媒体库。
+1) 安装并启动应用
+2) 首次进入推荐进入设置进行配置
+3) 在设置中配置弹幕服务
+4) 在首页右下角添加媒体库
 5) enjoy!
 
 ## 贡献
