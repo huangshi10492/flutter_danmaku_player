@@ -2,6 +2,7 @@ import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/toast.dart';
+import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/storage_sheet.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/storage.dart';
@@ -113,21 +114,26 @@ class RootPageState extends State<RootPage> {
             actions: [
               FButton(
                 onPress: () {
-                  final url = controller.text.trim();
-                  if (url.isEmpty) {
-                    return;
-                  }
-                  // 格式校验
-                  if (!url.startsWith('http')) {
+                  final input = controller.text.trim();
+                  if (input.isEmpty) return;
+                  final uri = Uri.tryParse(input);
+                  if (uri == null ||
+                      !uri.hasAbsolutePath ||
+                      (uri.scheme != 'http' && uri.scheme != 'https') ||
+                      uri.host.isEmpty) {
                     showToast(level: 2, title: '请输入有效的网络视频URL');
                     return;
                   }
+                  final videoUrl = uri.toString();
+                  final fileName = uri.pathSegments.isNotEmpty
+                      ? uri.pathSegments.last
+                      : videoUrl;
                   final videoInfo = VideoInfo(
-                    currentVideoPath: url,
-                    virtualVideoPath: url,
+                    currentVideoPath: videoUrl,
+                    virtualVideoPath: videoUrl,
                     historiesType: HistoriesType.network,
-                    videoName: url.split('/').last.split('.').first,
-                    name: url.split('/').last,
+                    videoName: Utils.removeExtension(fileName),
+                    name: fileName,
                   );
                   final location = Uri(path: videoPlayerPath);
                   this.context.push(location.toString(), extra: videoInfo);

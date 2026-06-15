@@ -1,5 +1,6 @@
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
+import 'package:fldanplay/utils/utils.dart';
 
 class VideoInfo {
   // 视频文件的真实地址
@@ -30,7 +31,7 @@ class VideoInfo {
     this.subtitle,
   }) {
     name = virtualVideoPath.split('/').last;
-    videoName = virtualVideoPath.split('/').last.split('.').first;
+    videoName = Utils.removeExtension(name);
     uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
   }
 

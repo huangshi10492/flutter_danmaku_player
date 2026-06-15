@@ -78,4 +78,10 @@ class Utils {
       return 1;
     }
   }
+
+  static String removeExtension(String fileName) {
+    final index = fileName.lastIndexOf('.');
+    if (index <= 0) return fileName;
+    return fileName.substring(0, index);
+  }
 }

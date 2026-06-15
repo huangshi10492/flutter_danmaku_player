@@ -11,6 +11,7 @@ import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
+import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:fldanplay/widget/video_item.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,6 @@ import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:path/path.dart' as path;
 import 'package:signals_flutter/signals_flutter.dart';
 import '../model/history.dart';
 import '../model/storage.dart';
@@ -62,16 +62,6 @@ class _HistoryPageState extends State<HistoryPage> {
       await _historyService.clearAllHistories();
     } catch (e) {
       showToast(level: 3, title: '清空历史记录失败', description: e.toString());
-    }
-  }
-
-  String _extractFileName(String? url) {
-    if (url == null) return '未知文件';
-    try {
-      final fileName = path.basename(url);
-      return fileName;
-    } catch (e) {
-      return url.split('/').last;
     }
   }
 
@@ -166,12 +156,16 @@ class _HistoryPageState extends State<HistoryPage> {
           );
           break;
         case HistoriesType.network:
+          final uri = Uri.parse(url);
+          final fileName = uri.pathSegments.isNotEmpty
+              ? uri.pathSegments.last
+              : url;
           videoInfo = VideoInfo(
             currentVideoPath: url,
             virtualVideoPath: url,
             historiesType: HistoriesType.network,
-            videoName: _extractFileName(url).split('.').first,
-            name: _extractFileName(url),
+            name: fileName,
+            videoName: Utils.removeExtension(fileName),
           );
           break;
       }
