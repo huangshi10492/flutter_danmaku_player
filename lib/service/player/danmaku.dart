@@ -92,6 +92,7 @@ class DanmakuService {
   void resetDanmakuPosition() {
     controller.clear();
     lastTime = 0;
+    _clear();
   }
 
   void updateSpeed() {
@@ -113,14 +114,14 @@ class DanmakuService {
     if (lastTime == currentSecond) return;
     lastTime = currentSecond;
     var delay = 0;
-    if (danmakuSettings.value.bilibiliSource) {
-      for (Danmaku danmaku
-          in _bili[currentSecond + danmakuSettings.value.bilibiliDelay] ?? []) {
+
+    void processSource(Map<int, List<Danmaku>> sourceMap, int delaySeconds) {
+      for (Danmaku danmaku in sourceMap[currentSecond + delaySeconds] ?? []) {
         delay = 0;
         if (danmaku.time > position) {
           delay =
               (danmaku.time.inMilliseconds -
-                  danmakuSettings.value.bilibiliDelay * 1000 -
+                  delaySeconds * 1000 -
                   position.inMilliseconds) ~/
               speed;
         }
@@ -129,57 +130,19 @@ class DanmakuService {
           () => _addDanmakuToController(danmaku),
         );
       }
+    }
+
+    if (danmakuSettings.value.bilibiliSource) {
+      processSource(_bili, danmakuSettings.value.bilibiliDelay);
     }
     if (danmakuSettings.value.gamerSource) {
-      for (Danmaku danmaku
-          in _gamer[currentSecond + danmakuSettings.value.gamerDelay] ?? []) {
-        delay = 0;
-        if (danmaku.time > position) {
-          delay =
-              (danmaku.time.inMilliseconds -
-                  danmakuSettings.value.gamerDelay * 1000 -
-                  position.inMilliseconds) ~/
-              speed;
-        }
-        Future.delayed(
-          Duration(milliseconds: delay),
-          () => _addDanmakuToController(danmaku),
-        );
-      }
+      processSource(_gamer, danmakuSettings.value.gamerDelay);
     }
     if (danmakuSettings.value.dandanSource) {
-      for (Danmaku danmaku
-          in _dandan[currentSecond + danmakuSettings.value.dandanDelay] ?? []) {
-        delay = 0;
-        if (danmaku.time > position) {
-          delay =
-              (danmaku.time.inMilliseconds -
-                  danmakuSettings.value.dandanDelay * 1000 -
-                  position.inMilliseconds) ~/
-              speed;
-        }
-        Future.delayed(
-          Duration(milliseconds: delay),
-          () => _addDanmakuToController(danmaku),
-        );
-      }
+      processSource(_dandan, danmakuSettings.value.dandanDelay);
     }
     if (danmakuSettings.value.otherSource) {
-      for (Danmaku danmaku
-          in _other[currentSecond + danmakuSettings.value.otherDelay] ?? []) {
-        delay = 0;
-        if (danmaku.time > position) {
-          delay =
-              (danmaku.time.inMilliseconds -
-                  danmakuSettings.value.otherDelay * 1000 -
-                  position.inMilliseconds) ~/
-              speed;
-        }
-        Future.delayed(
-          Duration(milliseconds: delay),
-          () => _addDanmakuToController(danmaku),
-        );
-      }
+      processSource(_other, danmakuSettings.value.otherDelay);
     }
   }
 
@@ -200,24 +163,20 @@ class DanmakuService {
     return false;
   }
 
-  /// 将弹幕添加到控制器中显示
   void _addDanmakuToController(Danmaku danmaku) {
     try {
-      if (!danmakuEnabled.value) return;
-      if (shouldFilterDanmaku(danmaku.text)) return;
+      if (!danmakuEnabled.value || shouldFilterDanmaku(danmaku.text)) return;
       DanmakuItemType danmakuType;
       switch (danmaku.type) {
         case 4:
-          danmakuType = DanmakuItemType.bottom; // 底部弹幕
+          danmakuType = .bottom;
           break;
         case 5:
-          danmakuType = DanmakuItemType.top; // 顶部弹幕
+          danmakuType = .top;
           break;
         default:
-          danmakuType = DanmakuItemType.scroll; // 默认滚动弹幕
+          danmakuType = .scroll;
       }
-
-      // 调用controller的addDanmaku方法
       controller.addDanmaku(
         DanmakuContentItem(
           danmaku.text,
@@ -230,12 +189,12 @@ class DanmakuService {
     }
   }
 
-  void _danmaku2Map(List<Danmaku> danmakus) {
-    _clear();
-    var bili = 0;
-    var gamer = 0;
-    var dandan = 0;
-    var other = 0;
+  void _danmaku2Map(List<Danmaku> danmakus, {bool isUpdate = false}) {
+    final newBili = <int, List<Danmaku>>{};
+    final newGamer = <int, List<Danmaku>>{};
+    final newDandan = <int, List<Danmaku>>{};
+    final newOther = <int, List<Danmaku>>{};
+    var bili = 0, gamer = 0, dandan = 0, other = 0;
     for (var danmaku in danmakus) {
       final key = danmaku.time.inSeconds;
       switch (danmaku.source) {
@@ -243,33 +202,21 @@ class DanmakuService {
         case 'bilibili':
         case 'bilibili1':
           bili++;
-          if (!_bili.containsKey(key)) {
-            _bili[key] = [];
-          }
-          _bili[key]!.add(danmaku);
+          newBili.putIfAbsent(key, () => []).add(danmaku);
           break;
         case 'Gamer':
         case 'bahumut':
           gamer++;
-          if (!_gamer.containsKey(key)) {
-            _gamer[key] = [];
-          }
-          _gamer[key]!.add(danmaku);
+          newGamer.putIfAbsent(key, () => []).add(danmaku);
           break;
         case 'DanDanPlay':
         case 'dandan':
           dandan++;
-          if (!_dandan.containsKey(key)) {
-            _dandan[key] = [];
-          }
-          _dandan[key]!.add(danmaku);
+          newDandan.putIfAbsent(key, () => []).add(danmaku);
           break;
         default:
           other++;
-          if (!_other.containsKey(key)) {
-            _other[key] = [];
-          }
-          _other[key]!.add(danmaku);
+          newOther.putIfAbsent(key, () => []).add(danmaku);
       }
     }
     globalService.danmakuCount.value = {
@@ -278,10 +225,14 @@ class DanmakuService {
       'DanDanPlay': dandan,
       'Other': other,
     };
-    globalService.showNotification('加载弹幕: ${danmakus.length}条');
-    if (_durationSeconds > 0) {
-      computeTrend(_durationSeconds);
-    }
+    _bili = newBili;
+    _gamer = newGamer;
+    _dandan = newDandan;
+    _other = newOther;
+    globalService.showNotification(
+      '${isUpdate ? '更新' : '加载'}弹幕: ${danmakus.length}条',
+    );
+    if (_durationSeconds > 0) computeTrend(_durationSeconds);
   }
 
   /// 加载弹幕
@@ -318,15 +269,12 @@ class DanmakuService {
     }
   }
 
-  /// 从缓存获取弹幕数据
   Future<bool> _getCachedDanmakus(String uniqueKey) async {
     try {
       final danmakuFile = File('$cacheDir/$uniqueKey.json');
       if (!await danmakuFile.exists()) return false;
       final jsonString = await danmakuFile.readAsString();
       final danmakuData = DanmakuFile.fromJsonString(jsonString);
-      final expireTime = danmakuData.expireTime.millisecondsSinceEpoch;
-      final now = DateTime.now().millisecondsSinceEpoch;
       episode.value = Episode(
         episodeId: danmakuData.episodeId,
         animeId: danmakuData.animeId,
@@ -335,18 +283,14 @@ class DanmakuService {
         url: danmakuData.from ?? configureService.danmakuServerList.value.first,
         isMatched: danmakuData.isMatched,
       );
-      if (now > expireTime) {
-        _log.info('_getCachedDanmakus', '弹幕缓存已过期');
-        status.value = .downloading;
-        final result = await danmakuGetter.save(uniqueKey, episode.value);
-        if (result.isNotEmpty) {
-          status.value = .fromApi;
-          _danmaku2Map(result);
-          return true;
-        }
-      }
       status.value = .fromCached;
       _danmaku2Map(danmakuData.danmakus);
+      final expireTime = danmakuData.expireTime.millisecondsSinceEpoch;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now > expireTime) {
+        _log.info('_getCachedDanmakus', '弹幕缓存已过期，启动后台更新...');
+        _backgroundRefresh(uniqueKey, episode.value);
+      }
       return true;
     } catch (e, t) {
       status.value = .failed;
@@ -355,12 +299,24 @@ class DanmakuService {
     }
   }
 
-  /// 搜索番剧集数
+  Future<void> _backgroundRefresh(String uniqueKey, Episode ep) async {
+    try {
+      status.value = .downloading;
+      final result = await danmakuGetter.save(uniqueKey, ep);
+      if (result.isNotEmpty) {
+        status.value = .fromApi;
+        _danmaku2Map(result, isUpdate: true);
+        _log.info('_backgroundRefresh', '更新弹幕成功');
+      }
+    } catch (e, t) {
+      _log.error('_backgroundRefresh', '更新弹幕失败', error: e, stackTrace: t);
+    }
+  }
+
   Future<List<Anime>> searchEpisodes(String animeName, String url) async {
     return await danmakuGetter.search(animeName, url);
   }
 
-  /// 选择episodeId并加载弹幕
   Future<void> selectEpisodeAndLoadDanmaku(
     String uniqueKey,
     Episode episode,
