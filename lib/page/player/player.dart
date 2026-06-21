@@ -3,7 +3,7 @@ import 'package:auto_orientation/auto_orientation.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
-import 'package:fldanplay/page/player/right_drawer.dart';
+import 'package:fldanplay/page/player/right_drawer/right_drawer.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/global.dart';

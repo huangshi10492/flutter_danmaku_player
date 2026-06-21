@@ -1,4 +1,4 @@
-import 'package:fldanplay/page/player/right_drawer.dart';
+import 'package:fldanplay/page/player/right_drawer/right_drawer.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/utils/icon.dart';

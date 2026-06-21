@@ -1,17 +1,13 @@
-import 'package:fldanplay/model/file_item.dart';
-import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
-import 'package:fldanplay/page/player/danmaku_info.dart';
-import 'package:fldanplay/page/player/danmaku_filter.dart';
-import 'package:fldanplay/page/player/track_page.dart';
-import 'package:fldanplay/page/player/danmaku_search_page.dart';
-import 'package:fldanplay/page/player/danmaku_settings.dart';
+import 'package:fldanplay/page/player/right_drawer/danmaku_info.dart';
+import 'package:fldanplay/page/player/right_drawer/danmaku_filter.dart';
+import 'package:fldanplay/page/player/right_drawer/episode_list.dart';
+import 'package:fldanplay/page/player/right_drawer/track_page.dart';
+import 'package:fldanplay/page/player/right_drawer/danmaku_search_page.dart';
+import 'package:fldanplay/page/player/right_drawer/danmaku_settings.dart';
 import 'package:fldanplay/service/configure.dart';
-import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/global.dart';
-import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/player/player.dart';
-import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/utils.dart';
@@ -92,7 +88,11 @@ class RightDrawerContent extends StatelessWidget {
           onDrawerChanged: onDrawerChanged,
         );
       case RightDrawerType.episode:
-        return _buildEpisodePanel(context);
+        return EpisodeListPanel(
+          playerService: playerService,
+          onEpisodeSelected: onEpisodeSelected,
+          videoInfo: videoInfo,
+        );
       case RightDrawerType.audioTrack:
         return TrackPage(playerService: playerService, isAudio: true);
       case RightDrawerType.subtitleTrack:
@@ -230,83 +230,6 @@ class RightDrawerContent extends StatelessWidget {
         );
       },
     );
-  }
-
-  Widget _buildHistorySubtitle(History? history, int index) {
-    if (videoInfo.videoIndex == index) {
-      return const Row(
-        children: [Icon(Icons.play_arrow, size: 16), Text('正在播放')],
-      );
-    }
-    if (history == null) return const Text('未观看');
-    return Text(
-      '观看进度: ${Utils.formatTime(history.position, history.duration)}',
-    );
-  }
-
-  List<FItemMixin> _buildItems(List<FileItem> files, BuildContext context) {
-    final widgetList = <FItemMixin>[];
-    for (var file in files) {
-      if (!file.isVideo) continue;
-      widgetList.add(
-        FItem(
-          title: Text(file.name, maxLines: 2),
-          subtitle: _buildHistorySubtitle(file.history, file.videoIndex),
-          onPress: () => {
-            onEpisodeSelected(file.videoIndex),
-            Navigator.pop(context),
-          },
-        ),
-      );
-    }
-    return widgetList;
-  }
-
-  Widget _buildEmptyPlaylistPlaceholder(BuildContext context) {
-    return Center(child: Text('播放列表为空', style: context.theme.typography.lg));
-  }
-
-  Widget _buildEpisodePanel(BuildContext context) {
-    switch (videoInfo.historiesType) {
-      case HistoriesType.streamMediaStorage:
-        final streamMediaExplorerService = GetIt.I
-            .get<StreamMediaExplorerService>();
-        final historyService = GetIt.I.get<HistoryService>();
-        final episodeList = streamMediaExplorerService.episodeList;
-        if (episodeList.isEmpty) {
-          return _buildEmptyPlaylistPlaceholder(context);
-        }
-        return FItemGroup(
-          children: episodeList.asMap().entries.map<FItem>((e) {
-            final episode = e.value;
-            final history = historyService.getHistoryByPath(episode.id);
-            final titleText = episode.indexNumber != null
-                ? '${episode.indexNumber}. ${episode.name}'
-                : episode.name;
-            return FItem(
-              title: Text(titleText),
-              subtitle: _buildHistorySubtitle(history, e.key),
-              onPress: () => {onEpisodeSelected(e.key), Navigator.pop(context)},
-            );
-          }).toList(),
-        );
-      case HistoriesType.fileStorage:
-        final fileExplorerService = GetIt.I.get<FileExplorerService>();
-        return SignalBuilder(
-          builder: (context) => fileExplorerService.files.value.map(
-            data: (files) {
-              if (files.isEmpty) {
-                return _buildEmptyPlaylistPlaceholder(context);
-              }
-              return FItemGroup(children: _buildItems(files, context));
-            },
-            error: (error, stack) => const Center(child: Text('加载失败')),
-            loading: () => const Center(child: CircularProgressIndicator()),
-          ),
-        );
-      default:
-        return const Center(child: Text('不支持的媒体库类型'));
-    }
   }
 
   Widget _buildMetadataPanel(BuildContext context) {
