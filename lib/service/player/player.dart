@@ -280,7 +280,6 @@ class VideoPlayerService {
     danmakuService.history = _history;
     danmakuService.init();
     await _player.open(media, play: true);
-    playerState.value = .playing;
     duration = await _player.stream.duration.firstWhere(
       (d) => d != Duration.zero,
     );
@@ -550,17 +549,15 @@ class VideoPlayerService {
 
   void updatePlaybackHistory() {
     switch (playerState.value) {
-      case .completed:
-      case .error:
-      case .loading:
-        return;
+      case .playing:
+      case .paused:
+        _historyService.updateProgress(
+          position: position.value,
+          duration: duration,
+          history: _history,
+        );
       default:
     }
-    _historyService.updateProgress(
-      position: position.value,
-      duration: duration,
-      history: _history,
-    );
   }
 
   Future<void> saveSnapshot() async {
