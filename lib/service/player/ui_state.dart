@@ -24,6 +24,7 @@ class PlayerUIState {
   final Signal<String> progressIndicatorText = Signal('');
   final Signal<bool> longPress = Signal(false);
   final Signal<bool> isFullScreen = Signal(false);
+  final Signal<bool> lockPanel = Signal(false);
 
   Timer? _timeTimer;
   Timer? _hideControlsTimer;

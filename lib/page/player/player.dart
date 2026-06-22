@@ -100,6 +100,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             windowManager.setFullScreen(!_uiState.isFullScreen.value);
             _uiState.isFullScreen.value = !_uiState.isFullScreen.value;
           } else {
+            if (_uiState.lockPanel.value) return;
             _playerService.togglePlayPause();
           }
         },
@@ -168,6 +169,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               ? _buildPlayerWidget()
               : VideoPlayerGestureDetector(
                   onLongPressStart: () {
+                    if (_uiState.lockPanel.value) return;
                     _uiState.startLongPress(
                       _configureService.doublePlaySpeed.value *
                           (_configureService.doubleWithNowSpeed.value
@@ -178,20 +180,36 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     _playerService.doubleSpeed(true);
                   },
                   onLongPressEnd: () {
+                    if (_uiState.lockPanel.value) return;
                     _uiState.endLongPress();
                     _playerService.doubleSpeed(false);
                   },
                   onPanStart: () {
+                    if (_uiState.lockPanel.value) return;
                     _uiState.startGesture(
                       initialPosition: _playerService.position.value,
                     );
                   },
-                  onPanEnd: _uiState.endGesture,
-                  onVerticalDragLeft: _adjustBrightness,
-                  onVerticalDragRight: _adjustVolume,
-                  onHorizontalDrag: (offset) => _adjustProgress(offset, false),
-                  onHorizontalDragEnd: (offset) =>
-                      _adjustProgress(offset, true),
+                  onPanEnd: () {
+                    if (_uiState.lockPanel.value) return;
+                    _uiState.endGesture();
+                  },
+                  onVerticalDragLeft: (offset) {
+                    if (_uiState.lockPanel.value) return;
+                    _adjustBrightness(offset);
+                  },
+                  onVerticalDragRight: (offset) {
+                    if (_uiState.lockPanel.value) return;
+                    _adjustVolume(offset);
+                  },
+                  onHorizontalDrag: (offset) {
+                    if (_uiState.lockPanel.value) return;
+                    _adjustProgress(offset, false);
+                  },
+                  onHorizontalDragEnd: (offset) {
+                    if (_uiState.lockPanel.value) return;
+                    _adjustProgress(offset, true);
+                  },
                   child: _buildPlayerWidget(),
                 ),
         ),
@@ -248,7 +266,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       );
                     },
                   ),
-                  ..._buildAnimatedControls(),
+                  SignalBuilder(
+                    builder: (context) => _buildAnimatedControls(
+                      _uiState.showControls.value,
+                      _uiState.lockPanel.value,
+                    ),
+                  ),
                   _buildStatusIndicatorOverlay(),
                   _buildProgressIndicatorOverlay(),
                   _buildBufferingIndicator(),
@@ -306,36 +329,33 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   /// 构建带动画的控制栏
-  List<Widget> _buildAnimatedControls() {
-    return [
-      // 顶部控制栏
-      SignalBuilder(
-        builder: (context) {
-          final showControls = _uiState.showControls.value;
-          return AnimatedPositioned(
+  Widget _buildAnimatedControls(bool show, bool lock) {
+    return Stack(
+      children: [
+        if (!lock) ...[
+          AnimatedPositioned(
             duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            top: showControls ? 0 : -150,
+            top: show ? 0 : -150,
             left: 0,
             right: 0,
             child: _buildTopControls(),
-          );
-        },
-      ),
-      // 底部控制栏
-      SignalBuilder(
-        builder: (context) {
-          final showControls = _uiState.showControls.value;
-          return AnimatedPositioned(
+          ),
+          AnimatedPositioned(
             duration: const Duration(milliseconds: 200),
-            bottom: showControls ? 0 : -150,
+            bottom: show ? 0 : -150,
             left: 0,
             right: 0,
             child: _buildBottomControls(),
-          );
-        },
-      ),
-    ];
+          ),
+        ],
+        Positioned(
+          right: 0,
+          top: 0,
+          bottom: 0,
+          child: Visibility(visible: show, child: _buildRightSide(lock)),
+        ),
+      ],
+    );
   }
 
   Widget _buildTopControls() {
@@ -586,6 +606,32 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildRightSide(bool lock) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Spacer(),
+          if (!Utils.isDesktop())
+            FButton.icon(
+              style: .delta(
+                decoration: .delta([.base(.boxDelta(color: Colors.black26))]),
+              ),
+              variant: .ghost,
+              size: .lg,
+              child: Icon(lock ? FLucideIcons.lockOpen : FLucideIcons.lock),
+              onPress: () {
+                _uiState.lockPanel.value = !_uiState.lockPanel.value;
+                _uiState.showControlsTemporarily();
+              },
+            ),
+          const Spacer(),
+        ],
       ),
     );
   }
