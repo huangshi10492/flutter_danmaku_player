@@ -81,18 +81,9 @@ class DanmakuService {
     }
   }
 
-  void _clear() {
-    controller.clear();
-    _bili = {};
-    _gamer = {};
-    _dandan = {};
-    _other = {};
-  }
-
   void resetDanmakuPosition() {
     controller.clear();
     lastTime = 0;
-    _clear();
   }
 
   void updateSpeed() {
@@ -117,13 +108,14 @@ class DanmakuService {
 
     void processSource(Map<int, List<Danmaku>> sourceMap, int delaySeconds) {
       for (Danmaku danmaku in sourceMap[currentSecond + delaySeconds] ?? []) {
-        delay = 0;
         if (danmaku.time > position) {
           delay =
               (danmaku.time.inMilliseconds -
                   delaySeconds * 1000 -
                   position.inMilliseconds) ~/
               speed;
+        } else {
+          delay = 0;
         }
         Future.delayed(
           Duration(milliseconds: delay),
@@ -349,7 +341,7 @@ class DanmakuService {
         episode.value,
       );
       status.value = .fromApi;
-      _danmaku2Map(danmakus);
+      _danmaku2Map(danmakus, isUpdate: true);
       _log.info('refreshDanmaku', '刷新弹幕成功: ${danmakus.length}条');
     } catch (e, t) {
       status.value = .failed;
