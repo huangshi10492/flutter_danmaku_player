@@ -24,6 +24,10 @@ class Utils {
     return intl.DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
   }
 
+  static String fileNameTime() {
+    return intl.DateFormat('yyyyMMddHHmmss').format(DateTime.now());
+  }
+
   // 格式化最后观看时间
   static String formatLastWatchTime(int timestamp) {
     final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);

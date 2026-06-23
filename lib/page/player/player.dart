@@ -617,6 +617,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Spacer(),
+          if (!lock)
+            SignalBuilder(
+              builder: (context) {
+                return FButton.icon(
+                  style: .delta(
+                    decoration: .delta([
+                      .base(.boxDelta(color: Colors.black26)),
+                    ]),
+                  ),
+                  variant: .ghost,
+                  size: .lg,
+                  onPress: _saveScreenshot,
+                  child: _uiState.saveScreenshoting.value
+                      ? const FCircularProgress()
+                      : const Icon(FLucideIcons.camera),
+                );
+              },
+            ),
           if (!Utils.isDesktop())
             FButton.icon(
               style: .delta(
@@ -680,6 +698,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return Row(children: [nextChapterButton, secondButton]);
     }
     return nextChapterButton;
+  }
+
+  Future<void> _saveScreenshot() async {
+    if (_uiState.saveScreenshoting.value) return;
+    _uiState.saveScreenshoting.value = true;
+    final success = await _playerService.saveScreenshot();
+    if (success) {
+      _globalService.showNotification('截图已保存');
+    } else {
+      _globalService.showNotification('截图失败');
+    }
+    _uiState.saveScreenshoting.value = false;
   }
 
   /// 构建视频播放器组件

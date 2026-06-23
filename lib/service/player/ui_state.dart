@@ -25,6 +25,7 @@ class PlayerUIState {
   final Signal<bool> longPress = Signal(false);
   final Signal<bool> isFullScreen = Signal(false);
   final Signal<bool> lockPanel = Signal(false);
+  final Signal<bool> saveScreenshoting = Signal(false);
 
   Timer? _timeTimer;
   Timer? _hideControlsTimer;

@@ -22,6 +22,7 @@ import 'package:image/image.dart' as img;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:saver_gallery/saver_gallery.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 class UpdateTimer {
@@ -582,6 +583,41 @@ class VideoPlayerService {
       await img.encodeJpgFile('${dir.path}/${_history.uniqueKey}', thumbnail);
     } catch (e, t) {
       _log.error('saveSnapshot', '快照保存异常', error: e, stackTrace: t);
+    }
+  }
+
+  Future<bool> saveScreenshot() async {
+    try {
+      final rawSnapshot = await _player.screenshot();
+      if (rawSnapshot == null) {
+        _log.warn('saveScreenshot', '截图获取失败');
+        return false;
+      }
+      final fileName = 'fldanplay_${Utils.fileNameTime()}.jpg';
+      if (Utils.isDesktop()) {
+        final dir = await getDownloadsDirectory();
+        if (dir == null) {
+          _log.error('saveScreenshot', '无法获取下载目录');
+          return false;
+        }
+        final file = File('${dir.path}/$fileName');
+        await file.writeAsBytes(rawSnapshot);
+      } else {
+        final result = await SaverGallery.saveImage(
+          rawSnapshot,
+          fileName: fileName,
+          albumPath: 'fldanplay',
+          skipIfExists: false,
+        );
+        if (!result.isSuccess) {
+          _log.error('saveScreenshot', '保存失败');
+          return false;
+        }
+      }
+      return true;
+    } catch (e, t) {
+      _log.error('saveScreenshot', '截图保存异常', error: e, stackTrace: t);
+      return false;
     }
   }
 
