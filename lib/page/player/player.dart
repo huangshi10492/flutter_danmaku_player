@@ -15,7 +15,7 @@ import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ProgressIndicator;
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
@@ -70,8 +70,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       overlays: SystemUiOverlay.values,
     );
     AutoOrientation.fullAutoMode();
-    // 释放音量和亮度控制服务
-    BrightnessVolumeService.dispose();
     if (Utils.isDesktop()) {
       windowManager.setFullScreen(false);
     }
@@ -120,18 +118,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               }
               // 上方向键被按下
               if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                final initialVolume = _uiState.currentVolume.value;
+                final initialVolume =
+                    _uiState.brightnessVolumeService.currentVolume;
                 final newVolume = (initialVolume + 0.05).clamp(0.0, 1.0);
                 _uiState.setVolume(newVolume);
-                BrightnessVolumeService.setVolume(newVolume);
+                _uiState.brightnessVolumeService.setVolume(newVolume);
                 _playerService.setVolume(newVolume);
               }
               // 下方向键被按下
               if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                final initialVolume = _uiState.currentVolume.value;
+                final initialVolume =
+                    _uiState.brightnessVolumeService.currentVolume;
                 final newVolume = (initialVolume - 0.05).clamp(0.0, 1.0);
                 _uiState.setVolume(newVolume);
-                BrightnessVolumeService.setVolume(newVolume);
+                _uiState.brightnessVolumeService.setVolume(newVolume);
                 _playerService.setVolume(newVolume);
               }
               if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -186,9 +186,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   },
                   onPanStart: () {
                     if (_uiState.lockPanel.value) return;
-                    _uiState.startGesture(
-                      initialPosition: _playerService.position.value,
-                    );
+                    _uiState.startGesture(_playerService.position.value);
                   },
                   onPanEnd: () {
                     if (_uiState.lockPanel.value) return;
@@ -205,9 +203,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   onHorizontalDrag: (offset) {
                     if (_uiState.lockPanel.value) return;
                     _adjustProgress(offset, false);
+                    _uiState.inndicatorType.value = .progress;
                   },
                   onHorizontalDragEnd: (offset) {
                     if (_uiState.lockPanel.value) return;
+                    _uiState.inndicatorType.value = .none;
                     _adjustProgress(offset, true);
                   },
                   child: _buildPlayerWidget(),
@@ -272,8 +272,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       _uiState.lockPanel.value,
                     ),
                   ),
-                  _buildStatusIndicatorOverlay(),
-                  _buildProgressIndicatorOverlay(),
+                  _buildIndicatorOverlay(),
                   _buildBufferingIndicator(),
                 ],
               ),
@@ -748,42 +747,31 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
-  /// 构建状态指示器覆盖层（音量、亮度、速度）
-  Widget _buildStatusIndicatorOverlay() {
+  Widget _buildIndicatorOverlay() {
     return SignalBuilder(
       builder: (context) {
-        final activeIndicator = _uiState.activeIndicator.value;
-        final indicatorValue = _uiState.indicatorValue.value;
-        if (activeIndicator == IndicatorType.none) {
+        final type = _uiState.inndicatorType.value;
+        if (type == IndicatorType.none) {
           return const SizedBox.shrink();
         }
-        double displayValue;
-        switch (activeIndicator) {
-          case IndicatorType.none:
-            displayValue = 0;
-            break;
-          case IndicatorType.volume:
-            displayValue = _uiState.currentVolume.value;
-            break;
-          case IndicatorType.brightness:
-            displayValue = _uiState.currentBrightness.value;
-            break;
-          case IndicatorType.speed:
-            displayValue = indicatorValue;
-            break;
-        }
-        return Positioned(
-          top: 100,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: StatusIndicator(
-              type: activeIndicator,
-              value: displayValue,
-              isVisible: true,
-            ),
-          ),
-        );
+        return type == .progress
+            ? SignalBuilder(
+                builder: (context) {
+                  return ProgressIndicator(
+                    seek: _uiState.seekPosition.value,
+                    end: _playerService.duration,
+                    offset: _uiState.seekOffset.value,
+                  );
+                },
+              )
+            : SignalBuilder(
+                builder: (context) {
+                  return Indicator(
+                    type: type,
+                    value: _uiState.indicatorValue.value,
+                  );
+                },
+              );
       },
     );
   }
@@ -838,82 +826,35 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   /// 调整亮度
   void _adjustBrightness(double offset) {
     final initialBrightness = _uiState.initialBrightnessOnPan;
-    if (initialBrightness == null) return;
     final newBrightness = (initialBrightness + offset).clamp(0.0, 1.0);
     _uiState.setBrightness(newBrightness);
-    BrightnessVolumeService.setBrightness(newBrightness);
   }
 
   /// 调整音量
   void _adjustVolume(double offset) {
     final initialVolume = _uiState.initialVolumeOnPan;
-    if (initialVolume == null) return;
     final newVolume = (initialVolume + offset).clamp(0.0, 1.0);
     _uiState.setVolume(newVolume);
-    BrightnessVolumeService.setVolume(newVolume);
     _playerService.setVolume(newVolume);
   }
 
   /// 调整播放进度
   void _adjustProgress(Duration offset, bool end) {
     final initialPosition = _uiState.initialPositionOnPan;
-    if (initialPosition == null) return;
     final duration = _playerService.duration;
     if (duration.inMilliseconds <= 0) return;
     final newPosition = (initialPosition + offset);
-    // 限制在视频时长范围内
     final clampedPosition = newPosition.inMilliseconds.clamp(
       0,
       duration.inMilliseconds,
     );
     final finalPosition = Duration(milliseconds: clampedPosition);
-    final newPositionText = Utils.formatDuration(finalPosition);
-    final durationText = Utils.formatDuration(duration);
-    final seekSeconds = finalPosition.inSeconds - initialPosition.inSeconds;
-    final seekSecondsText = '${seekSeconds > 0 ? '+' : ''}$seekSeconds s';
-    _uiState.setProgressIndicator(
-      '$seekSecondsText|$newPositionText / $durationText',
-    );
-    if (end) {
-      _playerService.seekTo(finalPosition);
-    }
-  }
-
-  /// 构建进度指示器覆盖层
-  Widget _buildProgressIndicatorOverlay() {
-    return SignalBuilder(
-      builder: (context) {
-        final showProgressIndicator = _uiState.showProgressIndicator.value;
-        if (!showProgressIndicator) {
-          return const SizedBox.shrink();
-        }
-        final progressText = _uiState.progressIndicatorText.value;
-        final parts = progressText.split('|');
-        final seekText = parts[0];
-        final timeText = parts.length > 1 ? parts[1] : '';
-
-        return Center(
-          child: Container(
-            constraints: BoxConstraints(minWidth: 150),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(seekText, style: context.theme.typography.xl),
-                if (timeText.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(timeText, style: context.theme.typography.md),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    batch(() {
+      _uiState.seekPosition.value = finalPosition;
+      _uiState.seekOffset.value =
+          finalPosition.inSeconds - initialPosition.inSeconds;
+    });
+    if (end) _playerService.seekTo(finalPosition);
   }
 
   Widget _buildProgressBar() {
