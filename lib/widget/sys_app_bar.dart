@@ -18,7 +18,7 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       title: Text(
         title,
-        style: context.theme.typography.xl.copyWith(height: 1),
+        style: context.theme.typography.body.xl.copyWith(height: 1),
       ),
       actions: acs,
       leading: Navigator.canPop(context)

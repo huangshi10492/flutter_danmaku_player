@@ -15,14 +15,18 @@ FThemeData getTheme(String theme, bool isDark) {
     _ => FThemes.blue,
   };
   FColors colors = isDark ? color.dark.touch.colors : color.light.touch.colors;
+  final font = FTypeface.inherit(
+    colors: colors,
+    touch: true,
+    fontFamily: 'MiSans',
+  );
   return FThemeData(
     colors: colors,
     touch: false,
     typography: FTypography.inherit(
       colors: colors,
       touch: true,
-      fontFamily: 'MiSans',
-    ),
+    ).copyWith(body: font, display: font),
   );
 }
 

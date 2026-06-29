@@ -167,7 +167,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
             maxLines: 1,
             textAlign: .center,
             overflow: .ellipsis,
-            style: context.theme.typography.sm.copyWith(
+            style: context.theme.typography.body.sm.copyWith(
               color: selected ? context.theme.colors.primary : null,
             ),
           ),
@@ -238,7 +238,10 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
             if (libraries.isEmpty) {
               return Padding(
                 padding: const .symmetric(vertical: 8, horizontal: 4),
-                child: Text('当前账号下没有可用媒体库', style: context.theme.typography.md),
+                child: Text(
+                  '当前账号下没有可用媒体库',
+                  style: context.theme.typography.body.md,
+                ),
               );
             }
             return SignalBuilder(
@@ -286,7 +289,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                         child: Text(
                           "加载中...",
                           textAlign: .center,
-                          style: context.theme.typography.md,
+                          style: context.theme.typography.body.md,
                         ),
                       ),
                     ),
@@ -334,7 +337,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
             padding: const .fromLTRB(2, 4, 2, 0),
             child: Text(
               mediaItem.name,
-              style: context.theme.typography.xs.copyWith(
+              style: context.theme.typography.body.xs.copyWith(
                 fontSize: 15,
                 height: 1.1,
               ),
@@ -422,7 +425,9 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                     title,
                     maxLines: 1,
                     overflow: .ellipsis,
-                    style: context.theme.typography.sm.copyWith(height: 1.2),
+                    style: context.theme.typography.body.sm.copyWith(
+                      height: 1.2,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -461,7 +466,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       children: [
         Padding(
           padding: const .only(left: 4),
-          child: Text('继续观看', style: context.theme.typography.xl),
+          child: Text('继续观看', style: context.theme.typography.body.xl),
         ),
         LayoutBuilder(
           builder: (context, constraints) {

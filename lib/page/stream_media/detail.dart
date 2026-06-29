@@ -162,7 +162,9 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                   sliver: SliverAppBar.medium(
                     title: Text(
                       widget.mediaItem.name,
-                      style: context.theme.typography.lg.copyWith(height: 1.2),
+                      style: context.theme.typography.body.lg.copyWith(
+                        height: 1.2,
+                      ),
                     ),
                     scrolledUnderElevation: 0,
                     stretch: true,
@@ -321,7 +323,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         children: [
           Padding(
             padding: const .only(left: 16, top: 8),
-            child: Text('继续观看', style: context.theme.typography.xl),
+            child: Text('继续观看', style: context.theme.typography.body.xl),
           ),
           VideoItem(
             history: history,

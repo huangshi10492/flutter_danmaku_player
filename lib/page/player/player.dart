@@ -1,5 +1,5 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:auto_orientation/auto_orientation.dart';
+import 'package:auto_orientation_v2/auto_orientation_v2.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
@@ -63,12 +63,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _uiState.dispose();
     _playerService.dispose();
     // 恢复系统UI
-    // TODO fix
-    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setEnabledSystemUIMode(
-      .manual,
-      overlays: SystemUiOverlay.values,
-    );
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     AutoOrientation.fullAutoMode();
     if (Utils.isDesktop()) {
       windowManager.setFullScreen(false);
@@ -297,11 +292,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               size: 64,
             ),
             const SizedBox(height: 16),
-            Text('视频加载失败', style: context.theme.typography.lg),
+            Text('视频加载失败', style: context.theme.typography.body.lg),
             const SizedBox(height: 8),
             Text(
               errorMessage ?? '未知错误',
-              style: context.theme.typography.sm,
+              style: context.theme.typography.body.sm,
               textAlign: TextAlign.center,
             ),
           ],
@@ -320,7 +315,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           children: [
             const CircularProgressIndicator(),
             const SizedBox(height: 16),
-            Text('正在加载视频...', style: context.theme.typography.md),
+            Text('正在加载视频...', style: context.theme.typography.body.md),
           ],
         ),
       ),
@@ -385,7 +380,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         child: Text(
                           videoName,
                           overflow: TextOverflow.ellipsis,
-                          style: context.theme.typography.md,
+                          style: context.theme.typography.body.md,
                         ),
                       );
                     },
@@ -400,7 +395,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   builder: (context) {
                     return Text(
                       _uiState.currentTime.value,
-                      style: context.theme.typography.sm,
+                      style: context.theme.typography.body.sm,
                     );
                   },
                 ),
@@ -417,7 +412,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         const SizedBox(width: 4),
                         Text(
                           '$batteryLevel%',
-                          style: context.theme.typography.sm,
+                          style: context.theme.typography.body.sm,
                         ),
                       ],
                     );
@@ -793,7 +788,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               SizedBox(height: 8),
               Text(
                 Utils.formatDuration(bufferedPosition),
-                style: context.theme.typography.md,
+                style: context.theme.typography.body.md,
               ),
             ],
           ),

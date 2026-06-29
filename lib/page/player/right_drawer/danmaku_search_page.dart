@@ -180,7 +180,7 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
               ),
               title: Text(
                 episode.episodeTitle,
-                style: context.theme.typography.md,
+                style: context.theme.typography.body.md,
                 maxLines: 2,
               ),
               onPress: () {

@@ -67,7 +67,7 @@ class SelectStorageTypeSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('选择媒体库类型', style: context.theme.typography.lg),
+            Text('选择媒体库类型', style: context.theme.typography.body.lg),
             const SizedBox(height: 8),
             FItemGroup(
               style: settingsItemGroupStyle,
@@ -514,7 +514,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         );
       case _FieldType.toggle:
         return FItem(
-          title: Text(field.label, style: context.theme.typography.md),
+          title: Text(field.label, style: context.theme.typography.body.md),
           suffix: Switch(
             value: _formData.toggleValues[field.key] ?? false,
             onChanged: (value) {
@@ -580,7 +580,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                       child: Text(
                         _title,
                         textAlign: TextAlign.center,
-                        style: context.theme.typography.lg,
+                        style: context.theme.typography.body.lg,
                       ),
                     ),
                     FButton(

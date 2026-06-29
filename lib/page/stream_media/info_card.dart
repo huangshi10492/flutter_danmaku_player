@@ -43,7 +43,9 @@ class StreamMediaInfoCard extends StatelessWidget {
                     if (!isWideLayout) ...[
                       Text(
                         title,
-                        style: context.theme.typography.lg.copyWith(height: 1),
+                        style: context.theme.typography.body.lg.copyWith(
+                          height: 1,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -199,7 +201,7 @@ class StreamMediaInfoCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             mediaDetail!.genres.join(' / '),
-            style: context.theme.typography.xs,
+            style: context.theme.typography.body.xs,
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
@@ -223,7 +225,7 @@ class StreamMediaInfoCard extends StatelessWidget {
           enabled: isLoading,
           child: Text(
             hasOverview ? overview : '暂无简介',
-            style: context.theme.typography.sm,
+            style: context.theme.typography.body.sm,
             overflow: TextOverflow.fade,
             softWrap: true,
           ),
@@ -282,7 +284,7 @@ class StreamMediaInfoCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('简介', style: context.theme.typography.lg),
+        Text('简介', style: context.theme.typography.body.lg),
         const SizedBox(height: 8),
         Text(
           mediaDetail?.overview == null
@@ -291,10 +293,10 @@ class StreamMediaInfoCard extends StatelessWidget {
                         ?.replaceAll(RegExp(r'<br\s*/?>'), ' ')
                         .trim()) ??
                     '',
-          style: context.theme.typography.md,
+          style: context.theme.typography.body.md,
         ),
         const SizedBox(height: 16),
-        Text('标签', style: context.theme.typography.lg),
+        Text('标签', style: context.theme.typography.body.lg),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -308,7 +310,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                     style: .delta(color: context.theme.colors.mutedForeground),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
-                      child: Text(tag, style: context.theme.typography.sm),
+                      child: Text(tag, style: context.theme.typography.body.sm),
                     ),
                   ),
                 );
@@ -316,7 +318,7 @@ class StreamMediaInfoCard extends StatelessWidget {
               [],
         ),
         const SizedBox(height: 16),
-        Text('外部链接', style: context.theme.typography.lg),
+        Text('外部链接', style: context.theme.typography.body.lg),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

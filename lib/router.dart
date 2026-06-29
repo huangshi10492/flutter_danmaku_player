@@ -1,4 +1,4 @@
-import 'package:auto_orientation/auto_orientation.dart';
+import 'package:auto_orientation_v2/auto_orientation_v2.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/page/file_explorer.dart';

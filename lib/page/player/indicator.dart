@@ -74,7 +74,7 @@ class Indicator extends StatelessWidget {
               mainAxisSize: .min,
               crossAxisAlignment: .start,
               children: [
-                Text(label, style: context.theme.typography.sm),
+                Text(label, style: context.theme.typography.body.sm),
                 if (type.showProgress) ...[
                   SizedBox(height: 4),
                   SizedBox(
@@ -111,7 +111,7 @@ class ProgressIndicator extends StatelessWidget {
     final seekText = Utils.formatDuration(seek);
     final endText = Utils.formatDuration(end);
     final offsetText = '${offset > 0 ? '+' : ''}${offset}s';
-    final t = context.theme.typography;
+    final t = context.theme.typography.body;
     return _IndicatorBackground(
       Column(
         mainAxisSize: .min,

@@ -125,7 +125,9 @@ class _EpisodeListPanelState extends State<EpisodeListPanel> {
   }
 
   Widget _buildEmptyPlaylistPlaceholder(BuildContext context) {
-    return Center(child: Text('播放列表为空', style: context.theme.typography.lg));
+    return Center(
+      child: Text('播放列表为空', style: context.theme.typography.body.lg),
+    );
   }
 
   Widget _buildHistorySubtitle(History? history, int index) {

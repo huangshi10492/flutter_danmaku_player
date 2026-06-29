@@ -243,25 +243,26 @@ class RightDrawerContent extends StatelessWidget {
           return const Center(child: Text('加载失败'));
         }
         final data = snapshot.data!;
+        final style = context.theme.typography.body.xl;
         return ListView(
           children: [
-            Text('视频来源', style: context.theme.typography.xl),
+            Text('视频来源', style: style),
             const SizedBox(height: 8),
             SelectableText(data.media),
             const SizedBox(height: 16),
-            Text('硬件解码器', style: context.theme.typography.xl),
+            Text('硬件解码器', style: style),
             const SizedBox(height: 8),
             SelectableText(data.hwdec),
             const SizedBox(height: 16),
-            Text('视频输出', style: context.theme.typography.xl),
+            Text('视频输出', style: style),
             const SizedBox(height: 8),
             SelectableText(data.videoOutput),
             const SizedBox(height: 16),
-            Text('视频信息', style: context.theme.typography.xl),
+            Text('视频信息', style: style),
             const SizedBox(height: 8),
             SelectableText(data.videoParams),
             const SizedBox(height: 16),
-            Text('音频信息', style: context.theme.typography.xl),
+            Text('音频信息', style: style),
             const SizedBox(height: 8),
             SelectableText(data.audioParams),
           ],

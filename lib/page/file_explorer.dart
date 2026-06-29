@@ -256,7 +256,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                           size: 48,
                           color: context.theme.colors.mutedForeground,
                         ),
-                        Text('此文件夹为空', style: context.theme.typography.xl),
+                        Text(
+                          '此文件夹为空',
+                          style: context.theme.typography.display.xl,
+                        ),
                       ],
                     ),
                   );

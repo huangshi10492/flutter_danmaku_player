@@ -133,7 +133,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('搜索弹幕', style: context.theme.typography.lg),
+            Text('搜索弹幕', style: context.theme.typography.body.lg),
             IconButton(
               onPressed: () => Navigator.pop(context),
               icon: Icon(Icons.close),
@@ -177,7 +177,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
             SizedBox(height: 8),
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text(_state.message, style: context.theme.typography.md),
+            Text(_state.message, style: context.theme.typography.body.md),
           ],
         );
       case .success:
@@ -314,7 +314,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
               ),
               title: Text(
                 episode.episodeTitle,
-                style: context.theme.typography.md,
+                style: context.theme.typography.body.md,
                 maxLines: 2,
               ),
               onPress: () async {

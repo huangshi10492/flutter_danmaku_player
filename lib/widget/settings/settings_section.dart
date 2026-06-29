@@ -18,7 +18,7 @@ class SettingsSection extends StatelessWidget {
               padding: const EdgeInsets.only(left: 16, top: 16, bottom: 8),
               child: Text(
                 title!,
-                style: context.theme.typography.xs,
+                style: context.theme.typography.body.xs,
                 textAlign: TextAlign.start,
               ),
             ),
@@ -64,7 +64,7 @@ class SettingsSectionTitle extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: context.theme.typography.xs,
+        style: context.theme.typography.body.xs,
         textAlign: TextAlign.start,
       ),
     );

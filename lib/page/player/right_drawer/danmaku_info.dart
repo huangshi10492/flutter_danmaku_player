@@ -33,7 +33,7 @@ class DanmakuInfoPanel extends StatelessWidget {
                     subtitleTextStyle: .delta(fontSize: 16, height: 1.4),
                   ),
                 ),
-                title: Text('弹幕信息', style: context.theme.typography.xl),
+                title: Text('弹幕信息', style: context.theme.typography.body.xl),
                 subtitle: SignalBuilder(
                   builder: (context) {
                     return Column(

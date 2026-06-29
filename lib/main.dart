@@ -63,12 +63,7 @@ Future<void> init() async {
   ScaledWidgetsFlutterBinding.instance.scaleFactor = cs.uiScale.value;
   MediaKit.ensureInitialized();
   if (Platform.isAndroid || Platform.isIOS) {
-    // TODO fix
-    // SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setEnabledSystemUIMode(
-      .manual,
-      overlays: SystemUiOverlay.values,
-    );
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,

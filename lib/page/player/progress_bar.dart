@@ -244,7 +244,7 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
             width: timeLabelWidth + thumbRadius + 5,
             child: Text(
               Utils.formatDuration(widget.progress),
-              style: context.theme.typography.sm,
+              style: context.theme.typography.body.sm,
             ),
           ),
         ),
@@ -301,7 +301,7 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
             width: timeLabelWidth,
             child: Text(
               Utils.formatDuration(widget.total),
-              style: context.theme.typography.sm,
+              style: context.theme.typography.body.sm,
             ),
           ),
         ),
@@ -311,7 +311,7 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
 
   double _layoutTextWidth(String text) {
     TextPainter textPainter = TextPainter(
-      text: TextSpan(text: text, style: context.theme.typography.sm),
+      text: TextSpan(text: text, style: context.theme.typography.body.sm),
       maxLines: 1,
       textDirection: TextDirection.ltr,
     );
