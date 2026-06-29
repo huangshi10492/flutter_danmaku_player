@@ -72,22 +72,17 @@ class _DanmakuSearchPageState extends State<DanmakuSearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          _buildServerSelector(),
-          const SizedBox(height: 8),
-          _buildSearchBar(),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: FAccordion(
-              style: .delta(childPadding: .value(.zero)),
-              children: _buildBody(),
-            ),
-          ),
-        ],
-      ),
+    return ListView(
+      children: [
+        _buildServerSelector(),
+        const SizedBox(height: 8),
+        _buildSearchBar(),
+        const SizedBox(height: 8),
+        FAccordion(
+          style: .delta(childPadding: .value(.zero)),
+          children: _buildBody(),
+        ),
+      ],
     );
   }
 

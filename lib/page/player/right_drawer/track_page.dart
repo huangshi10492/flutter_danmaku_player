@@ -37,54 +37,52 @@ class TrackPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          SignalBuilder(
-            builder: (context) {
-              final tracks = isAudio
-                  ? playerService.audioTracks.value
-                  : playerService.subtitleTracks.value;
-              final activeTrack = isAudio
-                  ? playerService.activeAudioTrack.value
-                  : playerService.activeSubtitleTrack.value;
-              return FSelectTileGroup<int>(
-                control: .lifted(
-                  value: {activeTrack},
-                  onChange: (value) {
-                    if (isAudio) {
-                      playerService.setActiveAudioTrack(value.first);
-                    } else {
-                      playerService.setActiveSubtitleTrack(value.first);
-                    }
-                    context.pop();
-                  },
-                ),
-                children: tracks.map((track) {
-                  final name = VideoPlayerUtils.trackNameTranslation(
-                    track.id,
-                    track.title,
-                    track.language,
-                  );
-                  return FSelectTile(title: Text(name), value: track.index);
-                }).toList(),
-              );
-            },
-          ),
-          isAudio
-              ? const SizedBox()
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _pickExternalSubtitle(context),
-                      icon: const Icon(Icons.file_upload),
-                      label: const Text('导入外部字幕'),
-                    ),
+    return ListView(
+      children: [
+        SignalBuilder(
+          builder: (context) {
+            final tracks = isAudio
+                ? playerService.audioTracks.value
+                : playerService.subtitleTracks.value;
+            final activeTrack = isAudio
+                ? playerService.activeAudioTrack.value
+                : playerService.activeSubtitleTrack.value;
+            return FSelectTileGroup<int>(
+              control: .lifted(
+                value: {activeTrack},
+                onChange: (value) {
+                  if (isAudio) {
+                    playerService.setActiveAudioTrack(value.first);
+                  } else {
+                    playerService.setActiveSubtitleTrack(value.first);
+                  }
+                  context.pop();
+                },
+              ),
+              children: tracks.map((track) {
+                final name = VideoPlayerUtils.trackNameTranslation(
+                  track.id,
+                  track.title,
+                  track.language,
+                );
+                return FSelectTile(title: Text(name), value: track.index);
+              }).toList(),
+            );
+          },
+        ),
+        isAudio
+            ? const SizedBox()
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _pickExternalSubtitle(context),
+                    icon: const Icon(Icons.file_upload),
+                    label: const Text('导入外部字幕'),
                   ),
                 ),
-        ],
-      ),
+              ),
+      ],
     );
   }
 }

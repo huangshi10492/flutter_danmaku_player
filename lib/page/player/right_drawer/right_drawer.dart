@@ -55,12 +55,19 @@ class RightDrawerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const double width = 320;
+    const EdgeInsets padding = EdgeInsets.symmetric(horizontal: 8, vertical: 4);
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      height: MediaQuery.sizeOf(context).height,
       decoration: BoxDecoration(color: context.theme.colors.background),
-      width: 320,
-      height: MediaQuery.of(context).size.height,
-      child: _buildContent(context),
+      child: SafeArea(
+        left: false,
+        minimum: padding,
+        child: SizedBox(
+          width: width,
+          child: Scaffold(body: _buildContent(context)),
+        ),
+      ),
     );
   }
 
@@ -102,117 +109,107 @@ class RightDrawerContent extends StatelessWidget {
       case RightDrawerType.playerUI:
         return _buildPlayerUI(context);
       case .danmakuKeywordFilter:
-        return Scaffold(
-          body: Padding(
-            padding: const .all(4),
-            child: SingleChildScrollView(child: DanmakuKeywordFilter()),
-          ),
-        );
+        return DanmakuKeywordFilter();
       case .superResolution:
         return _buildSuperResolution(context);
     }
   }
 
   Widget _buildSpeedSettings(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(4),
-        child: SingleChildScrollView(
-          child: SignalBuilder(
-            builder: (context) {
-              final speed = playerService.playbackSpeed.value;
-              final configure = GetIt.I.get<ConfigureService>();
-              final doubleSpeed = configure.doublePlaySpeed.value;
-              return SettingsSection(
-                children: [
-                  SettingsTile.sliderTile(
-                    title: '当前播放速度',
-                    details: '${speed.toStringAsFixed(2)}X',
-                    silderValue: Utils.speedToSlider(speed),
-                    silderMin: 1,
-                    silderMax: 28,
-                    silderDivisions: 27,
-                    onSilderChange: (value) {
-                      playerService.setPlaybackSpeed(
-                        Utils.sliderToSpeed(value),
-                      );
-                    },
-                  ),
-                  SettingsTile.sliderTile(
-                    title: '长按加速播放速度',
-                    details: '${doubleSpeed.toStringAsFixed(2)}X',
-                    silderValue: doubleSpeed,
-                    silderMin: 1,
-                    silderMax: 8,
-                    silderDivisions: 28,
-                    onSilderChange: (value) {
-                      configure.doublePlaySpeed.value = value;
-                    },
-                  ),
-                  SettingsTile.switchTile(
-                    title: '跟随当前速度加速',
-                    onBoolChange: (value) {
-                      configure.doubleWithNowSpeed.value = value;
-                    },
-                    switchValue: configure.doubleWithNowSpeed.value,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
+    return SingleChildScrollView(
+      child: SignalBuilder(
+        builder: (context) {
+          final speed = playerService.playbackSpeed.value;
+          final configure = GetIt.I.get<ConfigureService>();
+          final doubleSpeed = configure.doublePlaySpeed.value;
+          return SettingsSection(
+            children: [
+              SettingsTile.sliderTile(
+                title: '当前播放速度',
+                details: '${speed.toStringAsFixed(2)}X',
+                silderValue: Utils.speedToSlider(speed),
+                silderMin: 1,
+                silderMax: 28,
+                silderDivisions: 27,
+                onSilderChange: (value) {
+                  playerService.setPlaybackSpeed(Utils.sliderToSpeed(value));
+                },
+              ),
+              SettingsTile.sliderTile(
+                title: '长按加速播放速度',
+                details: '${doubleSpeed.toStringAsFixed(2)}X',
+                silderValue: doubleSpeed,
+                silderMin: 1,
+                silderMax: 8,
+                silderDivisions: 28,
+                onSilderChange: (value) {
+                  configure.doublePlaySpeed.value = value;
+                },
+              ),
+              SettingsTile.switchTile(
+                title: '跟随当前速度加速',
+                onBoolChange: (value) {
+                  configure.doubleWithNowSpeed.value = value;
+                },
+                switchValue: configure.doubleWithNowSpeed.value,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildDanmakuActions(BuildContext context) {
     final configure = GetIt.I.get<ConfigureService>();
-    return FItemGroup(
-      style: settingsItemGroupStyle,
-      children: [
-        if (configure.danmakuServiceEnable.value) ...[
+    return SingleChildScrollView(
+      child: FItemGroup(
+        style: settingsItemGroupStyle,
+        children: [
+          if (configure.danmakuServiceEnable.value) ...[
+            FItem(
+              prefix: const Icon(MyIcon.danmaku, size: 20),
+              title: Text('弹幕信息'),
+              onPress: () => onDrawerChanged(.danmakuInfo),
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.palette, size: 20),
+              title: Text('弹幕外观'),
+              onPress: () => onDrawerChanged(.danmakuSettings),
+            ),
+            FItem(
+              prefix: const Icon(FLucideIcons.funnel, size: 20),
+              title: Text('弹幕过滤与延迟'),
+              onPress: () => onDrawerChanged(.danmakuFilter),
+            ),
+          ],
           FItem(
-            prefix: const Icon(MyIcon.danmaku, size: 20),
-            title: Text('弹幕信息'),
-            onPress: () => onDrawerChanged(.danmakuInfo),
+            prefix: const Icon(Icons.audiotrack_outlined, size: 20),
+            title: Text('音频选择'),
+            onPress: () => onDrawerChanged(.audioTrack),
           ),
           FItem(
-            prefix: const Icon(FLucideIcons.palette, size: 20),
-            title: Text('弹幕外观'),
-            onPress: () => onDrawerChanged(.danmakuSettings),
+            prefix: const Icon(FLucideIcons.closedCaption, size: 20),
+            title: Text('字幕选择'),
+            onPress: () => onDrawerChanged(.subtitleTrack),
           ),
           FItem(
-            prefix: const Icon(FLucideIcons.funnel, size: 20),
-            title: Text('弹幕过滤与延迟'),
-            onPress: () => onDrawerChanged(.danmakuFilter),
+            prefix: const Icon(FLucideIcons.wrench, size: 20),
+            title: Text('播放器显示设置'),
+            onPress: () => onDrawerChanged(.playerUI),
+          ),
+          FItem(
+            prefix: const Icon(FLucideIcons.hd, size: 20),
+            title: Text('超分辨率'),
+            onPress: () => onDrawerChanged(.superResolution),
+          ),
+          FItem(
+            prefix: const Icon(FLucideIcons.info, size: 20),
+            title: Text('播放信息'),
+            onPress: () => onDrawerChanged(.metadata),
           ),
         ],
-        FItem(
-          prefix: const Icon(Icons.audiotrack_outlined, size: 20),
-          title: Text('音频选择'),
-          onPress: () => onDrawerChanged(.audioTrack),
-        ),
-        FItem(
-          prefix: const Icon(FLucideIcons.closedCaption, size: 20),
-          title: Text('字幕选择'),
-          onPress: () => onDrawerChanged(.subtitleTrack),
-        ),
-        FItem(
-          prefix: const Icon(FLucideIcons.wrench, size: 20),
-          title: Text('播放器显示设置'),
-          onPress: () => onDrawerChanged(.playerUI),
-        ),
-        FItem(
-          prefix: const Icon(FLucideIcons.hd, size: 20),
-          title: Text('超分辨率'),
-          onPress: () => onDrawerChanged(.superResolution),
-        ),
-        FItem(
-          prefix: const Icon(FLucideIcons.info, size: 20),
-          title: Text('播放信息'),
-          onPress: () => onDrawerChanged(.metadata),
-        ),
-      ],
+      ),
     );
   }
 
@@ -272,149 +269,141 @@ class RightDrawerContent extends StatelessWidget {
   }
 
   Widget _buildPlayerUI(BuildContext context) {
-    return Scaffold(
-      body: SignalBuilder(
-        builder: (context) {
-          final configure = GetIt.I.get<ConfigureService>();
-          return ListView(
-            padding: const EdgeInsets.all(4),
-            children: [
-              SettingsSection(
-                title: '控制栏显示',
-                children: [
-                  SettingsTile.switchTile(
-                    title: '显示章节',
-                    switchValue: configure.showChapter.value,
-                    onBoolChange: (value) {
-                      configure.showChapter.value = value;
-                    },
-                  ),
-                  SettingsTile.switchTile(
-                    title: '显示弹幕趋势',
-                    switchValue: configure.showDanmakuTrend.value,
-                    onBoolChange: (value) {
-                      configure.showDanmakuTrend.value = value;
-                    },
-                  ),
-                  SettingsTile.switchTile(
-                    title: '始终显示进度条',
-                    switchValue: configure.alwaysShowProgressBar.value,
-                    onBoolChange: (value) {
-                      configure.alwaysShowProgressBar.value = value;
-                    },
-                  ),
-                ],
-              ),
-              SettingsSectionTitle('下一章节按钮显示模式'),
-              RadioSettingsSection(
-                showOnlySubtitle: true,
-                options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
-                value: configure.jumpButtonMode.value.toString(),
-                onChange: (value) {
-                  configure.jumpButtonMode.value = int.parse(value);
-                },
-              ),
-              StatefulBuilder(
-                builder: (context, setState) {
-                  final configure = GetIt.I.get<ConfigureService>();
-                  final settings = configure.subtitleSettings.value;
-                  return SettingsSection(
-                    title: '字幕设置',
-                    children: [
-                      SettingsTile.sliderTile(
-                        title: '字体大小',
-                        onSilderChange: (value) {
-                          setState(() => settings.fontSize = value.round());
-                        },
-                        onSilderEnd: (value) {
-                          configure.subtitleSettings.value = configure
-                              .subtitleSettings
-                              .value
-                              .copyWith(fontSize: value.round());
-                        },
-                        details: settings.fontSize.round().toString(),
-                        silderValue: settings.fontSize.toDouble(),
-                        silderDivisions: 20,
-                        silderMin: 30,
-                        silderMax: 70,
-                      ),
-                      SettingsTile.sliderTile(
-                        title: '显示位置',
-                        onSilderChange: (value) {
-                          setState(() => settings.marginY = value.round());
-                        },
-                        onSilderEnd: (value) {
-                          configure.subtitleSettings.value = configure
-                              .subtitleSettings
-                              .value
-                              .copyWith(marginY: value.round());
-                        },
-                        details: settings.marginY.round().toString(),
-                        silderValue: settings.marginY.toDouble(),
-                        silderDivisions: 20,
-                        silderMin: 10,
-                        silderMax: 50,
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          );
-        },
-      ),
+    return SignalBuilder(
+      builder: (context) {
+        final configure = GetIt.I.get<ConfigureService>();
+        return ListView(
+          children: [
+            SettingsSection(
+              title: '控制栏显示',
+              children: [
+                SettingsTile.switchTile(
+                  title: '显示章节',
+                  switchValue: configure.showChapter.value,
+                  onBoolChange: (value) {
+                    configure.showChapter.value = value;
+                  },
+                ),
+                SettingsTile.switchTile(
+                  title: '显示弹幕趋势',
+                  switchValue: configure.showDanmakuTrend.value,
+                  onBoolChange: (value) {
+                    configure.showDanmakuTrend.value = value;
+                  },
+                ),
+                SettingsTile.switchTile(
+                  title: '始终显示进度条',
+                  switchValue: configure.alwaysShowProgressBar.value,
+                  onBoolChange: (value) {
+                    configure.alwaysShowProgressBar.value = value;
+                  },
+                ),
+              ],
+            ),
+            SettingsSectionTitle('下一章节按钮显示模式'),
+            RadioSettingsSection(
+              showOnlySubtitle: true,
+              options: {'0': '优先显示章节跳转', '1': '只显示时间跳转', '2': '同时显示章节和时间跳转'},
+              value: configure.jumpButtonMode.value.toString(),
+              onChange: (value) {
+                configure.jumpButtonMode.value = int.parse(value);
+              },
+            ),
+            StatefulBuilder(
+              builder: (context, setState) {
+                final configure = GetIt.I.get<ConfigureService>();
+                final settings = configure.subtitleSettings.value;
+                return SettingsSection(
+                  title: '字幕设置',
+                  children: [
+                    SettingsTile.sliderTile(
+                      title: '字体大小',
+                      onSilderChange: (value) {
+                        setState(() => settings.fontSize = value.round());
+                      },
+                      onSilderEnd: (value) {
+                        configure.subtitleSettings.value = configure
+                            .subtitleSettings
+                            .value
+                            .copyWith(fontSize: value.round());
+                      },
+                      details: settings.fontSize.round().toString(),
+                      silderValue: settings.fontSize.toDouble(),
+                      silderDivisions: 20,
+                      silderMin: 30,
+                      silderMax: 70,
+                    ),
+                    SettingsTile.sliderTile(
+                      title: '显示位置',
+                      onSilderChange: (value) {
+                        setState(() => settings.marginY = value.round());
+                      },
+                      onSilderEnd: (value) {
+                        configure.subtitleSettings.value = configure
+                            .subtitleSettings
+                            .value
+                            .copyWith(marginY: value.round());
+                      },
+                      details: settings.marginY.round().toString(),
+                      silderValue: settings.marginY.toDouble(),
+                      silderDivisions: 20,
+                      silderMin: 10,
+                      silderMax: 50,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildSuperResolution(BuildContext context) {
     final configure = GetIt.I.get<ConfigureService>();
     final type = Signal(playerService.superResolutionType);
-    return Scaffold(
-      body: Padding(
-        padding: const .all(4),
-        child: ListView(
-          children: [
-            const SizedBox(height: 4),
-            SignalBuilder(
-              builder: (context) {
-                return RadioSettingsSection(
-                  showOnlySubtitle: true,
-                  options: const {
-                    '0': '关闭',
-                    '1': 'Mode A (HQ)',
-                    '2': 'Mode A (Fast)',
-                    '3': 'Mode B (HQ)',
-                    '4': 'Mode B (Fast)',
-                  },
-                  value: type.value.toString(),
-                  onChange: (value) {
-                    type.value = int.parse(value);
-                  },
-                );
+    return ListView(
+      children: [
+        const SizedBox(height: 4),
+        SignalBuilder(
+          builder: (context) {
+            return RadioSettingsSection(
+              showOnlySubtitle: true,
+              options: const {
+                '0': '关闭',
+                '1': 'Mode A (HQ)',
+                '2': 'Mode A (Fast)',
+                '3': 'Mode B (HQ)',
+                '4': 'Mode B (Fast)',
               },
-            ),
-            const SizedBox(height: 8),
-            FButton(
-              variant: .secondary,
-              onPress: () {
-                playerService.superResolutionType = type.value;
-                playerService.setSuperResolution();
+              value: type.value.toString(),
+              onChange: (value) {
+                type.value = int.parse(value);
               },
-              child: Text('仅本次有效'),
-            ),
-            const SizedBox(height: 8),
-            FButton(
-              variant: .secondary,
-              onPress: () {
-                playerService.superResolutionType = type.value;
-                configure.superResolutionType.value = type.value;
-                playerService.setSuperResolution();
-              },
-              child: Text('保存为默认设置'),
-            ),
-          ],
+            );
+          },
         ),
-      ),
+        const SizedBox(height: 8),
+        FButton(
+          variant: .secondary,
+          onPress: () {
+            playerService.superResolutionType = type.value;
+            playerService.setSuperResolution();
+          },
+          child: Text('仅本次有效'),
+        ),
+        const SizedBox(height: 8),
+        FButton(
+          variant: .secondary,
+          onPress: () {
+            playerService.superResolutionType = type.value;
+            configure.superResolutionType.value = type.value;
+            playerService.setSuperResolution();
+          },
+          child: Text('保存为默认设置'),
+        ),
+      ],
     );
   }
 }

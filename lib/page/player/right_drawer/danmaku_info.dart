@@ -21,90 +21,80 @@ class DanmakuInfoPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final globalService = GetIt.I.get<GlobalService>();
-    return Scaffold(
-      body: SignalBuilder(
-        builder: (context) {
-          return ListView(
-            padding: EdgeInsets.all(4),
-            children: [
-              FCard(
-                style: .delta(
-                  contentStyle: .delta(
-                    subtitleTextStyle: .delta(fontSize: 16, height: 1.4),
-                  ),
+    return SignalBuilder(
+      builder: (context) {
+        return ListView(
+          children: [
+            FCard(
+              style: .delta(
+                contentStyle: .delta(
+                  subtitleTextStyle: .delta(fontSize: 16, height: 1.4),
                 ),
-                title: Text('弹幕信息', style: context.theme.typography.body.xl),
-                subtitle: SignalBuilder(
-                  builder: (context) {
-                    return Column(
-                      crossAxisAlignment: .start,
-                      children: [
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Text('状态: ${danmakuService.status.value.label}'),
-                            const SizedBox(width: 4),
-                            if (danmakuService.status.value.level == 0)
-                              const Icon(
-                                FLucideIcons.check,
-                                color: Colors.green,
-                              ),
-                            if (danmakuService.status.value.level == 1)
-                              const FCircularProgress(),
-                            if (danmakuService.status.value.level == 2)
-                              const Icon(Icons.error, color: Colors.red),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text('来源: ${danmakuService.episode.value.url}'),
-                        const SizedBox(height: 8),
-                        Text(
-                          '精确关联: ${danmakuService.episode.value.matchLabel}',
-                        ),
-                        const SizedBox(height: 8),
-                        Text('剧名: ${danmakuService.episode.value.animeTitle}'),
-                        const SizedBox(height: 8),
-                        Text(
-                          '集名: ${danmakuService.episode.value.episodeTitle}',
-                        ),
-                        const SizedBox(height: 8),
-                        Text('数量: ${globalService.danmakuCountValue}'),
-                      ],
-                    );
-                  },
-                ),
-                mainAxisSize: MainAxisSize.min,
               ),
-              const SizedBox(height: 8),
-              FButton(
-                variant: .secondary,
-                onPress: () => onDrawerChanged(RightDrawerType.danmakuSearch),
-                child: const Text('手动搜索获取/更换弹幕'),
-              ),
-              const SizedBox(height: 8),
-              FButton(
-                variant: .secondary,
-                onPress: () {
-                  Navigator.pop(context);
-                  globalService.showNotification('正在匹配弹幕...');
-                  playerService.danmakuService.loadDanmaku(force: true);
+              title: Text('弹幕信息', style: context.theme.typography.body.xl),
+              subtitle: SignalBuilder(
+                builder: (context) {
+                  return Column(
+                    crossAxisAlignment: .start,
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text('状态: ${danmakuService.status.value.label}'),
+                          const SizedBox(width: 4),
+                          if (danmakuService.status.value.level == 0)
+                            const Icon(FLucideIcons.check, color: Colors.green),
+                          if (danmakuService.status.value.level == 1)
+                            const FCircularProgress(),
+                          if (danmakuService.status.value.level == 2)
+                            const Icon(Icons.error, color: Colors.red),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('来源: ${danmakuService.episode.value.url}'),
+                      const SizedBox(height: 8),
+                      Text('精确关联: ${danmakuService.episode.value.matchLabel}'),
+                      const SizedBox(height: 8),
+                      Text('剧名: ${danmakuService.episode.value.animeTitle}'),
+                      const SizedBox(height: 8),
+                      Text('集名: ${danmakuService.episode.value.episodeTitle}'),
+                      const SizedBox(height: 8),
+                      Text('数量: ${globalService.danmakuCountValue}'),
+                    ],
+                  );
                 },
-                child: const Text('重新匹配'),
               ),
-              const SizedBox(height: 8),
-              FButton(
-                variant: .secondary,
-                onPress: () {
-                  Navigator.pop(context);
-                  globalService.showNotification('正在加载弹幕...');
-                  playerService.danmakuService.refreshDanmaku();
-                },
-                child: const Text('重新加载'),
-              ),
-            ],
-          );
-        },
-      ),
+              mainAxisSize: MainAxisSize.min,
+            ),
+            const SizedBox(height: 8),
+            FButton(
+              variant: .secondary,
+              onPress: () => onDrawerChanged(RightDrawerType.danmakuSearch),
+              child: const Text('手动搜索获取/更换弹幕'),
+            ),
+            const SizedBox(height: 8),
+            FButton(
+              variant: .secondary,
+              onPress: () {
+                Navigator.pop(context);
+                globalService.showNotification('正在匹配弹幕...');
+                playerService.danmakuService.loadDanmaku(force: true);
+              },
+              child: const Text('重新匹配'),
+            ),
+            const SizedBox(height: 8),
+            FButton(
+              variant: .secondary,
+              onPress: () {
+                Navigator.pop(context);
+                globalService.showNotification('正在加载弹幕...');
+                playerService.danmakuService.refreshDanmaku();
+              },
+              child: const Text('重新加载'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

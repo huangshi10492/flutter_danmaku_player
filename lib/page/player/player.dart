@@ -605,8 +605,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   Widget _buildRightSide(bool lock) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    return SafeArea(
+      minimum: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
