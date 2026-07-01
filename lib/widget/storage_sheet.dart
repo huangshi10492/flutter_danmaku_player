@@ -6,6 +6,8 @@ import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fldanplay/utils/toast.dart';
+import 'package:fldanplay/utils/android_saf.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
@@ -659,6 +661,19 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                   ),
                   child: FButton(
                     onPress: () async {
+                      if (defaultTargetPlatform == TargetPlatform.android) {
+                        final uri = await AndroidSaf.pickDirectory(
+                          AndroidSaf.isTreeUri(_storage.url)
+                              ? _storage.url
+                              : null,
+                        );
+                        if (uri == null) return;
+                        setState(() {
+                          _storage.url = uri;
+                          _formData.controllers['url']!.text = uri;
+                        });
+                        return;
+                      }
                       final path = await FilePicker.getDirectoryPath();
                       if (path != null) {
                         setState(() {

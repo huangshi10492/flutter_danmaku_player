@@ -31,6 +31,7 @@ class FileExplorerPage extends StatefulWidget {
 
 class _FileExplorerPageState extends State<FileExplorerPage> {
   Storage? _storage;
+  String? _initError;
   final FileExplorerService _fileExplorerService = GetIt.I
       .get<FileExplorerService>();
   final OfflineCacheService _offlineCacheService = GetIt.I
@@ -74,31 +75,38 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   }
 
   void init() async {
-    final storageService = GetIt.I.get<StorageService>();
-    final storage = storageService.get(widget.storageKey);
-    if (storage == null) {
-      return;
-    }
-    late FileExplorerProvider provider;
-    switch (storage.storageType) {
-      case StorageType.webdav:
-        provider = WebDAVFileExplorerProvider(storage);
-        break;
-      case StorageType.ftp:
-        break;
-      case StorageType.smb:
-        break;
-      case StorageType.local:
-        provider = LocalFileExplorerProvider(storage.url);
-        break;
-      default:
+    try {
+      final storageService = GetIt.I.get<StorageService>();
+      final storage = storageService.get(widget.storageKey);
+      if (storage == null) {
         return;
+      }
+      late FileExplorerProvider provider;
+      switch (storage.storageType) {
+        case StorageType.webdav:
+          provider = WebDAVFileExplorerProvider(storage);
+          break;
+        case StorageType.ftp:
+          return;
+        case StorageType.smb:
+          return;
+        case StorageType.local:
+          provider = LocalFileExplorerProvider(storage.url);
+          break;
+        default:
+          return;
+      }
+      await provider.init();
+      _fileExplorerService.setProvider(provider, storage);
+      setState(() {
+        _storage = storage;
+        _initError = null;
+      });
+    } catch (e) {
+      setState(() {
+        _initError = e.toString();
+      });
     }
-    await provider.init();
-    _fileExplorerService.setProvider(provider, storage);
-    setState(() {
-      _storage = storage;
-    });
   }
 
   void _playVideo(String path, int index) {
@@ -121,6 +129,14 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     setState(() {});
   }
 
+  Future<void> _retryInit() async {
+    setState(() {
+      _storage = null;
+      _initError = null;
+    });
+    init();
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -134,7 +150,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       },
       child: Scaffold(
         appBar: SysAppBar(title: _storage?.name ?? ''),
-        body: _storage == null
+        body: _initError != null
+            ? ErrorRefresh(error: _initError!, onRefresh: _retryInit)
+            : _storage == null
             ? const Center(child: CircularProgressIndicator())
             : NotificationListener<UserScrollNotification>(
                 onNotification: (notification) {

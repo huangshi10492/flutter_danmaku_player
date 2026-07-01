@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:fldanplay/model/file_item.dart';
+import 'package:fldanplay/model/history.dart';
+import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/utils/android_saf.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:get_it/get_it.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:string_util_xx/StringUtilxx.dart';
 import 'package:webdav_client_plus/webdav_client_plus.dart';
-import '../model/storage.dart';
-import '../model/history.dart';
 
 abstract class FileExplorerProvider {
   Future<void> init();
@@ -146,7 +146,7 @@ class FileExplorerService {
   Future<VideoInfo> getVideoInfoFromHistory(History history) async {
     final parts = history.url!.split('/');
     final path = parts.sublist(1, parts.length);
-    final videoPath = '${_storage!.url}/${path.join('/')}';
+    final videoPath = provider.value!.getVideoUrl('/${path.join('/')}');
     final headers = provider.value!.headers;
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
@@ -300,15 +300,15 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
 class LocalFileExplorerProvider implements FileExplorerProvider {
   final String url;
   final _logger = Logger('LocalFileExplorerProvider');
+  final bool _useSaf;
 
   @override
   Map<String, String> get headers => {};
-  LocalFileExplorerProvider(this.url) {
-    Permission.videos.request();
-  }
+  LocalFileExplorerProvider(this.url) : _useSaf = AndroidSaf.isTreeUri(url);
 
   @override
   String getVideoUrl(String path) {
+    if (_useSaf) return '$url${Uri.encodeComponent(path)}';
     return '$url$path';
   }
 
@@ -319,6 +319,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     Filter filter,
   ) async {
     try {
+      if (_useSaf) return _listSafFiles(path, rootPath, filter);
       final historyService = GetIt.I.get<HistoryService>();
       if (path.isEmpty) {
         return [];
@@ -373,6 +374,49 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     }
   }
 
+  Future<List<FileItem>> _listSafFiles(
+    String path,
+    String rootPath,
+    Filter filter,
+  ) async {
+    final historyService = GetIt.I.get<HistoryService>();
+    final fileList = await AndroidSaf.listDirectory(url, path);
+    var list = <FileItem>[];
+    for (final file in fileList) {
+      if (filter.searchTerm.isNotEmpty &&
+          !file.name.contains(filter.searchTerm)) {
+        continue;
+      }
+      final filePath = '$path${file.name}';
+      if (file.isDir) {
+        if (filter.displayMode == 2) continue;
+        list.add(
+          FileItem(name: file.name, path: filePath, type: FileType.folder),
+        );
+        continue;
+      }
+      if (filter.displayMode == 1) continue;
+      if (FileItem.getFileType(file.name) != FileType.video) continue;
+      final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+        '$rootPath$filePath',
+      );
+      final history = historyService.getHistory(uniqueKey);
+      list.add(
+        FileItem(
+          name: file.name,
+          path: filePath,
+          type: FileType.video,
+          size: file.length < 0 ? null : file.length,
+          uniqueKey: uniqueKey,
+          history: history,
+        ),
+      );
+    }
+    list.sort(_compare);
+    if (!filter.sortOrder) list = list.reversed.toList();
+    return setVideoIndex(list);
+  }
+
   @override
   Future<bool> downloadVideo(
     String path,
@@ -380,34 +424,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    try {
-      final sourceFile = File('$url$path');
-      final targetFile = File(localPath);
-      if (!await sourceFile.exists()) {
-        throw AppException('源文件不存在: $url$path', null);
-      }
-      final fileSize = await sourceFile.length();
-      await targetFile.parent.create(recursive: true);
-      final sourceStream = sourceFile.openRead();
-      final targetSink = targetFile.openWrite();
-      int received = 0;
-      await for (final chunk in sourceStream) {
-        if (cancelToken?.isCancelled == true) {
-          await targetSink.close();
-          await targetFile.delete();
-          return false;
-        }
-        targetSink.add(chunk);
-        received += chunk.length;
-        onProgress?.call(received, fileSize);
-      }
-      await targetSink.close();
-      _logger.info('downloadVideo', '本地文件复制完成: $path -> $localPath');
-      return true;
-    } catch (e, t) {
-      _logger.error('downloadVideo', '本地文件复制失败', error: e, stackTrace: t);
-      return false;
-    }
+    throw AppException('本地视频不支持缓存视频', null);
   }
 
   @override
