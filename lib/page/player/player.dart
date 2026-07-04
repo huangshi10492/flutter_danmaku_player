@@ -119,6 +119,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 _uiState.setVolume(newVolume);
                 _uiState.brightnessVolumeService.setVolume(newVolume);
                 _playerService.setVolume(newVolume);
+                _uiState.hideIndicator();
               }
               // 下方向键被按下
               if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
@@ -128,6 +129,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 _uiState.setVolume(newVolume);
                 _uiState.brightnessVolumeService.setVolume(newVolume);
                 _playerService.setVolume(newVolume);
+                _uiState.hideIndicator();
               }
               if (event.logicalKey == LogicalKeyboardKey.escape) {
                 windowManager.setFullScreen(false);
