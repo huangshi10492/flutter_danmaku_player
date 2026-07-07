@@ -15,12 +15,18 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 abstract class StreamMediaExplorerProvider {
-  Dio getDio(String url, {UserInfo? userInfo});
+  Future<void> initialize({bool validateCredentials = true});
+  Future<Dio> getDio(
+    String url, {
+    UserInfo? userInfo,
+    bool validateCredentials = true,
+  });
   Future<UserInfo> login(Dio dio, String username, String password);
   Future<List<CollectionItem>> getUserViews();
   Future<List<ResumeItem>> getResumeItems({String? parentId, int limit = 12});
   Future<List<MediaItem>> getItems(String parentId, {required Filter filter});
   Future<MediaDetail> getMediaDetail(String itemId);
+  Future<void> setFavorite(String itemId, bool isFavorite);
   Future<PlaybackQueueResult> getPlaybackQueue(String itemId);
   Map<String, String> get headers;
   String getImageUrl(String itemId, {String tag = 'Primary'});
@@ -41,6 +47,25 @@ abstract class StreamMediaExplorerProvider {
   void dispose();
 }
 
+Future<StreamMediaExplorerProvider?> createStreamMediaExplorerProvider(
+  Storage storage, {
+  bool validateCredentials = true,
+}) async {
+  final StreamMediaExplorerProvider? provider;
+  switch (storage.storageType) {
+    case StorageType.jellyfin:
+      provider = JellyfinStreamMediaExplorerProvider(storage);
+      break;
+    case StorageType.emby:
+      provider = EmbyStreamMediaExplorerProvider(storage);
+      break;
+    default:
+      return null;
+  }
+  await provider.initialize(validateCredentials: validateCredentials);
+  return provider;
+}
+
 class Filter {
   String searchTerm = '';
   String years = '';
@@ -48,6 +73,8 @@ class Filter {
   String sortBy = 'SortName';
   // true: 升序，false: 降序
   bool sortOrder = true;
+  bool isFavorite = false;
+
   Filter();
 
   bool isFiltered() {
@@ -55,7 +82,8 @@ class Filter {
         years.isNotEmpty ||
         seriesStatus.isNotEmpty ||
         sortBy != 'SortName' ||
-        sortOrder != true;
+        sortOrder != true ||
+        isFavorite != false;
   }
 }
 
@@ -72,7 +100,7 @@ class StreamMediaExplorerService {
   final Signal<Filter> filter = signal(Filter());
   final AsyncSignal<List<MediaItem>> items = asyncSignal(AsyncLoading());
   final globalService = GetIt.I.get<GlobalService>();
-
+  bool get useRemoteHistory => storage?.useRemoteHistory == true;
   static void register() {
     final service = StreamMediaExplorerService();
     effect(service._syncLibraryId);
@@ -82,7 +110,7 @@ class StreamMediaExplorerService {
 
   Future<void> getData() async {
     items.value = AsyncLoading();
-    if (provider.value == null || libraryId.value.isEmpty) {
+    if (provider.value == null) {
       items.value = AsyncData([]);
       return;
     }
@@ -111,28 +139,29 @@ class StreamMediaExplorerService {
     _logger.info('setProvider', '设置新的媒体库提供者');
   }
 
-  Future<List<CollectionItem>> loadLibraries() async {
+  Future<void> loadLibraries() async {
     if (provider.value == null) {
       libraries.value = AsyncData([]);
-      return [];
+      return;
     }
     libraries.value = AsyncLoading();
     try {
-      final list = await provider.value!.getUserViews();
-      libraries.value = AsyncData(list);
+      final bool useRemoteHistory = storage?.useRemoteHistory ?? false;
+      final providerViews = await provider.value!.getUserViews();
+      final list = useRemoteHistory
+          ? [CollectionItem(id: '', name: '收藏'), ...providerViews]
+          : providerViews;
       if (list.isEmpty) {
-        libraryId.value = '';
-      } else {
-        final currentLibraryId = storage?.mediaLibraryId;
-        final selectedLibraryId =
-            list.any((item) => item.id == currentLibraryId)
-            ? currentLibraryId!
-            : list.first.id;
-        if (libraryId.value != selectedLibraryId) {
-          libraryId.value = selectedLibraryId;
-        }
+        final error = AppException('当前账号下没有可用媒体库', null);
+        libraries.value = AsyncError(error, StackTrace.current);
+        throw error;
       }
-      return list;
+      libraries.value = AsyncData(list);
+      final currentLibraryId = storage?.mediaLibraryId;
+      final selectedLibraryId = list.any((item) => item.id == currentLibraryId)
+          ? currentLibraryId!
+          : list.first.id;
+      libraryId.value = selectedLibraryId;
     } catch (e, t) {
       _logger.error('libraries', '加载媒体库列表失败', error: e, stackTrace: t);
       libraries.value = AsyncError(e, t);
@@ -248,6 +277,13 @@ class StreamMediaExplorerService {
     return provider.value!.getMediaDetail(itemId);
   }
 
+  Future<void> setFavorite(String itemId, bool isFavorite) async {
+    if (provider.value == null) {
+      throw AppException('收藏失败', '媒体服务未初始化');
+    }
+    await provider.value!.setFavorite(itemId, isFavorite);
+  }
+
   History? getHistory(EpisodeInfo episode) {
     final historyService = GetIt.I.get<HistoryService>();
     final localHistory = historyService.getHistoryByPath(episode.id);
@@ -315,32 +351,104 @@ class StreamMediaExplorerService {
 }
 
 class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
-  final String url;
-  final UserInfo userInfo;
-  late String auth;
+  final Storage storage;
+  late UserInfo _userInfo;
   late Dio dio;
   final Map<String, String> _playSessionIds = {};
   late final Logger _logger = Logger(loggerName);
 
-  EmbyStreamMediaExplorerProvider(this.url, this.userInfo) {
-    final globalService = GetIt.I.get<GlobalService>();
-    auth =
-        '$authPrefix Client="fldanplay", Device="${globalService.device}", DeviceId="${globalService.deviceId}", Version="0.0.1", Token="${userInfo.token}"';
-    dio = getDio(url, userInfo: userInfo);
+  EmbyStreamMediaExplorerProvider(this.storage) {
+    _userInfo = UserInfo(
+      userId: storage.userId ?? '',
+      token: storage.token ?? '',
+    );
   }
 
   String get authPrefix => 'Emby';
   String get authHeaderKey => 'Authorization';
   String get loggerName => 'EmbyStreamMediaExplorerProvider';
+  bool get _useRemoteHistory => storage.useRemoteHistory == true;
+  String get url => storage.url;
 
   String getItemsPath([String? itemId]) {
     return itemId != null
-        ? '/Users/${userInfo.userId}/Items/$itemId'
-        : '/Users/${userInfo.userId}/Items';
+        ? '/Users/${_userInfo.userId}/Items/$itemId'
+        : '/Users/${_userInfo.userId}/Items';
+  }
+
+  String _buildAuthHeader({UserInfo? userInfo}) {
+    final globalService = GetIt.I.get<GlobalService>();
+    String auth =
+        '$authPrefix Client="fldanplay", Device="${globalService.device}", DeviceId="${globalService.deviceId}", Version="${globalService.version}"';
+    final currentUserInfo = userInfo ?? _userInfo;
+    if (currentUserInfo.token.isNotEmpty) {
+      auth += ', Token="${currentUserInfo.token}"';
+    }
+    return auth;
+  }
+
+  Future<UserInfo> _authenticate(
+    Dio dio,
+    String username,
+    String password,
+  ) async {
+    final response = await dio.post(
+      '/Users/AuthenticateByName',
+      data: {'Username': username, 'Pw': password},
+    );
+    return UserInfo.fromJson(response.data);
+  }
+
+  Future<void> _loginWithSavedPassword(Dio dio) async {
+    final username = storage.account?.trim() ?? '';
+    final password = storage.password?.trim() ?? '';
+    if (username.isEmpty || password.isEmpty) {
+      throw AppException('登录信息无效，请重新编辑媒体库并登录', null);
+    }
+    try {
+      final newUserInfo = await _authenticate(dio, username, password);
+      _userInfo = newUserInfo;
+      storage
+        ..token = newUserInfo.token
+        ..userId = newUserInfo.userId;
+      await storage.save();
+      _logger.info('refreshCredentials', '登录凭证已刷新');
+    } on DioException catch (e) {
+      throw AppException(Logger.buildMessage(e, action: '重新登录'), null);
+    } catch (e) {
+      throw AppException('重新登录失败', e);
+    }
+  }
+
+  Future<void> _ensureCredentials(Dio dio) async {
+    final hasToken = _userInfo.token.isNotEmpty && _userInfo.userId.isNotEmpty;
+    if (!hasToken) {
+      await _loginWithSavedPassword(dio);
+      dio.options.headers[authHeaderKey] = _buildAuthHeader();
+      return;
+    }
+    try {
+      await dio.get('/Users/${_userInfo.userId}/Views');
+    } on DioException catch (e) {
+      if (e.response?.statusCode != 401) {
+        rethrow;
+      }
+      await _loginWithSavedPassword(dio);
+      dio.options.headers[authHeaderKey] = _buildAuthHeader();
+    }
   }
 
   @override
-  Map<String, String> get headers => {authHeaderKey: auth};
+  Future<void> initialize({bool validateCredentials = true}) async {
+    dio = await getDio(
+      url,
+      userInfo: _userInfo,
+      validateCredentials: validateCredentials,
+    );
+  }
+
+  @override
+  Map<String, String> get headers => {authHeaderKey: _buildAuthHeader()};
 
   @override
   Future<List<MediaItem>> getItems(
@@ -353,6 +461,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         'limit': 300,
         'recursive': true,
         'searchTerm': filter.searchTerm,
+        'IsFavorite': filter.isFavorite || parentId == '' ? true : null,
         'includeItemTypes': 'Movie,Series',
         'sortBy': filter.sortBy,
         'years': filter.years,
@@ -361,10 +470,10 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         'imageTypeLimit': '1',
         'enableImageTypes': 'Primary',
       };
-      final response = await dio.get('/Items', queryParameters: params);
+      final response = await dio.get(getItemsPath(), queryParameters: params);
       List<MediaItem> res = [];
       for (var item in response.data['Items']) {
-        res.add(MediaItem.fromJson(item));
+        res.add(MediaItem.fromJson(item, includeUserData: _useRemoteHistory));
       }
       return res;
     } on DioException catch (e, t) {
@@ -382,14 +491,17 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
 
   @override
   String getStreamUrl(String itemId) {
-    return '$url/Videos/$itemId/stream?static=true&api_key=${userInfo.token}';
+    return '$url/Videos/$itemId/stream?static=true&api_key=${_userInfo.token}';
   }
 
   @override
   Future<MediaDetail> getMediaDetail(String itemId) async {
     try {
       final response = await dio.get(getItemsPath(itemId));
-      final detail = MediaDetail.fromJson(response.data);
+      final detail = MediaDetail.fromJson(
+        response.data,
+        includeUserData: _useRemoteHistory,
+      );
 
       // 如果是系列，获取季度信息
       if (detail.type == MediaType.series) {
@@ -425,13 +537,38 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   @override
+  Future<void> setFavorite(String itemId, bool isFavorite) async {
+    try {
+      final path = '/Users/${_userInfo.userId}/FavoriteItems/$itemId';
+      if (isFavorite) {
+        await dio.post(path);
+      } else {
+        await dio.delete(path);
+      }
+    } on DioException catch (e, t) {
+      _logger.dio('setFavorite', e, t, action: isFavorite ? '添加收藏' : '取消收藏');
+    } catch (e, t) {
+      _logger.error(
+        'setFavorite',
+        isFavorite ? '添加收藏失败' : '取消收藏失败',
+        error: e,
+        stackTrace: t,
+      );
+      throw AppException(isFavorite ? '添加收藏失败' : '取消收藏失败', e);
+    }
+  }
+
+  @override
   Future<PlaybackQueueResult> getPlaybackQueue(String itemId) async {
     try {
       final response = await dio.get(getItemsPath(itemId));
       final item = response.data as Map<String, dynamic>;
       final type = item['Type'] as String?;
       if (type == 'Movie') {
-        final itemInfo = ItemInfo.fromJson(item);
+        final itemInfo = ItemInfo.fromJson(
+          item,
+          includeUserData: _useRemoteHistory,
+        );
         return PlaybackQueueResult(
           season: SeasonInfo(
             id: item['Id'] ?? itemId,
@@ -480,24 +617,34 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   @override
-  Dio getDio(String url, {UserInfo? userInfo}) {
-    final globalService = GetIt.I.get<GlobalService>();
-    String auth =
-        '$authPrefix Client="fldanplay", Device="${globalService.device}", DeviceId="${globalService.deviceId}", Version="0.0.1"';
-    if (userInfo != null) {
-      auth += ', Token="${userInfo.token}"';
+  Future<Dio> getDio(
+    String url, {
+    UserInfo? userInfo,
+    bool validateCredentials = true,
+  }) async {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: url,
+        headers: {authHeaderKey: _buildAuthHeader(userInfo: userInfo)},
+      ),
+    );
+    if (validateCredentials) {
+      try {
+        await _ensureCredentials(dio);
+      } on DioException catch (e, t) {
+        _logger.dio('getDio', e, t, action: '校验登录凭证');
+      } catch (e, t) {
+        _logger.error('getDio', '校验登录凭证失败', error: e, stackTrace: t);
+        throw AppException('校验登录凭证失败', e);
+      }
     }
-    return Dio(BaseOptions(baseUrl: url, headers: {authHeaderKey: auth}));
+    return dio;
   }
 
   @override
   Future<UserInfo> login(Dio dio, String username, String password) async {
     try {
-      final response = await dio.post(
-        '/Users/AuthenticateByName',
-        data: {'Username': username, 'Pw': password},
-      );
-      return UserInfo.fromJson(response.data);
+      return await _authenticate(dio, username, password);
     } on DioException catch (e, t) {
       _logger.dio('login', e, t, action: '登录');
     } catch (e, t) {
@@ -509,7 +656,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   @override
   Future<List<CollectionItem>> getUserViews() async {
     try {
-      final response = await dio.get('/Users/${userInfo.userId}/Views');
+      final response = await dio.get('/Users/${_userInfo.userId}/Views');
       List<CollectionItem> res = [];
       for (var item in response.data['Items']) {
         res.add(CollectionItem.fromJson(item));
@@ -530,7 +677,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }) async {
     try {
       final response = await dio.get(
-        '/Users/${userInfo.userId}/Items/Resume',
+        '/Users/${_userInfo.userId}/Items/Resume',
         queryParameters: {
           'Limit': limit,
           'Recursive': true,
@@ -644,7 +791,10 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   Future<ItemInfo> getItemInfo(String itemId) async {
     try {
       final response = await dio.get(getItemsPath(itemId));
-      return ItemInfo.fromJson(response.data);
+      return ItemInfo.fromJson(
+        response.data,
+        includeUserData: _useRemoteHistory,
+      );
     } on DioException catch (e, t) {
       _logger.dio('getItemInfo', e, t, action: '获取项目信息');
     } catch (e, t) {
@@ -703,7 +853,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     try {
       final response = await dio.post(
         '/Items/$itemId/PlaybackInfo',
-        queryParameters: {'UserId': userInfo.userId},
+        queryParameters: {'UserId': _userInfo.userId},
       );
       final playSessionId = response.data['PlaySessionId'] as String;
       _logger.info('getPlaybackInfo', '获取 PlaySessionId: $playSessionId');
@@ -808,7 +958,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
 
 class JellyfinStreamMediaExplorerProvider
     extends EmbyStreamMediaExplorerProvider {
-  JellyfinStreamMediaExplorerProvider(super.url, super.userInfo);
+  JellyfinStreamMediaExplorerProvider(super.storage);
 
   @override
   String get loggerName => 'JellyfinStreamMediaExplorerProvider';

@@ -1,4 +1,3 @@
-import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -125,25 +124,12 @@ class _HistoryPageState extends State<HistoryPage> {
             showToast(level: 3, title: '播放失败', description: '找不到对应的媒体库');
             return;
           }
-          switch (storage.storageType) {
-            case StorageType.jellyfin:
-              final provider = JellyfinStreamMediaExplorerProvider(
-                storage.url,
-                UserInfo(userId: storage.userId!, token: storage.token!),
-              );
-              _streamMediaExplorerService.setProvider(provider, storage);
-              break;
-            case StorageType.emby:
-              final provider = EmbyStreamMediaExplorerProvider(
-                storage.url,
-                UserInfo(userId: storage.userId!, token: storage.token!),
-              );
-              _streamMediaExplorerService.setProvider(provider, storage);
-              break;
-            default:
-              showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
-              return;
+          final provider = await createStreamMediaExplorerProvider(storage);
+          if (provider == null) {
+            showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
+            return;
           }
+          _streamMediaExplorerService.setProvider(provider, storage);
           videoInfo = _streamMediaExplorerService.getVideoInfoFromHistory(
             history,
           );

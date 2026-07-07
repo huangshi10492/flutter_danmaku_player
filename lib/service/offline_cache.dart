@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:fldanplay/model/offline_cache.dart';
 import 'package:fldanplay/model/storage.dart';
-import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/service/file_explorer.dart';
@@ -113,22 +112,9 @@ class OfflineCacheService {
       bool success = false;
       final localPath = '$_downloadPath/${videoInfo.uniqueKey}.temp';
       if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
-        StreamMediaExplorerProvider provider;
-        switch (storage!.storageType) {
-          case StorageType.jellyfin:
-            provider = JellyfinStreamMediaExplorerProvider(
-              storage.url,
-              UserInfo(userId: storage.userId!, token: storage.token!),
-            );
-            break;
-          case StorageType.emby:
-            provider = EmbyStreamMediaExplorerProvider(
-              storage.url,
-              UserInfo(userId: storage.userId!, token: storage.token!),
-            );
-            break;
-          default:
-            throw AppException('不支持的媒体库类型', null);
+        final provider = await createStreamMediaExplorerProvider(storage!);
+        if (provider == null) {
+          throw AppException('不支持的媒体库类型', null);
         }
         success = await provider.downloadVideo(
           videoInfo.virtualVideoPath,

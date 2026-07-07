@@ -30,6 +30,7 @@ class FileImageEx extends FileImage {
 
 class VideoItem extends StatefulWidget with FItemMixin {
   final History? history;
+  final bool coutinue;
   final String uniqueKey;
   final String name;
   final DanmakuMatchVideoInfo? danmakuMatchInfo;
@@ -40,11 +41,10 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final String? imageUrl;
   final Map<String, String>? headers;
   final Function()? onOfflineDownload;
-  final double previewWidth;
-  final double previewHeight;
   const VideoItem({
     super.key,
     required this.history,
+    this.coutinue = false,
     required this.uniqueKey,
     required this.name,
     this.danmakuMatchInfo,
@@ -55,8 +55,6 @@ class VideoItem extends StatefulWidget with FItemMixin {
     this.imageUrl,
     this.headers,
     this.onOfflineDownload,
-    this.previewWidth = 100,
-    this.previewHeight = 65,
   });
   @override
   State<VideoItem> createState() => _VideoItemState();
@@ -136,7 +134,7 @@ class _VideoItemState extends State<VideoItem> {
   }
 
   Future<Widget> _buildPrefix(History? history) async {
-    if (history != null) {
+    if (history != null && history.position > 0) {
       final directory = await getApplicationSupportDirectory();
       final file = File('${directory.path}/screenshots/${history.uniqueKey}');
       bool hasLocalImage = false;
@@ -254,8 +252,8 @@ class _VideoItemState extends State<VideoItem> {
       },
       child: (controller) => FItem(
         prefix: SizedBox(
-          width: widget.previewWidth,
-          height: widget.previewHeight,
+          width: widget.coutinue ? 144 : 100,
+          height: widget.coutinue ? 81 : 65,
           child: FutureBuilder(
             future: _prefixFuture,
             builder: (context, snapshot) {
@@ -270,7 +268,7 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         title: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: widget.previewHeight),
+          constraints: BoxConstraints(minHeight: widget.coutinue ? 81 : 56),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -283,7 +281,11 @@ class _VideoItemState extends State<VideoItem> {
                   ),
                   child: Text(widget.name),
                 ),
-                child: Text(widget.name, maxLines: 2),
+                child: Text(
+                  widget.name,
+                  maxLines: widget.coutinue ? 1 : 2,
+                  overflow: .ellipsis,
+                ),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,7 +293,8 @@ class _VideoItemState extends State<VideoItem> {
                   subtitle == null
                       ? const SizedBox()
                       : Text(subtitle, style: subtitleStyle),
-                  if (widget.history != null) ...[
+                  if (widget.history != null &&
+                      widget.history!.position > 0) ...[
                     const SizedBox(height: 4),
                     FDeterminateProgress(
                       value: progress,

@@ -90,7 +90,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   }
 
   Future<void> _loadContinueItem() async {
-    if (_service.storage?.useRemoteHistory != true) return;
+    if (_service.useRemoteHistory != true) return;
     try {
       final items = await _service.fetchResumeItems(
         parentId: widget.mediaItem.id,
@@ -105,6 +105,26 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         _error = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (!_service.useRemoteHistory) return;
+    final mediaDetail = _mediaDetail;
+    if (mediaDetail == null) return;
+    final nextValue = !mediaDetail.isFavorite;
+    try {
+      await _service.setFavorite(widget.mediaItem.id, nextValue);
+      if (!mounted) return;
+      setState(() {
+        _mediaDetail = mediaDetail.copyWith(isFavorite: nextValue);
+      });
+    } catch (e) {
+      showToast(
+        level: 3,
+        title: nextValue ? '收藏失败' : '取消收藏失败',
+        description: e.toString(),
+      );
     }
   }
 
@@ -170,8 +190,8 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                     stretch: true,
                     centerTitle: false,
                     expandedHeight:
-                        304 +
-                        (_showContinueSection ? 144 : 0) +
+                        250 +
+                        (_showContinueSection ? 96 : 0) +
                         kTextTabBarHeight +
                         kToolbarHeight,
                     toolbarHeight: kToolbarHeight,
@@ -200,11 +220,15 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                                   ),
                                   headers: _service.headers,
                                   isLoading: _isLoading,
+                                  showFavoriteAction: _service.useRemoteHistory,
+                                  isFavorite: _mediaDetail?.isFavorite ?? false,
                                   mediaDetail: _mediaDetail,
+                                  onToggleFavorite: _toggleFavorite,
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
                           if (_showContinueSection) _buildContinueSection(),
                         ],
                       ),
@@ -318,28 +342,18 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     );
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 1000),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const .only(left: 16, top: 8),
-            child: Text('继续观看', style: context.theme.typography.body.xl),
-          ),
-          VideoItem(
-            history: history,
-            uniqueKey: uniqueKey,
-            name: item.name,
-            onPress: _playContinueItem,
-            refreshKey: refreshKey,
-            imageUrl: item.mainImage == null
-                ? null
-                : _service.getImageUrl(item.mainImage!),
-            headers: _service.headers,
-            previewWidth: 160,
-            previewHeight: 90,
-            onLongPress: () {},
-          ),
-        ],
+      child: VideoItem(
+        history: history,
+        coutinue: true,
+        uniqueKey: uniqueKey,
+        name: item.name,
+        onPress: _playContinueItem,
+        refreshKey: refreshKey,
+        imageUrl: item.mainImage == null
+            ? null
+            : _service.getImageUrl(item.mainImage!),
+        headers: _service.headers,
+        onLongPress: () {},
       ),
     );
   }

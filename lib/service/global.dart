@@ -2,6 +2,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:signals/signals_core.dart';
 
 class GlobalService {
@@ -28,6 +29,7 @@ class GlobalService {
   String device = 'Unknown';
   String deviceId = 'Unknown';
   int androidSdkVersion = 0;
+  String version = '';
 
   static Future<void> register() async {
     final service = GlobalService();
@@ -52,8 +54,10 @@ class GlobalService {
       deviceId = deviceInfo.deviceId;
     } else if (deviceInfo is LinuxDeviceInfo) {
       device = deviceInfo.name;
-      deviceId = deviceInfo.id;
+      deviceId = deviceInfo.machineId ?? deviceInfo.id;
     }
+    final packageInfo = await PackageInfo.fromPlatform();
+    version = packageInfo.version;
   }
 
   void showNotification(String message) {

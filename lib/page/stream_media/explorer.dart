@@ -5,7 +5,6 @@ import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/toast.dart';
-import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:flutter/gestures.dart';
@@ -57,23 +56,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         });
         return;
       }
-      final provider = switch (currentStorage.storageType) {
-        StorageType.jellyfin => JellyfinStreamMediaExplorerProvider(
-          currentStorage.url,
-          UserInfo(
-            userId: currentStorage.userId!,
-            token: currentStorage.token!,
-          ),
-        ),
-        StorageType.emby => EmbyStreamMediaExplorerProvider(
-          currentStorage.url,
-          UserInfo(
-            userId: currentStorage.userId!,
-            token: currentStorage.token!,
-          ),
-        ),
-        _ => null,
-      };
+      final provider = await createStreamMediaExplorerProvider(currentStorage);
       if (provider == null) {
         setState(() {
           storage = currentStorage;
@@ -235,15 +218,6 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         final activeLibraryId = streamMediaExplorerService.libraryId.value;
         return librariesState.map(
           data: (libraries) {
-            if (libraries.isEmpty) {
-              return Padding(
-                padding: const .symmetric(vertical: 8, horizontal: 4),
-                child: Text(
-                  '当前账号下没有可用媒体库',
-                  style: context.theme.typography.body.md,
-                ),
-              );
-            }
             return SignalBuilder(
               builder: (context) => Wrap(
                 crossAxisAlignment: .center,
@@ -251,7 +225,10 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                   ...libraries.map((library) {
                     final selected = activeLibraryId == library.id;
                     return _buildAnimatedLibraryItem(
-                      visible: selected || _librariesExpanded.value,
+                      visible:
+                          selected ||
+                          _librariesExpanded.value ||
+                          library.id == '',
                       child: _buildLibraryItem(library, selected),
                     );
                   }),
@@ -305,6 +282,13 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildMediaCard(MediaItem mediaItem) {
+    final unplayedItemCount = streamMediaExplorerService.useRemoteHistory
+        ? mediaItem.userData?.unplayedItemCount ?? 0
+        : 0;
+    final showUnplayedBadge = unplayedItemCount > 0;
+    final unplayedBadgeText = unplayedItemCount > 99
+        ? '99+'
+        : '$unplayedItemCount';
     return InkWell(
       onTap: () {
         context.push(streamMediaDetailPath, extra: mediaItem);
@@ -318,17 +302,45 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
               builder: (context, boxConstraints) {
                 final double maxWidth = boxConstraints.maxWidth;
                 final double maxHeight = boxConstraints.maxHeight;
-                return Hero(
-                  transitionOnUserGestures: true,
-                  tag: mediaItem.id,
-                  child: NetworkImageWidget(
-                    url: streamMediaExplorerService.getImageUrl(mediaItem.id),
-                    headers: streamMediaExplorerService.headers,
-                    maxWidth: maxWidth,
-                    maxHeight: maxHeight,
-                    radius: maxWidth / 25,
-                    errorWidget: _buildEmptyPrefix(),
-                  ),
+                return Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Hero(
+                        transitionOnUserGestures: true,
+                        tag: mediaItem.id,
+                        child: NetworkImageWidget(
+                          url: streamMediaExplorerService.getImageUrl(
+                            mediaItem.id,
+                          ),
+                          headers: streamMediaExplorerService.headers,
+                          maxWidth: maxWidth,
+                          maxHeight: maxHeight,
+                          radius: maxWidth / 25,
+                          errorWidget: _buildEmptyPrefix(),
+                        ),
+                      ),
+                    ),
+                    if (showUnplayedBadge)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: FBadge(
+                          style: .delta(
+                            contentStyle: .delta(padding: .value(.zero)),
+                          ),
+                          child: Container(
+                            height: 20,
+                            constraints: BoxConstraints(minWidth: 20),
+                            alignment: .center,
+                            padding: .all(2),
+                            child: Text(
+                              unplayedBadgeText,
+                              style: TextStyle(fontSize: 12, height: 1),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
             ),
@@ -352,13 +364,29 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Future<void> _loadResumeItems() async {
-    if (storage?.useRemoteHistory != true) return;
+    if (streamMediaExplorerService.useRemoteHistory != true) return;
     try {
       final items = await streamMediaExplorerService.fetchResumeItems();
       if (!mounted) return;
       setState(() => _resumeItems = items);
     } catch (e) {
       showToast(level: 3, title: '加载继续观看失败', description: e.toString());
+    }
+  }
+
+  Future<void> _refreshPage() async {
+    if (storage == null || _error != null) {
+      await _initializePage();
+      return;
+    }
+    try {
+      await streamMediaExplorerService.loadLibraries();
+      await Future.wait([
+        streamMediaExplorerService.refresh(),
+        _loadResumeItems(),
+      ]);
+    } catch (e) {
+      showToast(level: 3, title: '刷新失败', description: e.toString());
     }
   }
 
@@ -402,16 +430,38 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
               aspectRatio: 16 / 9,
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  if (imageUrl == null) {
-                    return _buildEmptyPrefix();
-                  }
-                  return NetworkImageWidget(
-                    url: imageUrl,
-                    headers: streamMediaExplorerService.headers,
-                    maxWidth: constraints.maxWidth,
-                    maxHeight: constraints.maxHeight,
-                    fit: .contain,
-                    errorWidget: _buildEmptyPrefix(),
+                  return ClipRRect(
+                    borderRadius: .circular(8),
+                    child: Stack(
+                      children: [
+                        imageUrl == null
+                            ? _buildEmptyPrefix()
+                            : NetworkImageWidget(
+                                url: imageUrl,
+                                headers: streamMediaExplorerService.headers,
+                                maxWidth: constraints.maxWidth,
+                                maxHeight: constraints.maxHeight,
+                                fit: .contain,
+                                errorWidget: _buildEmptyPrefix(),
+                              ),
+                        if (progressValue != null)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: FDeterminateProgress(
+                              value: progressValue,
+                              style: .delta(
+                                motion: .delta(duration: Duration.zero),
+                                trackDecoration: .boxDelta(
+                                  color: Colors.transparent,
+                                ),
+                                constraints: .tightFor(height: 4),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -436,20 +486,6 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                     overflow: .ellipsis,
                     style: subtitleStyle,
                   ),
-                  const SizedBox(height: 4),
-                  if (progressValue != null && positionMs > 0)
-                    LinearProgressIndicator(
-                      value: progressValue,
-                      minHeight: 4,
-                      borderRadius: .circular(4),
-                    ),
-                  SizedBox(height: positionMs == 0 ? 8 : 4),
-                  Text(
-                    positionMs > 0
-                        ? Utils.formatTime(positionMs, durationMs)
-                        : '未观看',
-                    style: subtitleStyle,
-                  ),
                 ],
               ),
             ),
@@ -461,38 +497,28 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
 
   Widget _buildContinueWatchingSection() {
     if (_resumeItems.isEmpty) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: .start,
-      children: [
-        Padding(
-          padding: const .only(left: 4),
-          child: Text('继续观看', style: context.theme.typography.body.xl),
-        ),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final screenWidth = constraints.maxWidth;
-            final itemWidth = 120.0 + (screenWidth - 300).clamp(0, 300) * 0.4;
-            return SizedBox(
-              height: itemWidth / 16 * 9 + 70,
-              child: _HorizontalWheelScroll(
-                controller: _resumeScrollController,
-                child: ListView.builder(
-                  controller: _resumeScrollController,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _resumeItems.length,
-                  itemBuilder: (context, index) {
-                    return _buildContinuePlaybackCard(
-                      _resumeItems[index],
-                      itemWidth,
-                    );
-                  },
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = constraints.maxWidth;
+        final itemWidth = 150.0 + (screenWidth - 300).clamp(0, 300) * 0.3;
+        return SizedBox(
+          height: itemWidth / 16 * 9 + 45,
+          child: _HorizontalWheelScroll(
+            controller: _resumeScrollController,
+            child: ListView.builder(
+              controller: _resumeScrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: _resumeItems.length,
+              itemBuilder: (context, index) {
+                return _buildContinuePlaybackCard(
+                  _resumeItems[index],
+                  itemWidth,
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -567,24 +593,27 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
     }
     return SafeArea(
       minimum: const .symmetric(horizontal: 8),
-      child: NotificationListener<UserScrollNotification>(
-        onNotification: (notification) {
-          if (notification.direction == .forward) {
-            setState(() => isFABVisible = true);
-          }
-          if (notification.direction == .reverse) {
-            setState(() => isFABVisible = false);
-          }
-          return false;
-        },
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(child: _buildLibrarySection()),
-            const SliverToBoxAdapter(child: SizedBox(height: 4)),
-            SliverToBoxAdapter(child: _buildContinueWatchingSection()),
-            const SliverToBoxAdapter(child: SizedBox(height: 8)),
-            _buildGridSection(),
-          ],
+      child: RefreshIndicator(
+        onRefresh: _refreshPage,
+        child: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.direction == .forward) {
+              setState(() => isFABVisible = true);
+            }
+            if (notification.direction == .reverse) {
+              setState(() => isFABVisible = false);
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(child: _buildContinueWatchingSection()),
+              SliverToBoxAdapter(child: _buildLibrarySection()),
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+              _buildGridSection(),
+            ],
+          ),
         ),
       ),
     );

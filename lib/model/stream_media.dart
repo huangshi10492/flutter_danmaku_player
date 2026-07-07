@@ -1,5 +1,3 @@
-enum CollectionType { tvshows, movies, none }
-
 enum MediaType {
   movie('Movie'),
   series('Series'),
@@ -20,23 +18,11 @@ class UserInfo {
 
 class CollectionItem {
   final String name;
-  final CollectionType type;
   final String id;
-  CollectionItem({
-    required this.name,
-    required this.id,
-    this.type = CollectionType.none,
-  });
+  CollectionItem({required this.name, required this.id});
 
   factory CollectionItem.fromJson(Map<String, dynamic> json) {
-    return CollectionItem(
-      name: json['Name'],
-      id: json['Id'],
-      type: CollectionType.values.firstWhere(
-        (e) => e.name == json['CollectionType'],
-        orElse: () => CollectionType.none,
-      ),
-    );
+    return CollectionItem(name: json['Name'], id: json['Id']);
   }
 }
 
@@ -88,9 +74,18 @@ class MediaItem {
   final String name;
   final String id;
   final MediaType type;
-  MediaItem({required this.name, required this.id, this.type = MediaType.none});
+  final UserData? userData;
+  MediaItem({
+    required this.name,
+    required this.id,
+    this.type = MediaType.none,
+    this.userData,
+  });
 
-  factory MediaItem.fromJson(Map<String, dynamic> json) {
+  factory MediaItem.fromJson(
+    Map<String, dynamic> json, {
+    bool includeUserData = false,
+  }) {
     return MediaItem(
       name: json['Name'],
       id: json['Id'],
@@ -98,6 +93,9 @@ class MediaItem {
         (e) => e.name == json['Type'],
         orElse: () => MediaType.none,
       ),
+      userData: includeUserData && json['UserData'] != null
+          ? UserData.fromJson(json['UserData'])
+          : null,
     );
   }
 }
@@ -111,6 +109,7 @@ class MediaDetail {
   final int? runTimeTicks;
   final MediaType type;
   final double rating;
+  final bool isFavorite;
   final List<ExternalUrl> externalUrls;
   final List<String> tags;
   List<SeasonInfo> seasons = [];
@@ -124,11 +123,15 @@ class MediaDetail {
     this.runTimeTicks,
     this.type = MediaType.none,
     this.rating = 0,
+    this.isFavorite = false,
     this.externalUrls = const [],
     this.tags = const [],
   });
 
-  factory MediaDetail.fromJson(Map<String, dynamic> json) {
+  factory MediaDetail.fromJson(
+    Map<String, dynamic> json, {
+    bool includeUserData = false,
+  }) {
     double priceAsDouble(dynamic value) {
       if (value is int) {
         return (value).toDouble();
@@ -148,11 +151,43 @@ class MediaDetail {
         orElse: () => MediaType.none,
       ),
       rating: priceAsDouble(json['CommunityRating'] ?? 0.0),
+      isFavorite: includeUserData && json['UserData']?['IsFavorite'] == true,
       externalUrls: List<ExternalUrl>.from(
         json['ExternalUrls'].map((x) => ExternalUrl.fromJson(x)),
       ),
       tags: List<String>.from(json["Tags"]?.map((x) => x as String) ?? []),
     );
+  }
+
+  MediaDetail copyWith({
+    String? id,
+    String? name,
+    String? overview,
+    List<String>? genres,
+    int? productionYear,
+    int? runTimeTicks,
+    MediaType? type,
+    double? rating,
+    bool? isFavorite,
+    List<ExternalUrl>? externalUrls,
+    List<String>? tags,
+    List<SeasonInfo>? seasons,
+  }) {
+    final detail = MediaDetail(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      overview: overview ?? this.overview,
+      genres: genres ?? this.genres,
+      productionYear: productionYear ?? this.productionYear,
+      runTimeTicks: runTimeTicks ?? this.runTimeTicks,
+      type: type ?? this.type,
+      rating: rating ?? this.rating,
+      isFavorite: isFavorite ?? this.isFavorite,
+      externalUrls: externalUrls ?? this.externalUrls,
+      tags: tags ?? this.tags,
+    );
+    detail.seasons = seasons ?? this.seasons;
+    return detail;
   }
 
   String? get formattedRuntime {
@@ -259,34 +294,48 @@ class EpisodeInfo {
 
 class ItemInfo {
   final String fileName;
-  final UserData userData;
+  final UserData? userData;
 
   ItemInfo({required this.fileName, required this.userData});
 
-  factory ItemInfo.fromJson(Map<String, dynamic> json) {
+  factory ItemInfo.fromJson(
+    Map<String, dynamic> json, {
+    bool includeUserData = false,
+  }) {
     final List<dynamic>? mediaSources = json['MediaSources'];
     if (mediaSources == null || mediaSources.isEmpty) {
       throw Exception('MediaSources is null');
     }
     return ItemInfo(
       fileName: mediaSources.first['Name'] ?? '',
-      userData: UserData.fromJson(json['UserData']),
+      userData: includeUserData && json['UserData'] != null
+          ? UserData.fromJson(json['UserData'])
+          : null,
     );
   }
 }
 
 class UserData {
+  final int? unplayedItemCount;
   final int? playbackPositionTicks;
   final DateTime? lastPlayedDate;
+  final bool isFavorite;
 
-  UserData({this.playbackPositionTicks, this.lastPlayedDate});
+  UserData({
+    this.unplayedItemCount,
+    this.playbackPositionTicks,
+    this.lastPlayedDate,
+    this.isFavorite = false,
+  });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
+      unplayedItemCount: json['UnplayedItemCount'],
       playbackPositionTicks: json['PlaybackPositionTicks'],
       lastPlayedDate: json['LastPlayedDate'] != null
           ? DateTime.parse(json['LastPlayedDate']).toUtc()
           : null,
+      isFavorite: json['IsFavorite'] == true,
     );
   }
 }

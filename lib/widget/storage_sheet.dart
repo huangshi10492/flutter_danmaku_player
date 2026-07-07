@@ -1,5 +1,4 @@
 import 'package:fldanplay/model/storage.dart';
-import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/log.dart';
@@ -456,19 +455,22 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
         password.isEmpty) {
       throw AppException('登录失败', '请填写完整的服务器地址、用户名和密码');
     }
-    StreamMediaExplorerProvider apiUtils;
-    if (widget.storageType == StorageType.jellyfin) {
-      apiUtils = JellyfinStreamMediaExplorerProvider(
-        url,
-        UserInfo(userId: '', token: ''),
-      );
-    } else {
-      apiUtils = EmbyStreamMediaExplorerProvider(
-        url,
-        UserInfo(userId: '', token: ''),
-      );
+    final tempStorage = _storage.copyWith(
+      url: url,
+      account: username,
+      password: password,
+      storageType: widget.storageType,
+      token: '',
+      userId: '',
+    );
+    final apiUtils = await createStreamMediaExplorerProvider(
+      tempStorage,
+      validateCredentials: false,
+    );
+    if (apiUtils == null) {
+      throw AppException('登录失败', '不支持的媒体库类型');
     }
-    final dio = apiUtils.getDio(url);
+    final dio = await apiUtils.getDio(url, validateCredentials: false);
     final userInfo = await apiUtils.login(dio, username, password);
     setState(() {
       _storage.token = userInfo.token;

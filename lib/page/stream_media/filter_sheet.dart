@@ -15,6 +15,7 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
   late Filter filter = service.filter.value;
   late TextEditingController searchController;
   late TextEditingController yearsController;
+  late bool isFavorite;
   late String status;
   late String sortBy;
   late bool sortOrder;
@@ -37,6 +38,7 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
     setState(() {
       searchController = TextEditingController(text: filter.searchTerm);
       yearsController = TextEditingController(text: filter.years);
+      isFavorite = service.useRemoteHistory ? filter.isFavorite : false;
       status = filter.seriesStatus;
       sortBy = filter.sortBy;
       sortOrder = filter.sortOrder;
@@ -54,6 +56,7 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
     Filter filter = Filter()
       ..searchTerm = searchController.text
       ..years = yearsController.text
+      ..isFavorite = service.useRemoteHistory ? isFavorite : false
       ..seriesStatus = status
       ..sortBy = sortBy
       ..sortOrder = sortOrder;
@@ -93,6 +96,24 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
           hint: '按,分隔年份，如2000,2001,2002',
         ),
         const SizedBox(height: 12),
+        if (service.useRemoteHistory) ...[
+          FTile(
+            title: Text('收藏'),
+            onPress: () => setState(() {
+              isFavorite = !isFavorite;
+            }),
+            suffix: SizedBox(
+              height: 20,
+              child: Switch(
+                value: isFavorite,
+                onChanged: (value) => setState(() {
+                  isFavorite = value;
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         FSelectMenuTile.fromMap(
           selectControl: .lifted(
             value: {status},
