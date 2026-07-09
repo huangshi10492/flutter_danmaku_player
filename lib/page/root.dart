@@ -75,12 +75,9 @@ class RootPageState extends State<RootPage> {
 
   Future<void> _playLocalVideo() async {
     try {
-      FilePickerResult? result = await FilePicker.pickFiles(
-        type: FileType.video,
-        allowMultiple: false,
-      );
-      if (result != null && result.files.single.path != null) {
-        final filePath = result.files.single.path!;
+      PlatformFile? result = await FilePicker.pickFile(type: FileType.video);
+      if (result != null && result.path != null) {
+        final filePath = result.path!;
         final videoInfo = VideoInfo.fromFile(
           currentVideoPath: filePath,
           virtualVideoPath: filePath,

@@ -79,6 +79,7 @@ class Logger {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
+      case .transformTimeout:
         return '网络连接超时，请检查网络';
       case DioExceptionType.badCertificate:
         return '证书错误，无法建立安全连接';

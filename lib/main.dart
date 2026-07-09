@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:catcher_2/catcher_2.dart';
-import 'package:catcher_2/model/platform_type.dart';
 import 'package:fldanplay/service/global.dart';
-import 'package:fldanplay/utils/log.dart';
+import 'package:fldanplay/service/logger.dart';
 import 'package:fldanplay/hive/hive_registrar.g.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -27,17 +26,17 @@ Future<void> main() async {
   ScaledWidgetsFlutterBinding.ensureInitialized();
   await init();
   upgrade();
-  final Catcher2Options config = Catcher2Options(SilentReportMode(), [
-    CatcherLogger(),
-  ]);
-
   Catcher2(
-    debugConfig: config,
-    releaseConfig: config,
-    enableLogger: false,
-    runAppFunction: () {
-      runApp(const Application());
-    },
+    [
+      ConsoleHandler(
+        level: .error,
+        enableApplicationParameters: false,
+        enableCustomParameters: false,
+        enableDeviceParameters: false,
+      ),
+    ],
+    Application(),
+    logger: GetIt.I.get<LoggerService>().logger,
   );
 }
 
@@ -205,22 +204,4 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
     }
     return child;
   }
-}
-
-class CatcherLogger extends ConsoleHandler {
-  final loggerService = Logger('Catcher');
-
-  @override
-  Future<bool> handle(Report report, BuildContext? context) async {
-    loggerService.error(
-      'crash',
-      report.error.toString(),
-      error: report.error,
-      stackTrace: report.stackTrace,
-    );
-    return true;
-  }
-
-  @override
-  List<PlatformType> getSupportedPlatforms() => PlatformType.values;
 }

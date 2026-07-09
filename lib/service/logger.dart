@@ -10,7 +10,7 @@ import 'package:logger/logger.dart';
 class LoggerService {
   late Directory _logDirectory;
   late File _currentLogFile;
-  late Logger _logger;
+  late Logger logger;
   static const int maxFileCount = 5;
 
   Future<void> initialize(ConfigureService cs) async {
@@ -25,7 +25,7 @@ class LoggerService {
       _cleanOldLogs();
       createNewLogFile();
 
-      _logger = Logger(
+      logger = Logger(
         filter: _LevelFilter(cs.logLevel.value),
         printer: HybridPrinter(
           SimplePrinter(colors: false),
@@ -100,19 +100,19 @@ class LoggerService {
   }
 
   void debug(dynamic message) {
-    _logger.d(message);
+    logger.d(message);
   }
 
   void info(dynamic message) {
-    _logger.i(message);
+    logger.i(message);
   }
 
   void warning(dynamic message, [Object? error, StackTrace? stackTrace]) {
-    _logger.w(message, error: error, stackTrace: stackTrace);
+    logger.w(message, error: error, stackTrace: stackTrace);
   }
 
   void error(dynamic message, [Object? error, StackTrace? stackTrace]) {
-    _logger.e(message, error: error, stackTrace: stackTrace);
+    logger.e(message, error: error, stackTrace: stackTrace);
   }
 }
 
