@@ -146,8 +146,8 @@ class DanmakuFilterPanel extends StatelessWidget {
                     );
                   },
                   details: settings.bilibiliDelay >= 0
-                      ? '提前${settings.bilibiliDelay}秒'
-                      : '延迟${settings.bilibiliDelay}秒',
+                      ? '提前${settings.bilibiliDelay.abs()}秒'
+                      : '延迟${settings.bilibiliDelay.abs()}秒',
                   silderValue: settings.bilibiliDelay.toDouble(),
                   silderDivisions: 40,
                   silderMin: -20,
@@ -161,8 +161,8 @@ class DanmakuFilterPanel extends StatelessWidget {
                     );
                   },
                   details: settings.gamerDelay >= 0
-                      ? '提前${settings.gamerDelay}秒'
-                      : '延迟${settings.gamerDelay}秒',
+                      ? '提前${settings.gamerDelay.abs()}秒'
+                      : '延迟${settings.gamerDelay.abs()}秒',
                   silderValue: settings.gamerDelay.toDouble(),
                   silderDivisions: 40,
                   silderMin: -20,
@@ -176,8 +176,8 @@ class DanmakuFilterPanel extends StatelessWidget {
                     );
                   },
                   details: settings.dandanDelay >= 0
-                      ? '提前${settings.dandanDelay}秒'
-                      : '延迟${settings.dandanDelay}秒',
+                      ? '提前${settings.dandanDelay.abs()}秒'
+                      : '延迟${settings.dandanDelay.abs()}秒',
                   silderValue: settings.dandanDelay.toDouble(),
                   silderDivisions: 40,
                   silderMin: -20,
@@ -191,8 +191,8 @@ class DanmakuFilterPanel extends StatelessWidget {
                     );
                   },
                   details: settings.otherDelay >= 0
-                      ? '提前${settings.otherDelay}秒'
-                      : '延迟${settings.otherDelay}秒',
+                      ? '提前${settings.otherDelay.abs()}秒'
+                      : '延迟${settings.otherDelay.abs()}秒',
                   silderValue: settings.otherDelay.toDouble(),
                   silderDivisions: 40,
                   silderMin: -20,

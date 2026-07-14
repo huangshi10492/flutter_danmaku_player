@@ -48,8 +48,8 @@ class TrackPage extends StatelessWidget {
                 ? playerService.activeAudioTrack.value
                 : playerService.activeSubtitleTrack.value;
             return FSelectTileGroup<int>(
-              control: .lifted(
-                value: {activeTrack},
+              control: .managedRadio(
+                initial: activeTrack,
                 onChange: (value) {
                   if (isAudio) {
                     playerService.setActiveAudioTrack(value.first);
@@ -60,12 +60,20 @@ class TrackPage extends StatelessWidget {
                 },
               ),
               children: tracks.map((track) {
-                final name = VideoPlayerUtils.trackNameTranslation(
+                final title = VideoPlayerUtils.subtitleTitleTranslation(
                   track.id,
                   track.title,
+                );
+                final language = VideoPlayerUtils.subtitleLanguageTranslation(
                   track.language,
                 );
-                return FSelectTile(title: Text(name), value: track.index);
+                return FSelectTile(
+                  title: Text(
+                    title != null && title.isNotEmpty ? title : language,
+                  ),
+                  subtitle: Text(language),
+                  value: track.index,
+                );
               }).toList(),
             );
           },

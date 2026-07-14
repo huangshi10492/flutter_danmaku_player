@@ -19,72 +19,43 @@ class VideoPlayerUtils {
     return supportedExtensions.any((ext) => lowerPath.endsWith(ext));
   }
 
-  static String trackNameTranslation(String id, String title, String language) {
+  static String? subtitleTitleTranslation(String id, String title) {
     switch (id) {
       case 'auto':
         return '自动选择';
       case 'no':
         return '禁用';
     }
-    var res = '';
-    switch (language) {
-      case 'chi':
-        res = '中文';
-        break;
-      case 'eng':
-        res = '英文';
-        break;
-      case 'jpn':
-        res = '日文';
-        break;
-      case 'ara':
-        res = '阿拉伯语';
-        break;
-      case 'ger':
-        res = '德语';
-        break;
-      case 'spa':
-        res = '西班牙语';
-        break;
-      case 'fre':
-        res = '法语';
-        break;
-      case 'hin':
-        res = '印地语';
-        break;
-      case 'ind':
-        res = '印尼语';
-        break;
-      case 'ita':
-        res = '意大利语';
-        break;
-      case 'kor':
-        res = '韩语';
-        break;
-      case 'may':
-        res = '马来语';
-        break;
-      case 'dut':
-        res = '荷兰语';
-        break;
-      case 'pol':
-        res = '波兰语';
-        break;
-      default:
-        res = language;
-    }
     if (title.isNotEmpty) {
       switch (title) {
         case 'Simplified':
-          res += '(简体)';
-          break;
+          return '中文(简体)';
         case 'Traditional':
-          res += '(繁体)';
-          break;
+          return '中文(繁体)';
         default:
-          res += '($title)';
+          return title;
       }
     }
-    return res;
+    return null;
+  }
+
+  static String subtitleLanguageTranslation(String language) {
+    return switch (language) {
+      'chi' => '中文',
+      'eng' => '英文',
+      'jpn' => '日文',
+      'ara' => '阿拉伯语',
+      'ger' => '德语',
+      'spa' => '西班牙语',
+      'fre' => '法语',
+      'hin' => '印地语',
+      'ind' => '印尼语',
+      'ita' => '意大利语',
+      'kor' => '韩语',
+      'may' => '马来语',
+      'dut' => '荷兰语',
+      'pol' => '波兰语',
+      _ => language,
+    };
   }
 }

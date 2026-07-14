@@ -234,7 +234,7 @@ class _VideoItemState extends State<VideoItem> {
     final subtitleStyle =
         context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final subtitle = widget.subtitle ?? widget.history?.subtitle;
-    return _PopoverMenu(
+    return _ContextMenu(
       download: widget.onOfflineDownload ?? () {},
       matchDanmaku: () async {
         if (widget.danmakuMatchInfo == null) return;
@@ -250,7 +250,7 @@ class _VideoItemState extends State<VideoItem> {
         );
         init();
       },
-      child: (controller) => FItem(
+      child: FItem(
         prefix: SizedBox(
           width: widget.coutinue ? 144 : 100,
           height: widget.coutinue ? 81 : 65,
@@ -329,32 +329,30 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         onPress: widget.onPress,
-        onLongPress: widget.onLongPress ?? controller.toggle,
-        onSecondaryPress: widget.onLongPress ?? controller.toggle,
       ),
     );
   }
 }
 
-class _PopoverMenu extends StatefulWidget with FItemMixin {
+class _ContextMenu extends StatefulWidget {
   final Function download;
   final Function matchDanmaku;
-  final Widget Function(FPopoverController controller) child;
-  const _PopoverMenu({
+  final Widget child;
+  const _ContextMenu({
     required this.download,
     required this.matchDanmaku,
     required this.child,
   });
   @override
-  _PopoverMenuState createState() => _PopoverMenuState();
+  _ContextMenuState createState() => _ContextMenuState();
 }
 
-class _PopoverMenuState extends State<_PopoverMenu>
+class _ContextMenuState extends State<_ContextMenu>
     with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final controller = FPopoverController(vsync: this);
-    return FPopoverMenu.tiles(
+    return FContextMenu.tiles(
       control: .managed(controller: controller),
       style: .delta(),
       menu: [
@@ -380,7 +378,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
           ],
         ),
       ],
-      child: widget.child(controller),
+      child: widget.child,
     );
   }
 }

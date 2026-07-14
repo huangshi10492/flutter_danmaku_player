@@ -209,7 +209,7 @@ class RootPageState extends State<RootPage> {
                     onPress: () => _showPlayVideoDialog(),
                   ),
                   ...storages.map(
-                    (storage) => _PopoverMenu(
+                    (storage) => _ContextMenu(
                       edit: () {
                         showModalBottomSheet(
                           context: context,
@@ -239,7 +239,7 @@ class RootPageState extends State<RootPage> {
                         confirmText: '删除',
                         destructive: true,
                       ),
-                      child: (controller) => FItem(
+                      child: FItem(
                         prefix: _buildPrefix(storage.storageType),
                         title: Text(storage.name),
                         subtitle: Text(storage.url),
@@ -261,8 +261,6 @@ class RootPageState extends State<RootPage> {
                               break;
                           }
                         },
-                        onLongPress: () => controller.toggle(),
-                        onSecondaryPress: () => controller.toggle(),
                       ),
                     ),
                   ),
@@ -286,47 +284,31 @@ class RootPageState extends State<RootPage> {
   }
 }
 
-class _PopoverMenu extends StatefulWidget with FItemMixin {
+class _ContextMenu extends StatefulWidget with FItemMixin {
   final Function edit;
   final Function delete;
-  final Widget Function(FPopoverController controller) child;
-  const _PopoverMenu({
+  final Widget child;
+  const _ContextMenu({
     required this.edit,
     required this.delete,
     required this.child,
   });
   @override
-  _PopoverMenuState createState() => _PopoverMenuState();
+  _ContextMenuState createState() => _ContextMenuState();
 }
 
-class _PopoverMenuState extends State<_PopoverMenu>
+class _ContextMenuState extends State<_ContextMenu>
     with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final controller = FPopoverController(vsync: this);
-    return FPopoverMenu(
+    return FContextMenu.tiles(
       control: .managed(controller: controller),
-      style: .delta(
-        itemGroupStyle: .delta(
-          itemStyles: .delta([
-            .all(
-              .delta(
-                contentStyle: .delta(
-                  titleTextStyle: .delta([.base(.delta(fontSize: 15))]),
-                  unsuffixedPadding: EdgeInsetsGeometryDelta.add(
-                    .only(top: 4, bottom: 4),
-                  ),
-                ),
-              ),
-            ),
-          ]),
-        ),
-      ),
       menu: [
         .group(
           divider: .full,
           children: [
-            .item(
+            .tile(
               prefix: const Icon(FLucideIcons.pencil),
               title: Text('编辑'),
               onPress: () {
@@ -334,7 +316,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
                 widget.edit();
               },
             ),
-            .item(
+            .tile(
               variant: .destructive,
               prefix: Icon(FLucideIcons.trash),
               title: Text('删除'),
@@ -346,7 +328,7 @@ class _PopoverMenuState extends State<_PopoverMenu>
           ],
         ),
       ],
-      child: widget.child(controller),
+      child: widget.child,
     );
   }
 }
