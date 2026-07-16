@@ -235,6 +235,7 @@ class _VideoItemState extends State<VideoItem> {
         context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final subtitle = widget.subtitle ?? widget.history?.subtitle;
     return _ContextMenu(
+      enable: widget.onLongPress == null,
       download: widget.onOfflineDownload ?? () {},
       matchDanmaku: () async {
         if (widget.danmakuMatchInfo == null) return;
@@ -329,6 +330,8 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         onPress: widget.onPress,
+        onLongPress: widget.onLongPress,
+        onSecondaryPress: widget.onLongPress,
       ),
     );
   }
@@ -337,10 +340,12 @@ class _VideoItemState extends State<VideoItem> {
 class _ContextMenu extends StatefulWidget {
   final Function download;
   final Function matchDanmaku;
+  final bool enable;
   final Widget child;
   const _ContextMenu({
     required this.download,
     required this.matchDanmaku,
+    this.enable = true,
     required this.child,
   });
   @override
@@ -351,6 +356,9 @@ class _ContextMenuState extends State<_ContextMenu>
     with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
+    if (!widget.enable) {
+      return widget.child;
+    }
     final controller = FPopoverController(vsync: this);
     return FContextMenu.tiles(
       control: .managed(controller: controller),
