@@ -88,6 +88,7 @@ dependencies:
   url_launcher: ^6.3.2
   window_manager: ^0.5.2
   saver_gallery: ^5.1.0
+  wakelock_plus: ^1.6.1
 
   # 工具库
   archive: ^4.0.9

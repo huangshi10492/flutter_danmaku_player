@@ -22,6 +22,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 import 'gesture.dart';
 import 'indicator.dart';
@@ -49,6 +50,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _uiState.init();
     effect(() {
       if (_playerService.playerState.value == .completed) {
@@ -68,6 +70,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     if (Utils.isDesktop()) {
       windowManager.setFullScreen(false);
     }
+    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -719,6 +722,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           child: Video(
             controller: _playerService.controller.value!,
             controls: NoVideoControls,
+            wakelock: false,
           ),
         );
       },
