@@ -1,5 +1,6 @@
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/webdav_sync.dart';
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
@@ -28,9 +29,8 @@ class _SyncSettingsPageState extends State<SyncSettingsPage> {
       context: context,
       builder: (context, style, animation) {
         final controller = TextEditingController(text: currentValue);
-        return FDialog(
+        return AdaptiveDialog(
           style: style,
-          direction: Axis.horizontal,
           animation: animation,
           title: Text(title),
           body: password

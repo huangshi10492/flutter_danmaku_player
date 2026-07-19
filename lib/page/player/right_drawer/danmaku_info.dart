@@ -2,6 +2,7 @@ import 'package:fldanplay/page/player/right_drawer/right_drawer.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/player/player.dart';
+import 'package:fldanplay/theme/widget/title_card.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
@@ -25,12 +26,7 @@ class DanmakuInfoPanel extends StatelessWidget {
       builder: (context) {
         return ListView(
           children: [
-            FCard(
-              style: .delta(
-                contentStyle: .delta(
-                  subtitleTextStyle: .delta(fontSize: 16, height: 1.4),
-                ),
-              ),
+            TitleCard(
               title: Text('弹幕信息', style: context.theme.typography.body.xl),
               subtitle: SignalBuilder(
                 builder: (context) {
@@ -64,7 +60,6 @@ class DanmakuInfoPanel extends StatelessWidget {
                   );
                 },
               ),
-              mainAxisSize: MainAxisSize.min,
             ),
             const SizedBox(height: 8),
             FButton(

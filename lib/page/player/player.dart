@@ -220,7 +220,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       children: [
         _buildVideoPlayer(),
         _buildDanmakuLayer(),
-        _buildNotificationOverlay(),
         SignalBuilder(
           builder: (context) {
             final playerState = _playerService.playerState.value;
@@ -276,6 +275,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             );
           },
         ),
+        _buildNotificationOverlay(),
       ],
     );
   }

@@ -1,32 +1,21 @@
+import 'package:fldanplay/theme/colors.dart';
 import 'package:forui/forui.dart';
 
-FThemeData getTheme(String theme, bool isDark) {
-  final color = switch (theme) {
-    'blue' => FThemes.blue,
-    'neutral' => FThemes.neutral,
-    'zinc' => FThemes.zinc,
-    'slate' => FThemes.slate,
-    'red' => FThemes.red,
-    'rose' => FThemes.rose,
-    'orange' => FThemes.orange,
-    'green' => FThemes.green,
-    'yellow' => FThemes.yellow,
-    'violet' => FThemes.violet,
-    _ => FThemes.blue,
-  };
-  FColors colors = isDark ? color.dark.touch.colors : color.light.touch.colors;
-  final font = FTypeface.inherit(
+FThemeData getTheme(String theme, bool isDark, {bool touchUI = false}) {
+  final color = AppColors.values.lastWhere(
+    (element) => element.tag == theme,
+    orElse: () => .blue,
+  );
+  FColors colors = isDark ? color.dark : color.light;
+  final typeface = FTypeface.inherit(
     colors: colors,
     touch: true,
     fontFamily: 'MiSans',
   );
   return FThemeData(
     colors: colors,
-    touch: false,
-    typography: FTypography.inherit(
-      colors: colors,
-      touch: true,
-    ).copyWith(body: font, display: font),
+    touch: touchUI,
+    typography: FTypography(display: typeface, body: typeface),
   );
 }
 

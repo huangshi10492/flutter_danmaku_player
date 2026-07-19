@@ -1,3 +1,4 @@
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 
@@ -11,10 +12,9 @@ void showConfirmDialog(
 }) {
   showFDialog(
     context: context,
-    builder: (context, style, animation) => FDialog(
+    builder: (context, style, animation) => AdaptiveDialog(
       style: style,
       animation: animation,
-      direction: .horizontal,
       title: Text(title),
       body: Text(content),
       actions: [

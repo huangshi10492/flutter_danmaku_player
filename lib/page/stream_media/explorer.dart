@@ -325,9 +325,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                         top: 4,
                         right: 4,
                         child: FBadge(
-                          style: .delta(
-                            contentStyle: .delta(padding: .value(.zero)),
-                          ),
+                          style: .delta(padding: .value(.zero)),
                           child: Container(
                             height: 20,
                             constraints: BoxConstraints(minWidth: 20),

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/theme/styles/tile_style.dart';
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
@@ -107,8 +108,7 @@ class _FontManagerPageState extends State<FontManagerPage> {
     showFDialog(
       context: context,
       builder: (BuildContext context, style, animation) {
-        return FDialog(
-          direction: .horizontal,
+        return AdaptiveDialog(
           title: Text('输入字体名称'),
           animation: animation,
           body: FTextField(

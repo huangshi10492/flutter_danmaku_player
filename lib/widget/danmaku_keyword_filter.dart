@@ -1,4 +1,5 @@
 import 'package:fldanplay/theme/styles/tile_style.dart';
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -24,9 +25,8 @@ class _DanmakuKeywordFilterState extends State<DanmakuKeywordFilter> {
       context: context,
       builder: (context, style, animation) {
         final formKey = GlobalKey<FormState>();
-        return FDialog(
+        return AdaptiveDialog(
           style: style,
-          direction: .horizontal,
           animation: animation,
           title: Text('编辑关键词'),
           body: Form(

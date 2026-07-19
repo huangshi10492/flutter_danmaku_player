@@ -169,14 +169,21 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
           themeMode: materialThemeMode,
           builder: (context, child) => FTheme(
             data: fTheme,
-            child: FToaster(
-              child: _builder(
-                context,
-                Builder(
-                  builder: (context) {
-                    GetIt.I.get<GlobalService>().appContext = context;
-                    return child!;
-                  },
+            child: FAccessibilityScope(
+              data: FAccessibility(
+                accessibleNavigation: false,
+                motion: .all,
+                focusHighlight: false,
+              ),
+              child: FToaster(
+                child: _builder(
+                  context,
+                  Builder(
+                    builder: (context) {
+                      GetIt.I.get<GlobalService>().appContext = context;
+                      return child!;
+                    },
+                  ),
                 ),
               ),
             ),

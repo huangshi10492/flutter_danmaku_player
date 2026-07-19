@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/toast.dart';
@@ -29,7 +30,7 @@ class RootPageState extends State<RootPage> {
   void _showPlayVideoDialog() {
     showFDialog(
       context: context,
-      builder: (context, style, animation) => FDialog(
+      builder: (context, style, animation) => AdaptiveDialog(
         style: style,
         animation: animation,
         title: const Text('选择视频来源'),
@@ -99,10 +100,9 @@ class RootPageState extends State<RootPage> {
         context: context,
         builder: (context, style, animation) {
           final controller = TextEditingController();
-          return FDialog(
+          return AdaptiveDialog(
             style: style,
             animation: animation,
-            direction: .horizontal,
             title: Text('请输入视频URL'),
             body: FTextField(
               control: .managed(controller: controller),

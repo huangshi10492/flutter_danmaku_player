@@ -1,5 +1,6 @@
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/theme/styles/tile_style.dart';
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/widget/danmaku_keyword_filter.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
@@ -29,9 +30,8 @@ class _DanmakuSettingsPageState extends State<DanmakuSettingsPage> {
     showFDialog(
       context: context,
       builder: (context, style, animation) {
-        return FDialog(
+        return AdaptiveDialog(
           style: style,
-          direction: Axis.horizontal,
           animation: animation,
           title: Text('编辑服务器'),
           body: FTextField(

@@ -2,6 +2,7 @@ import 'package:fldanplay/model/danmaku.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
+import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
@@ -113,18 +114,16 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return FDialog(
+    return AdaptiveDialog(
       style: widget.style,
       animation: widget.animation,
-      direction: .vertical,
-      constraints: BoxConstraints(minWidth: 10, maxWidth: 560),
       title: _buildTitle(),
       body: _buildBody(),
       actions: _buildAction(),
     );
   }
 
-  Widget? _buildTitle() {
+  Widget _buildTitle() {
     switch (_state) {
       case .success:
         return Text('自动匹配成功');
@@ -141,7 +140,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           ],
         );
       default:
-        return null;
+        return SizedBox.shrink();
     }
   }
 
