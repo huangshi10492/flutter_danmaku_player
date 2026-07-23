@@ -27,6 +27,7 @@ abstract class StreamMediaExplorerProvider {
   Future<List<MediaItem>> getItems(String parentId, {required Filter filter});
   Future<MediaDetail> getMediaDetail(String itemId);
   Future<void> setFavorite(String itemId, bool isFavorite);
+  Future<void> setPlayed(String itemId, bool isPlayed);
   Future<PlaybackQueueResult> getPlaybackQueue(String itemId);
   Map<String, String> get headers;
   String getImageUrl(String itemId, {String tag = 'Primary'});
@@ -99,6 +100,7 @@ class StreamMediaExplorerService {
   final _logger = Logger('StreamMediaExplorerService');
   final Signal<Filter> filter = signal(Filter());
   final AsyncSignal<List<MediaItem>> items = asyncSignal(AsyncLoading());
+  final historyService = GetIt.I.get<HistoryService>();
   final globalService = GetIt.I.get<GlobalService>();
   bool get useRemoteHistory => storage?.useRemoteHistory == true;
   static void register() {
@@ -278,14 +280,14 @@ class StreamMediaExplorerService {
   }
 
   Future<void> setFavorite(String itemId, bool isFavorite) async {
-    if (provider.value == null) {
-      throw AppException('收藏失败', '媒体服务未初始化');
-    }
     await provider.value!.setFavorite(itemId, isFavorite);
   }
 
+  Future<void> setPlayed(String itemId, bool isPlayed) async {
+    await provider.value!.setPlayed(itemId, isPlayed);
+  }
+
   History? getHistory(EpisodeInfo episode) {
-    final historyService = GetIt.I.get<HistoryService>();
     final localHistory = historyService.getHistoryByPath(episode.id);
     if (storage!.useRemoteHistory == null ||
         storage!.useRemoteHistory == false) {
@@ -313,6 +315,12 @@ class StreamMediaExplorerService {
       );
     }
     return remoteHistory ?? localHistory;
+  }
+
+  Future<void> removeHistory(String itemId) async {
+    final history = historyService.getHistoryByPath(itemId);
+    if (history != null) historyService.delete(history: history);
+    setPlayed(itemId, false);
   }
 
   Future<void> startPlayback(String itemId) async {
@@ -949,6 +957,24 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         error: e,
         stackTrace: t,
       );
+    }
+  }
+
+  @override
+  Future<void> setPlayed(String itemId, bool isPlayed) async {
+    final action = isPlayed ? '标记为已观看' : '取消标记为已观看';
+    try {
+      final path = '/Users/${_userInfo.userId}/PlayedItems/$itemId';
+      if (isPlayed) {
+        await dio.post(path);
+      } else {
+        await dio.delete(path);
+      }
+    } on DioException catch (e, t) {
+      _logger.dio('setPlayed', e, t, action: action);
+    } catch (e, t) {
+      _logger.error('setPlayed', '$action失败', error: e, stackTrace: t);
+      throw AppException('$action失败', e);
     }
   }
 

@@ -5,9 +5,11 @@ import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/file_explorer.dart';
+import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/global.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/error_refresh.dart';
@@ -36,6 +38,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       .get<FileExplorerService>();
   final OfflineCacheService _offlineCacheService = GetIt.I
       .get<OfflineCacheService>();
+  final _historyService = GetIt.I.get<HistoryService>();
   final ScrollController _scrollController = ScrollController();
   final Map<String, int> _refreshMap = {};
   bool isFABVisible = true;
@@ -375,9 +378,33 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           uniqueKey: file.uniqueKey!,
           name: file.name,
           danmakuMatchInfo: .fromVideoInfo(videoInfo),
-          onOfflineDownload: () =>
-              _handleOfflineDownload(file.path, file.videoIndex),
           onPress: () => _playVideo(file.path, file.videoIndex),
+          items: [
+            .new(
+              icon: FLucideIcons.download,
+              title: '离线保存',
+              onPress: () => _handleOfflineDownload(file.path, file.videoIndex),
+            ),
+            if (file.history != null)
+              .new(
+                icon: FLucideIcons.trash,
+                variant: .destructive,
+                title: '删除历史记录',
+                onPress: () {
+                  showConfirmDialog(
+                    context,
+                    title: '删除历史记录',
+                    content: '是否删除观看历史？',
+                    onConfirm: () async {
+                      await _historyService.delete(history: file.history!);
+                      refreshItem(file.uniqueKey!);
+                    },
+                    confirmText: '删除',
+                    destructive: true,
+                  );
+                },
+              ),
+          ],
         ),
       );
     }

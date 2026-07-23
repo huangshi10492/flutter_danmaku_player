@@ -320,12 +320,14 @@ class UserData {
   final int? playbackPositionTicks;
   final DateTime? lastPlayedDate;
   final bool isFavorite;
+  bool played;
 
   UserData({
     this.unplayedItemCount,
     this.playbackPositionTicks,
     this.lastPlayedDate,
     this.isFavorite = false,
+    this.played = false,
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
@@ -336,6 +338,7 @@ class UserData {
           ? DateTime.parse(json['LastPlayedDate']).toUtc()
           : null,
       isFavorite: json['IsFavorite'] == true,
+      played: json['Played'] == true,
     );
   }
 }

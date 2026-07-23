@@ -8,6 +8,7 @@ import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
+import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/video_item.dart';
@@ -353,7 +354,10 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
             ? null
             : _service.getImageUrl(item.mainImage!),
         headers: _service.headers,
-        onLongPress: () {},
+        items: [
+          playedItem(item.id, false, _loadContinueItem),
+          historyItem(item.id),
+        ],
       ),
     );
   }
@@ -399,9 +403,10 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     final uniqueKey = CryptoUtils.generateVideoUniqueKey(episode.id);
     _refreshMap[uniqueKey] ??= 0;
     final refreshKey = _refreshMap[uniqueKey]!;
+    final history = _service.getHistory(episode);
     return VideoItem(
       key: ValueKey(uniqueKey),
-      history: _service.getHistory(episode),
+      history: history,
       uniqueKey: uniqueKey,
       refreshKey: refreshKey,
       imageUrl: _service.getImageUrl(episode.id),
@@ -413,8 +418,53 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         headers: _service.headers,
       ),
       subtitle: episode.subtitle,
-      onOfflineDownload: () => _onDownloadEpisode(season, index),
       onPress: () => _onPlayEpisode(season, index),
+      played: episode.userData?.played ?? false,
+      items: [
+        .new(
+          icon: FLucideIcons.download,
+          title: '离线保存',
+          onPress: () => _onDownloadEpisode(season, index),
+        ),
+        if (episode.userData != null)
+          playedItem(episode.id, episode.userData!.played, () {
+            setState(() {
+              episode.userData!.played = !episode.userData!.played;
+            });
+          }),
+        if (history != null) historyItem(episode.id),
+      ],
+    );
+  }
+
+  ContextMenuItem playedItem(String itemId, bool played, Function() call) {
+    return .new(
+      icon: played ? FLucideIcons.circleX : FLucideIcons.circleCheck,
+      title: played ? '未观看' : '已观看',
+      onPress: () {
+        _service.setPlayed(itemId, !played);
+        call.call();
+      },
+    );
+  }
+
+  ContextMenuItem historyItem(String itemId) {
+    return .new(
+      icon: FLucideIcons.trash,
+      variant: .destructive,
+      title: '删除历史记录',
+      onPress: () {
+        showConfirmDialog(
+          context,
+          title: '删除历史记录',
+          content: '是否删除观看历史？',
+          onConfirm: () {
+            _service.removeHistory(itemId);
+          },
+          confirmText: '删除',
+          destructive: true,
+        );
+      },
     );
   }
 }

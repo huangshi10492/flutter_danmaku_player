@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/danmaku_match_dialog.dart';
 import 'package:fldanplay/widget/network_image.dart';
@@ -28,6 +29,19 @@ class FileImageEx extends FileImage {
   int get hashCode => fileSize.hashCode;
 }
 
+class ContextMenuItem {
+  final IconData icon;
+  final FItemVariant variant;
+  final String title;
+  final Function() onPress;
+  const ContextMenuItem({
+    required this.icon,
+    this.variant = .primary,
+    required this.title,
+    required this.onPress,
+  });
+}
+
 class VideoItem extends StatefulWidget with FItemMixin {
   final History? history;
   final bool coutinue;
@@ -36,11 +50,11 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final DanmakuMatchVideoInfo? danmakuMatchInfo;
   final String? subtitle;
   final void Function() onPress;
-  final void Function()? onLongPress;
   final int refreshKey;
   final String? imageUrl;
   final Map<String, String>? headers;
-  final Function()? onOfflineDownload;
+  final bool played;
+  final List<ContextMenuItem> items;
   const VideoItem({
     super.key,
     required this.history,
@@ -50,11 +64,11 @@ class VideoItem extends StatefulWidget with FItemMixin {
     this.danmakuMatchInfo,
     this.subtitle,
     required this.onPress,
-    this.onLongPress,
     required this.refreshKey,
     this.imageUrl,
     this.headers,
-    this.onOfflineDownload,
+    this.played = false,
+    this.items = const [],
   });
   @override
   State<VideoItem> createState() => _VideoItemState();
@@ -235,37 +249,63 @@ class _VideoItemState extends State<VideoItem> {
         context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final subtitle = widget.subtitle ?? widget.history?.subtitle;
     return _ContextMenu(
-      enable: widget.onLongPress == null,
-      download: widget.onOfflineDownload ?? () {},
-      matchDanmaku: () async {
-        if (widget.danmakuMatchInfo == null) return;
-        await showFDialog(
-          context: context,
-          // barrierDismissible: false,
-          builder: (context, style, animation) => DanmakuMatchDialog(
-            style: style,
-            animation: animation,
-            uniqueKey: widget.uniqueKey,
-            danmakuMatchVideoInfo: widget.danmakuMatchInfo!,
+      items: [
+        if (widget.danmakuMatchInfo != null)
+          .new(
+            icon: MyIcon.danmaku,
+            title: '获取并保存弹幕',
+            onPress: () async {
+              await showFDialog(
+                context: context,
+                builder: (context, style, animation) => DanmakuMatchDialog(
+                  style: style,
+                  animation: animation,
+                  uniqueKey: widget.uniqueKey,
+                  danmakuMatchVideoInfo: widget.danmakuMatchInfo!,
+                ),
+              );
+              init();
+            },
           ),
-        );
-        init();
-      },
+        ...widget.items,
+      ],
       child: FItem(
         prefix: SizedBox(
           width: widget.coutinue ? 144 : 100,
           height: widget.coutinue ? 81 : 65,
-          child: FutureBuilder(
-            future: _prefixFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
-              }
-              if (snapshot.hasData) {
-                return snapshot.data!;
-              }
-              return _buildEmtpyPrefix();
-            },
+          child: Stack(
+            children: [
+              FutureBuilder(
+                future: _prefixFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const CircularProgressIndicator();
+                  }
+                  if (snapshot.hasData) {
+                    return snapshot.data!;
+                  }
+                  return _buildEmtpyPrefix();
+                },
+              ),
+              if (widget.played)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: .all(2),
+                    margin: .all(4),
+                    decoration: BoxDecoration(
+                      color: context.theme.colors.primary,
+                      borderRadius: .all(.circular(8)),
+                    ),
+                    child: Icon(
+                      Icons.check,
+                      size: 12,
+                      color: context.theme.colors.primaryForeground,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         title: ConstrainedBox(
@@ -321,7 +361,10 @@ class _VideoItemState extends State<VideoItem> {
                     Row(
                       children: [
                         if (_hasDanmaku) _buildDanmakuIcon(),
-                        Text(style: subtitleStyle, '未观看'),
+                        Text(
+                          style: subtitleStyle,
+                          widget.played ? '已观看' : '未观看',
+                        ),
                       ],
                     ),
                 ],
@@ -330,24 +373,15 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         onPress: widget.onPress,
-        onLongPress: widget.onLongPress,
-        onSecondaryPress: widget.onLongPress,
       ),
     );
   }
 }
 
 class _ContextMenu extends StatefulWidget {
-  final Function download;
-  final Function matchDanmaku;
-  final bool enable;
+  final List<ContextMenuItem> items;
   final Widget child;
-  const _ContextMenu({
-    required this.download,
-    required this.matchDanmaku,
-    this.enable = true,
-    required this.child,
-  });
+  const _ContextMenu({required this.items, required this.child});
   @override
   _ContextMenuState createState() => _ContextMenuState();
 }
@@ -356,9 +390,6 @@ class _ContextMenuState extends State<_ContextMenu>
     with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
-    if (!widget.enable) {
-      return widget.child;
-    }
     final controller = FPopoverController(vsync: this);
     return FContextMenu.tiles(
       control: .managed(controller: controller),
@@ -367,21 +398,16 @@ class _ContextMenuState extends State<_ContextMenu>
         .group(
           divider: .full,
           children: [
-            .tile(
-              prefix: const Icon(FLucideIcons.download),
-              title: Text('离线保存'),
-              onPress: () {
-                controller.toggle();
-                widget.download();
-              },
-            ),
-            .tile(
-              prefix: const Icon(FLucideIcons.captions),
-              title: Text('获取并保存弹幕'),
-              onPress: () {
-                controller.toggle();
-                widget.matchDanmaku();
-              },
+            ...widget.items.map(
+              (item) => .tile(
+                prefix: Icon(item.icon),
+                variant: item.variant,
+                title: Text(item.title),
+                onPress: () async {
+                  await controller.toggle();
+                  item.onPress();
+                },
+              ),
             ),
           ],
         ),

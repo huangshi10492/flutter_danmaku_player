@@ -14,9 +14,9 @@ class ServiceLocator {
     await LoggerService.register(cs);
     StorageService ss = await StorageService.register();
     await GlobalService.register();
+    HistoryService hs = await HistoryService.register();
     FileExplorerService.register();
     StreamMediaExplorerService.register();
-    HistoryService hs = await HistoryService.register();
     await WebDAVSyncService.register(cs, hs);
     await OfflineCacheService.register(ss);
     return cs;

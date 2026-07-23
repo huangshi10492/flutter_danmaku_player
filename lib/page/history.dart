@@ -226,14 +226,24 @@ class _HistoryPageState extends State<HistoryPage> {
                 refreshKey: refreshKey,
                 name: history.name,
                 onPress: () => _playVideo(history),
-                onLongPress: () => showConfirmDialog(
-                  context,
-                  title: '删除历史记录',
-                  content: '是否删除"${history.name}"的观看历史？',
-                  onConfirm: () => _historyService.delete(history: history),
-                  confirmText: '删除',
-                  destructive: true,
-                ),
+                items: [
+                  .new(
+                    icon: FLucideIcons.trash,
+                    variant: .destructive,
+                    title: '删除历史记录',
+                    onPress: () {
+                      showConfirmDialog(
+                        context,
+                        title: '删除历史记录',
+                        content: '是否删除"${history.name}"的观看历史？',
+                        onConfirm: () =>
+                            _historyService.delete(history: history),
+                        confirmText: '删除',
+                        destructive: true,
+                      );
+                    },
+                  ),
+                ],
               );
             },
           );
