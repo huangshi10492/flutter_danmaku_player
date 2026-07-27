@@ -216,14 +216,8 @@ class SeasonInfo {
   final String id;
   final String name;
   final int? indexNumber;
-  final List<EpisodeInfo> episodes;
 
-  SeasonInfo({
-    required this.id,
-    required this.name,
-    this.indexNumber,
-    this.episodes = const [],
-  });
+  SeasonInfo({required this.id, required this.name, this.indexNumber});
 
   factory SeasonInfo.fromJson(Map<String, dynamic> json) {
     return SeasonInfo(
@@ -234,11 +228,16 @@ class SeasonInfo {
   }
 }
 
-class PlaybackQueueResult {
-  final SeasonInfo season;
-  final int initialIndex;
+class PlaybackTarget {
+  final String seasonId;
+  final String episodeId;
+  final MediaType type;
 
-  const PlaybackQueueResult({required this.season, required this.initialIndex});
+  const PlaybackTarget({
+    required this.seasonId,
+    required this.episodeId,
+    required this.type,
+  });
 }
 
 class EpisodeInfo {

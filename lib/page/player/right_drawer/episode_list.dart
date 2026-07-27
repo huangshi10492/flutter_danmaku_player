@@ -54,14 +54,13 @@ class _EpisodeListPanelState extends State<EpisodeListPanel> {
         final streamMediaExplorerService = GetIt.I
             .get<StreamMediaExplorerService>();
         final historyService = GetIt.I.get<HistoryService>();
-        final episodeList = streamMediaExplorerService.episodeList;
-
-        if (episodeList.isEmpty) {
+        final episodes = streamMediaExplorerService.playbackEpisodes;
+        if (episodes.isEmpty) {
           return _buildEmptyPlaylistPlaceholder(context);
         }
         return SingleChildScrollView(
           child: FItemGroup(
-            children: episodeList.asMap().entries.map<FItem>((e) {
+            children: episodes.asMap().entries.map<FItem>((e) {
               final episode = e.value;
               final history = historyService.getHistoryByPath(episode.id);
               final titleText = episode.indexNumber != null

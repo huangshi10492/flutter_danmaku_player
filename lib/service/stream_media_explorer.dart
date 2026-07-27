@@ -26,9 +26,10 @@ abstract class StreamMediaExplorerProvider {
   Future<List<ResumeItem>> getResumeItems({String? parentId, int limit = 12});
   Future<List<MediaItem>> getItems(String parentId, {required Filter filter});
   Future<MediaDetail> getMediaDetail(String itemId);
+  Future<List<EpisodeInfo>> getEpisodes(String itemId, MediaType type);
   Future<void> setFavorite(String itemId, bool isFavorite);
   Future<void> setPlayed(String itemId, bool isPlayed);
-  Future<PlaybackQueueResult> getPlaybackQueue(String itemId);
+  Future<PlaybackTarget> getPlaybackTarget(String itemId);
   Map<String, String> get headers;
   String getImageUrl(String itemId, {String tag = 'Primary'});
   String getStreamUrl(String itemId);
@@ -96,7 +97,8 @@ class StreamMediaExplorerService {
   );
   Storage? storage;
   void Function()? _reportEffect;
-  List<EpisodeInfo> episodeList = [];
+  String? _playbackSeasonId;
+  final Map<String, AsyncSignal<List<EpisodeInfo>>> episodeMap = {};
   final _logger = Logger('StreamMediaExplorerService');
   final Signal<Filter> filter = signal(Filter());
   final AsyncSignal<List<MediaItem>> items = asyncSignal(AsyncLoading());
@@ -133,7 +135,8 @@ class StreamMediaExplorerService {
       filter.value = Filter();
       libraries.value = AsyncLoading();
       items.value = AsyncLoading();
-      episodeList = [];
+      _playbackSeasonId = null;
+      episodeMap.clear();
       this.storage = storage;
       provider.value = newProvider;
       libraryId.value = storage.mediaLibraryId!;
@@ -189,21 +192,31 @@ class StreamMediaExplorerService {
     return provider.value!.getResumeItems(parentId: parentId, limit: limit);
   }
 
-  Future<VideoInfo> prepareVideoInfoByItemId(String itemId) async {
+  Future<VideoInfo> item2VideoInfo(String itemId) async {
     if (provider.value == null) {
       throw AppException('播放失败', '媒体服务未初始化');
     }
-    final queue = await provider.value!.getPlaybackQueue(itemId);
-    return prepareVideoInfoForSeason(queue.season, queue.initialIndex);
+    final target = await provider.value!.getPlaybackTarget(itemId);
+    final episodes = await getEpisodes(target.seasonId, target.type);
+    if (episodes.isEmpty) {
+      throw AppException('播放失败', '播放列表为空');
+    }
+    final initialIndex = episodes.indexWhere(
+      (episode) => episode.id == target.episodeId,
+    );
+    selectPlaybackSeason(target.seasonId);
+    return _prepareVideoInfo(initialIndex >= 0 ? initialIndex : 0);
   }
 
-  Future<VideoInfo> prepareVideoInfoForSeason(
-    SeasonInfo season,
-    int index,
-  ) async {
-    setVideoList(season);
+  Future<VideoInfo> season2VideoInfo(String seasonId, int index) async {
+    selectPlaybackSeason(seasonId);
+    return _prepareVideoInfo(index);
+  }
+
+  Future<VideoInfo> _prepareVideoInfo(int index) async {
+    final episodes = playbackEpisodes;
     final videoInfo = getVideoInfo(index);
-    final history = getHistory(season.episodes[index]);
+    final history = getHistory(episodes[index]);
     if (history != null) {
       await GetIt.I.get<HistoryService>().save(history);
     }
@@ -229,12 +242,23 @@ class StreamMediaExplorerService {
     }
   }
 
-  void setVideoList(SeasonInfo seasonInfo) {
-    episodeList = seasonInfo.episodes;
+  List<EpisodeInfo> get playbackEpisodes {
+    final seasonId = _playbackSeasonId;
+    if (seasonId == null) return const [];
+    return episodeMap[seasonId]?.value.value ?? const [];
+  }
+
+  void selectPlaybackSeason(String seasonId) {
+    final episodes = episodeMap[seasonId]?.value.value;
+    if (episodes == null) {
+      throw AppException('获取播放列表失败', '当前季度尚未加载');
+    }
+    _playbackSeasonId = seasonId;
   }
 
   VideoInfo getVideoInfo(int index) {
-    final episode = episodeList[index];
+    final episodes = playbackEpisodes;
+    final episode = episodes[index];
     final playbackUrl = getPlaybackUrl(episode.id);
     return VideoInfo(
       currentVideoPath: playbackUrl,
@@ -245,7 +269,7 @@ class StreamMediaExplorerService {
       name: episode.name,
       videoName: episode.fileName,
       subtitle: episode.subtitle,
-      listLength: episodeList.length,
+      listLength: episodes.length,
       videoIndex: index,
       canSwitch: true,
     );
@@ -279,6 +303,38 @@ class StreamMediaExplorerService {
     return provider.value!.getMediaDetail(itemId);
   }
 
+  AsyncState<List<EpisodeInfo>> getEpisodeState(String seasonId) {
+    return _getEpisodeSignal(seasonId).value;
+  }
+
+  Future<List<EpisodeInfo>> getEpisodes(
+    String seasonId,
+    MediaType type, {
+    bool forceRefresh = false,
+  }) async {
+    final episodeSignal = _getEpisodeSignal(seasonId);
+    final currentState = episodeSignal.value;
+    if (!forceRefresh && currentState.hasValue) {
+      return currentState.requireValue;
+    }
+    try {
+      final currentProvider = provider.value;
+      if (currentProvider == null) {
+        throw AppException('获取集数信息失败', '媒体服务未初始化');
+      }
+      final episodes = await currentProvider.getEpisodes(seasonId, type);
+      _getEpisodeSignal(seasonId).value = AsyncData(episodes);
+      return episodes;
+    } catch (e, t) {
+      _getEpisodeSignal(seasonId).value = AsyncError(e, t);
+      rethrow;
+    }
+  }
+
+  AsyncSignal<List<EpisodeInfo>> _getEpisodeSignal(String seasonId) {
+    return episodeMap.putIfAbsent(seasonId, () => asyncSignal(AsyncLoading()));
+  }
+
   Future<void> setFavorite(String itemId, bool isFavorite) async {
     await provider.value!.setFavorite(itemId, isFavorite);
   }
@@ -289,32 +345,26 @@ class StreamMediaExplorerService {
 
   History? getHistory(EpisodeInfo episode) {
     final localHistory = historyService.getHistoryByPath(episode.id);
-    if (storage!.useRemoteHistory == null ||
-        storage!.useRemoteHistory == false) {
+    if (storage!.useRemoteHistory != true) return localHistory;
+    final userData = episode.userData;
+    final lastPlayedDate = userData?.lastPlayedDate;
+    if (userData == null || lastPlayedDate == null) return localHistory;
+    final updateTime = lastPlayedDate.millisecondsSinceEpoch;
+    if (localHistory != null && localHistory.updateTime >= updateTime) {
       return localHistory;
     }
-    if (episode.userData == null || episode.userData!.lastPlayedDate == null) {
-      return localHistory;
-    }
-    History? remoteHistory;
-    if (localHistory == null ||
-        localHistory.updateTime <
-            episode.userData!.lastPlayedDate!.millisecondsSinceEpoch) {
-      remoteHistory = History(
-        uniqueKey: CryptoUtils.generateVideoUniqueKey(episode.id),
-        duration: ((episode.runTimeTicks ?? 0) / 10000).round(),
-        position: ((episode.userData!.playbackPositionTicks ?? 0) / 10000)
-            .round(),
-        type: HistoriesType.streamMediaStorage,
-        updateTime: episode.userData!.lastPlayedDate!.millisecondsSinceEpoch,
-        name: episode.name,
-        url: episode.id,
-        storageKey: storage!.uniqueKey,
-        subtitle: '${episode.seriesName} ${episode.indexNumber}',
-        fileName: episode.fileName,
-      );
-    }
-    return remoteHistory ?? localHistory;
+    return History(
+      uniqueKey: CryptoUtils.generateVideoUniqueKey(episode.id),
+      duration: ((episode.runTimeTicks ?? 0) / 10000).round(),
+      position: ((userData.playbackPositionTicks ?? 0) / 10000).round(),
+      type: HistoriesType.streamMediaStorage,
+      updateTime: updateTime,
+      name: episode.name,
+      url: episode.id,
+      storageKey: storage!.uniqueKey,
+      subtitle: '${episode.seriesName} ${episode.indexNumber}',
+      fileName: episode.fileName,
+    );
   }
 
   Future<void> removeHistory(String itemId) async {
@@ -378,6 +428,21 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   bool get _useRemoteHistory => storage.useRemoteHistory == true;
   String get url => storage.url;
 
+  Future<T> _request<T>(
+    String method,
+    String action,
+    Future<T> Function() callback,
+  ) async {
+    try {
+      return await callback();
+    } on DioException catch (e, t) {
+      _logger.dio(method, e, t, action: action);
+    } catch (e, t) {
+      _logger.error(method, '$action失败', error: e, stackTrace: t);
+      throw AppException('$action失败', e);
+    }
+  }
+
   String getItemsPath([String? itemId]) {
     return itemId != null
         ? '/Users/${_userInfo.userId}/Items/$itemId'
@@ -413,7 +478,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     if (username.isEmpty || password.isEmpty) {
       throw AppException('登录信息无效，请重新编辑媒体库并登录', null);
     }
-    try {
+    await _request('refreshCredentials', '重新登录', () async {
       final newUserInfo = await _authenticate(dio, username, password);
       _userInfo = newUserInfo;
       storage
@@ -421,11 +486,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         ..userId = newUserInfo.userId;
       await storage.save();
       _logger.info('refreshCredentials', '登录凭证已刷新');
-    } on DioException catch (e) {
-      throw AppException(Logger.buildMessage(e, action: '重新登录'), null);
-    } catch (e) {
-      throw AppException('重新登录失败', e);
-    }
+    });
   }
 
   Future<void> _ensureCredentials(Dio dio) async {
@@ -459,11 +520,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   Map<String, String> get headers => {authHeaderKey: _buildAuthHeader()};
 
   @override
-  Future<List<MediaItem>> getItems(
-    String parentId, {
-    required Filter filter,
-  }) async {
-    try {
+  Future<List<MediaItem>> getItems(String parentId, {required Filter filter}) {
+    return _request('getItems', '获取媒体列表', () async {
       final params = <String, dynamic>{
         'parentId': parentId,
         'limit': 300,
@@ -479,17 +537,13 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         'enableImageTypes': 'Primary',
       };
       final response = await dio.get(getItemsPath(), queryParameters: params);
-      List<MediaItem> res = [];
-      for (var item in response.data['Items']) {
-        res.add(MediaItem.fromJson(item, includeUserData: _useRemoteHistory));
-      }
-      return res;
-    } on DioException catch (e, t) {
-      _logger.dio('getItems', e, t, action: '获取媒体列表');
-    } catch (e, t) {
-      _logger.error('getItems', '获取媒体列表失败', error: e, stackTrace: t);
-      throw AppException('获取媒体列表失败', e);
-    }
+      return (response.data['Items'] as List)
+          .map(
+            (item) =>
+                MediaItem.fromJson(item, includeUserData: _useRemoteHistory),
+          )
+          .toList();
+    });
   }
 
   @override
@@ -503,8 +557,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   @override
-  Future<MediaDetail> getMediaDetail(String itemId) async {
-    try {
+  Future<MediaDetail> getMediaDetail(String itemId) {
+    return _request('getMediaDetail', '获取媒体详情', () async {
       final response = await dio.get(getItemsPath(itemId));
       final detail = MediaDetail.fromJson(
         response.data,
@@ -513,115 +567,56 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
 
       // 如果是系列，获取季度信息
       if (detail.type == MediaType.series) {
-        detail.seasons = await getSeasons(dio, itemId);
+        detail.seasons = await getSeasons(itemId);
       }
       if (detail.type == MediaType.movie) {
-        final itemInfo = await getItemInfo(itemId);
-        detail.seasons = [
-          SeasonInfo(
-            id: detail.id,
-            name: detail.name,
-            episodes: [
-              EpisodeInfo(
-                id: detail.id,
-                name: detail.name,
-                seriesName: detail.name,
-                runTimeTicks: detail.runTimeTicks,
-                fileName: itemInfo.fileName,
-                userData: itemInfo.userData,
-              ),
-            ],
-          ),
-        ];
+        detail.seasons = [SeasonInfo(id: detail.id, name: detail.name)];
       }
 
       return detail;
-    } on DioException catch (e, t) {
-      _logger.dio('getMediaDetail', e, t, action: '获取媒体详情');
-    } catch (e, t) {
-      _logger.error('getMediaDetail', '获取媒体详情失败', error: e, stackTrace: t);
-      throw AppException('获取媒体详情失败', e);
-    }
+    });
   }
 
   @override
-  Future<void> setFavorite(String itemId, bool isFavorite) async {
-    try {
+  Future<void> setFavorite(String itemId, bool isFavorite) {
+    final action = isFavorite ? '添加收藏' : '取消收藏';
+    return _request('setFavorite', action, () async {
       final path = '/Users/${_userInfo.userId}/FavoriteItems/$itemId';
       if (isFavorite) {
         await dio.post(path);
       } else {
         await dio.delete(path);
       }
-    } on DioException catch (e, t) {
-      _logger.dio('setFavorite', e, t, action: isFavorite ? '添加收藏' : '取消收藏');
-    } catch (e, t) {
-      _logger.error(
-        'setFavorite',
-        isFavorite ? '添加收藏失败' : '取消收藏失败',
-        error: e,
-        stackTrace: t,
-      );
-      throw AppException(isFavorite ? '添加收藏失败' : '取消收藏失败', e);
-    }
+    });
   }
 
   @override
-  Future<PlaybackQueueResult> getPlaybackQueue(String itemId) async {
-    try {
+  Future<PlaybackTarget> getPlaybackTarget(String itemId) {
+    return _request('getPlaybackTarget', '获取播放目标', () async {
       final response = await dio.get(getItemsPath(itemId));
       final item = response.data as Map<String, dynamic>;
       final type = item['Type'] as String?;
       if (type == 'Movie') {
-        final itemInfo = ItemInfo.fromJson(
-          item,
-          includeUserData: _useRemoteHistory,
-        );
-        return PlaybackQueueResult(
-          season: SeasonInfo(
-            id: item['Id'] ?? itemId,
-            name: item['Name'] ?? '影片',
-            episodes: [
-              EpisodeInfo(
-                id: item['Id'] ?? itemId,
-                name: item['Name'] ?? '',
-                indexNumber: item['IndexNumber'],
-                seriesName: item['Name'] ?? '',
-                runTimeTicks: item['RunTimeTicks'],
-                fileName: itemInfo.fileName,
-                userData: itemInfo.userData,
-              ),
-            ],
-          ),
-          initialIndex: 0,
+        final movieId = (item['Id'] ?? itemId).toString();
+        return PlaybackTarget(
+          seasonId: movieId,
+          episodeId: movieId,
+          type: .movie,
         );
       }
       if (type == 'Episode') {
         final seasonId = item['SeasonId'] ?? item['ParentId'];
         if (seasonId == null || seasonId.toString().isEmpty) {
-          throw AppException('获取播放列表失败', '找不到季度信息');
+          throw AppException('获取播放目标失败', '找不到季度信息');
         }
-        final episodes = await getEpisodes(dio, seasonId.toString());
-        final initialIndex = episodes.indexWhere(
-          (episode) => episode.id == itemId,
-        );
-        return PlaybackQueueResult(
-          season: SeasonInfo(
-            id: seasonId.toString(),
-            name: item['SeasonName'] ?? '当前季度',
-            indexNumber: item['ParentIndexNumber'],
-            episodes: episodes,
-          ),
-          initialIndex: initialIndex >= 0 ? initialIndex : 0,
+        return PlaybackTarget(
+          seasonId: seasonId.toString(),
+          episodeId: (item['Id'] ?? itemId).toString(),
+          type: .series,
         );
       }
-      throw AppException('获取播放列表失败', '当前媒体不支持继续播放');
-    } on DioException catch (e, t) {
-      _logger.dio('getPlaybackQueue', e, t, action: '获取播放列表');
-    } catch (e, t) {
-      _logger.error('getPlaybackQueue', '获取播放列表失败', error: e, stackTrace: t);
-      throw AppException('获取播放列表失败', e);
-    }
+      throw AppException('获取播放目标失败', '当前媒体不支持继续播放');
+    });
   }
 
   @override
@@ -637,53 +632,33 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       ),
     );
     if (validateCredentials) {
-      try {
-        await _ensureCredentials(dio);
-      } on DioException catch (e, t) {
-        _logger.dio('getDio', e, t, action: '校验登录凭证');
-      } catch (e, t) {
-        _logger.error('getDio', '校验登录凭证失败', error: e, stackTrace: t);
-        throw AppException('校验登录凭证失败', e);
-      }
+      await _request('getDio', '校验登录凭证', () => _ensureCredentials(dio));
     }
     return dio;
   }
 
   @override
-  Future<UserInfo> login(Dio dio, String username, String password) async {
-    try {
-      return await _authenticate(dio, username, password);
-    } on DioException catch (e, t) {
-      _logger.dio('login', e, t, action: '登录');
-    } catch (e, t) {
-      _logger.error('login', '登录失败', error: e, stackTrace: t);
-      throw AppException('登录失败', e);
-    }
+  Future<UserInfo> login(Dio dio, String username, String password) {
+    return _request(
+      'login',
+      '登录',
+      () => _authenticate(dio, username, password),
+    );
   }
 
   @override
-  Future<List<CollectionItem>> getUserViews() async {
-    try {
+  Future<List<CollectionItem>> getUserViews() {
+    return _request('getUserViews', '获取用户视图', () async {
       final response = await dio.get('/Users/${_userInfo.userId}/Views');
-      List<CollectionItem> res = [];
-      for (var item in response.data['Items']) {
-        res.add(CollectionItem.fromJson(item));
-      }
-      return res;
-    } on DioException catch (e, t) {
-      _logger.dio('getUserViews', e, t, action: '获取用户视图');
-    } catch (e, t) {
-      _logger.error('getUserViews', '获取用户视图失败', error: e, stackTrace: t);
-      throw AppException('获取用户视图失败', e);
-    }
+      return (response.data['Items'] as List)
+          .map((item) => CollectionItem.fromJson(item))
+          .toList();
+    });
   }
 
   @override
-  Future<List<ResumeItem>> getResumeItems({
-    String? parentId,
-    int limit = 12,
-  }) async {
-    try {
+  Future<List<ResumeItem>> getResumeItems({String? parentId, int limit = 12}) {
+    return _request('getResumeItems', '获取继续观看', () async {
       final response = await dio.get(
         '/Users/${_userInfo.userId}/Items/Resume',
         queryParameters: {
@@ -698,12 +673,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       return items
           .map((item) => _parseResumeItem(item as Map<String, dynamic>))
           .toList();
-    } on DioException catch (e, t) {
-      _logger.dio('getResumeItems', e, t, action: '获取继续观看');
-    } catch (e, t) {
-      _logger.error('getResumeItems', '获取继续观看失败', error: e, stackTrace: t);
-      throw AppException('获取继续观看失败', e);
-    }
+    });
   }
 
   ResumeItem _parseResumeItem(Map<String, dynamic> json) {
@@ -736,79 +706,75 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     );
   }
 
-  Future<List<SeasonInfo>> getSeasons(Dio dio, String seriesId) async {
-    try {
+  Future<List<SeasonInfo>> getSeasons(String seriesId) {
+    return _request('getSeasons', '获取季度信息', () async {
       final response = await dio.get(
         getItemsPath(),
         queryParameters: {'parentId': seriesId},
       );
 
-      List<SeasonInfo> seasons = [];
-      for (var item in response.data['Items']) {
-        final season = SeasonInfo.fromJson(item);
-        final episodes = await getEpisodes(dio, season.id);
-        seasons.add(
-          SeasonInfo(
-            id: season.id,
-            name: season.name,
-            indexNumber: season.indexNumber,
-            episodes: episodes,
-          ),
-        );
-      }
-
-      // 按季度编号排序
+      final seasons = (response.data['Items'] as List)
+          .map((item) => SeasonInfo.fromJson(item))
+          .toList();
       seasons.sort(
         (a, b) => (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0),
       );
       return seasons;
-    } on DioException catch (e, t) {
-      _logger.dio('getSeasons', e, t, action: '获取季度信息');
-    } catch (e, t) {
-      _logger.error('getSeasons', '获取季度信息失败', error: e, stackTrace: t);
-      throw AppException('获取季度信息失败', e);
-    }
+    });
   }
 
-  Future<List<EpisodeInfo>> getEpisodes(Dio dio, String seasonId) async {
-    try {
-      final response = await dio.get(
-        getItemsPath(),
-        queryParameters: {'parentId': seasonId},
-      );
-      List<EpisodeInfo> episodes = [];
-      for (var item in response.data['Items']) {
-        final episode = EpisodeInfo.fromJson(item);
-        final itemInfo = await getItemInfo(episode.id);
-        episode.fileName = itemInfo.fileName;
-        episode.userData = itemInfo.userData;
-        episodes.add(episode);
+  @override
+  Future<List<EpisodeInfo>> getEpisodes(String itemId, MediaType type) {
+    return _request('getEpisodes', '获取集数信息', () async {
+      if (type == .movie) {
+        final response = await dio.get(getItemsPath(itemId));
+        final item = response.data as Map<String, dynamic>;
+        final itemInfo = ItemInfo.fromJson(
+          item,
+          includeUserData: _useRemoteHistory,
+        );
+        return [
+          EpisodeInfo(
+            id: item['Id'] ?? itemId,
+            name: item['Name'] ?? '',
+            indexNumber: item['IndexNumber'],
+            seriesName: item['Name'] ?? '',
+            overview: item['Overview'],
+            runTimeTicks: item['RunTimeTicks'],
+            userData: itemInfo.userData,
+            fileName: itemInfo.fileName,
+          ),
+        ];
+      } else if (type == .series) {
+        final response = await dio.get(
+          getItemsPath(),
+          queryParameters: {'parentId': itemId},
+        );
+        List<EpisodeInfo> episodes = [];
+        for (var item in response.data['Items']) {
+          final episode = EpisodeInfo.fromJson(item);
+          final itemInfo = await getItemInfo(episode.id);
+          episode.fileName = itemInfo.fileName;
+          episode.userData = itemInfo.userData;
+          episodes.add(episode);
+        }
+        episodes.sort(
+          (a, b) => (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0),
+        );
+        return episodes;
       }
-      episodes.sort(
-        (a, b) => (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0),
-      );
-      return episodes;
-    } on DioException catch (e, t) {
-      _logger.dio('getEpisodes', e, t, action: '获取集数信息');
-    } catch (e, t) {
-      _logger.error('getEpisodes', '获取集数信息失败', error: e, stackTrace: t);
-      throw AppException('获取集数信息失败', e);
-    }
+      throw AppException('获取播放目标失败', '当前媒体不支持继续播放');
+    });
   }
 
-  Future<ItemInfo> getItemInfo(String itemId) async {
-    try {
+  Future<ItemInfo> getItemInfo(String itemId) {
+    return _request('getItemInfo', '获取项目信息', () async {
       final response = await dio.get(getItemsPath(itemId));
       return ItemInfo.fromJson(
         response.data,
         includeUserData: _useRemoteHistory,
       );
-    } on DioException catch (e, t) {
-      _logger.dio('getItemInfo', e, t, action: '获取项目信息');
-    } catch (e, t) {
-      _logger.error('getItemInfo', '获取项目信息失败', error: e, stackTrace: t);
-      throw AppException('获取项目信息失败', e);
-    }
+    });
   }
 
   @override
@@ -828,13 +794,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       );
       _logger.info('downloadVideo', '下载完成: $itemId -> $localPath');
       return true;
-    } on DioException catch (e, t) {
-      if (e.type == DioExceptionType.cancel) {
-        return false;
-      }
-      _logger.error('downloadVideo', '下载失败', error: e, stackTrace: t);
-      return false;
     } catch (e, t) {
+      if (e is DioException && e.type == DioExceptionType.cancel) return false;
       _logger.error('downloadVideo', '下载失败', error: e, stackTrace: t);
       return false;
     }
@@ -857,8 +818,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     };
   }
 
-  Future<String> _getSessionId(String itemId) async {
-    try {
+  Future<String> _getSessionId(String itemId) {
+    return _request('getPlaybackInfo', '获取播放信息', () async {
       final response = await dio.post(
         '/Items/$itemId/PlaybackInfo',
         queryParameters: {'UserId': _userInfo.userId},
@@ -866,17 +827,12 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       final playSessionId = response.data['PlaySessionId'] as String;
       _logger.info('getPlaybackInfo', '获取 PlaySessionId: $playSessionId');
       return playSessionId;
-    } on DioException catch (e, t) {
-      _logger.dio('getPlaybackInfo', e, t, action: '获取播放信息');
-    } catch (e, t) {
-      _logger.error('getPlaybackInfo', '获取播放信息失败', error: e, stackTrace: t);
-      throw AppException('获取播放信息失败', e);
-    }
+    });
   }
 
   @override
-  Future<void> reportPlaybackStart(String itemId, int position) async {
-    try {
+  Future<void> reportPlaybackStart(String itemId, int position) {
+    return _request('reportPlaybackStart', '上报播放开始', () async {
       final playSessionId = await _getSessionId(itemId);
       _playSessionIds[itemId] = playSessionId;
       await dio.post(
@@ -889,11 +845,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
         ),
       );
       _logger.info('reportPlaybackStart', '上报播放开始: $itemId');
-    } on DioException catch (e, t) {
-      _logger.dio('reportPlaybackStart', e, t, action: '上报播放开始');
-    } catch (e, t) {
-      _logger.error('reportPlaybackStart', '上报播放开始失败', error: e, stackTrace: t);
-    }
+    });
   }
 
   @override
@@ -901,8 +853,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     String itemId,
     int position,
     bool isPaused,
-  ) async {
-    try {
+  ) {
+    return _request('reportPlaybackProgress', '上报播放进度', () async {
       final playSessionId = _playSessionIds[itemId];
       if (playSessionId == null) {
         _logger.warn('reportPlaybackProgress', 'PlaySessionId 为空');
@@ -917,21 +869,12 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
           isPaused: isPaused,
         ),
       );
-    } on DioException catch (e, t) {
-      _logger.dio('reportPlaybackProgress', e, t, action: '上报播放进度');
-    } catch (e, t) {
-      _logger.error(
-        'reportPlaybackProgress',
-        '上报播放进度失败',
-        error: e,
-        stackTrace: t,
-      );
-    }
+    });
   }
 
   @override
-  Future<void> reportPlaybackStopped(String itemId, int position) async {
-    try {
+  Future<void> reportPlaybackStopped(String itemId, int position) {
+    return _request('reportPlaybackStopped', '上报播放停止', () async {
       final playSessionId = _playSessionIds[itemId];
       if (playSessionId == null) {
         _logger.warn('reportPlaybackStopped', 'PlaySessionId 为空');
@@ -948,34 +891,20 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       );
       _playSessionIds.remove(itemId);
       _logger.info('reportPlaybackStopped', '上报播放停止: $itemId');
-    } on DioException catch (e, t) {
-      _logger.dio('reportPlaybackStopped', e, t, action: '上报播放停止');
-    } catch (e, t) {
-      _logger.error(
-        'reportPlaybackStopped',
-        '上报播放停止失败',
-        error: e,
-        stackTrace: t,
-      );
-    }
+    });
   }
 
   @override
-  Future<void> setPlayed(String itemId, bool isPlayed) async {
+  Future<void> setPlayed(String itemId, bool isPlayed) {
     final action = isPlayed ? '标记为已观看' : '取消标记为已观看';
-    try {
+    return _request('setPlayed', action, () async {
       final path = '/Users/${_userInfo.userId}/PlayedItems/$itemId';
       if (isPlayed) {
         await dio.post(path);
       } else {
         await dio.delete(path);
       }
-    } on DioException catch (e, t) {
-      _logger.dio('setPlayed', e, t, action: action);
-    } catch (e, t) {
-      _logger.error('setPlayed', '$action失败', error: e, stackTrace: t);
-      throw AppException('$action失败', e);
-    }
+    });
   }
 
   @override

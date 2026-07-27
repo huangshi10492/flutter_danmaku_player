@@ -901,7 +901,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         );
       }
       final history = streamMediaExplorerService.getHistory(
-        streamMediaExplorerService.episodeList[index],
+        streamMediaExplorerService.playbackEpisodes[index],
       );
       if (history != null) await historyService.save(history);
     }

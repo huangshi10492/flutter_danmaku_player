@@ -10,6 +10,7 @@ import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/toast.dart';
+import 'package:fldanplay/widget/error_refresh.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/video_item.dart';
 import 'package:flutter/material.dart';
@@ -54,6 +55,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     GetIt.I.get<GlobalService>().updateListener = null;
     super.dispose();
@@ -73,6 +75,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         _error = null;
       });
       final detail = await _service.getMediaDetail(widget.mediaItem.id);
+      if (!mounted) return;
       setState(() {
         _mediaDetail = detail;
         _isLoading = false;
@@ -82,12 +85,37 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
           vsync: this,
         );
       });
+      _tabController.addListener(_handleTabChanged);
+      if (detail.seasons.isNotEmpty) {
+        await _loadEpisodes(detail.seasons.first);
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
       });
     }
+  }
+
+  void _handleTabChanged() {
+    if (_tabController.indexIsChanging || _mediaDetail == null) return;
+    final seasons = _mediaDetail!.seasons;
+    if (_tabController.index < 0 || _tabController.index >= seasons.length) {
+      return;
+    }
+    _loadEpisodes(seasons[_tabController.index]);
+  }
+
+  Future<void> _loadEpisodes(
+    SeasonInfo season, {
+    bool forceRefresh = false,
+  }) async {
+    await _service.getEpisodes(
+      season.id,
+      _mediaDetail?.type ?? .movie,
+      forceRefresh: forceRefresh,
+    );
   }
 
   Future<void> _loadContinueItem() async {
@@ -134,7 +162,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     if (item == null || _isPlaying.value) return;
     _isPlaying.value = true;
     try {
-      final videoInfo = await _service.prepareVideoInfoByItemId(item.id);
+      final videoInfo = await _service.item2VideoInfo(item.id);
       if (!mounted) return;
       final location = Uri(path: videoPlayerPath);
       await context.push(location.toString(), extra: videoInfo);
@@ -149,7 +177,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     if (_isPlaying.value) return;
     _isPlaying.value = true;
     try {
-      final videoInfo = await _service.prepareVideoInfoForSeason(season, index);
+      final videoInfo = await _service.season2VideoInfo(season.id, index);
       if (mounted) {
         final location = Uri(path: videoPlayerPath);
         context.push(location.toString(), extra: videoInfo);
@@ -162,7 +190,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   }
 
   void _onDownloadEpisode(SeasonInfo season, int index) {
-    _service.setVideoList(season);
+    _service.selectPlaybackSeason(season.id);
     final videoInfo = _service.getVideoInfo(index);
     _offlineCacheService.startDownload(videoInfo);
     showToast(title: '${videoInfo.name}已加入离线缓存');
@@ -291,33 +319,56 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     }
     return TabBarView(
       controller: _tabController,
-      children: _mediaDetail!.seasons.map((season) {
-        if (season.episodes.isEmpty) {
-          return const Center(child: Text('暂无集数'));
-        }
-        return Builder(
-          builder: (BuildContext context) {
-            return CustomScrollView(
-              scrollBehavior: const ScrollBehavior().copyWith(
-                scrollbars: false,
-              ),
-              slivers: <Widget>[
-                SliverOverlapInjector(
-                  handle: NestedScrollView.sliverOverlapAbsorberHandleFor(
-                    context,
+      children: _mediaDetail!.seasons.map(_buildSeasonTab).toList(),
+    );
+  }
+
+  Widget _buildSeasonTab(SeasonInfo season) {
+    return SignalBuilder(
+      builder: (context) {
+        final overlapHandle = NestedScrollView.sliverOverlapAbsorberHandleFor(
+          context,
+        );
+        final state = _service.getEpisodeState(season.id);
+        return RefreshIndicator(
+          edgeOffset: overlapHandle.layoutExtent ?? 0,
+          onRefresh: () => _loadEpisodes(season, forceRefresh: true),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            scrollBehavior: const ScrollBehavior().copyWith(scrollbars: false),
+            slivers: <Widget>[
+              SliverOverlapInjector(handle: overlapHandle),
+              state.map<Widget>(
+                data: (episodes) => episodes.isEmpty
+                    ? const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: Text('暂无集数')),
+                      )
+                    : SliverList.builder(
+                        itemCount: episodes.length,
+                        itemBuilder: (context, index) =>
+                            _buildSeasonViewBuilder(
+                              index,
+                              season,
+                              episodes[index],
+                            ),
+                      ),
+                error: (error) => SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: ErrorRefresh(
+                    error: error,
+                    onRefresh: () => _loadEpisodes(season, forceRefresh: true),
                   ),
                 ),
-                SliverList.builder(
-                  itemCount: season.episodes.length,
-                  itemBuilder: (context, index) {
-                    return _buildSeasonViewBuilder(context, index, season);
-                  },
+                loading: () => const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
                 ),
-              ],
-            );
-          },
+              ),
+            ],
+          ),
         );
-      }).toList(),
+      },
     );
   }
 
@@ -395,11 +446,10 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   }
 
   Widget _buildSeasonViewBuilder(
-    BuildContext context,
     int index,
     SeasonInfo season,
+    EpisodeInfo episode,
   ) {
-    final episode = season.episodes[index];
     final uniqueKey = CryptoUtils.generateVideoUniqueKey(episode.id);
     _refreshMap[uniqueKey] ??= 0;
     final refreshKey = _refreshMap[uniqueKey]!;
