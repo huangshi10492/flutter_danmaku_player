@@ -4,11 +4,11 @@ import 'package:fldanplay/page/player/indicator.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/utils.dart';
-import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:get_it/get_it.dart';
 import 'package:intl/intl.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:volume_controller/volume_controller.dart';
 
 class PlayerUIState {
   final Signal<bool> showControls = Signal(true);
@@ -65,7 +65,7 @@ class PlayerUIState {
   /// 开始手势操作
   Future<void> startGesture(Duration initialPosition) async {
     if (!Utils.isDesktop()) {
-      await FlutterVolumeController.updateShowSystemUI(false);
+      VolumeController.instance.showSystemUI = false;
     }
     _hideIndicatorTimer?.cancel();
     initialVolumeOnPan = brightnessVolumeService.currentVolume;
@@ -77,7 +77,7 @@ class PlayerUIState {
   /// 结束手势操作
   Future<void> endGesture() async {
     if (!Utils.isDesktop()) {
-      await FlutterVolumeController.updateShowSystemUI(true);
+      VolumeController.instance.showSystemUI = true;
     }
     hideIndicator();
   }
@@ -149,10 +149,9 @@ class BrightnessVolumeService {
     try {
       if (!Utils.isDesktop()) {
         currentBrightness = await ScreenBrightness().application;
-        currentVolume = await FlutterVolumeController.getVolume() ?? 0.5;
-        FlutterVolumeController.addListener((volume) {
+        VolumeController.instance.addListener((volume) {
           currentVolume = volume;
-        });
+        }, fetchInitialVolume: true);
       } else {
         currentVolume = _configureService.desktopVolume.value;
       }
@@ -189,7 +188,7 @@ class BrightnessVolumeService {
     volume = volume.clamp(0.0, 1.0);
     currentVolume = volume;
     if (!Utils.isDesktop()) {
-      await FlutterVolumeController.setVolume(volume);
+      await VolumeController.instance.setVolume(volume);
     } else {
       _configureService.desktopVolume.value = volume;
     }
@@ -198,7 +197,7 @@ class BrightnessVolumeService {
   void dispose() {
     resetToSystemBrightness();
     if (!Utils.isDesktop()) {
-      FlutterVolumeController.removeListener();
+      VolumeController.instance.removeListener();
     }
   }
 }
