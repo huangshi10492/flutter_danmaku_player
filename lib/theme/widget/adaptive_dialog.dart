@@ -22,20 +22,16 @@ class AdaptiveDialog extends StatelessWidget {
   Widget build(BuildContext context) => FDialog.adaptive(
     style: style,
     animation: animation,
+    constraints: const BoxConstraints(minWidth: 10, maxWidth: 560),
     horizontalBuilder: (context, style) {
-      final touch = context.platformVariant.touch;
       return Padding(
-        padding: touch
-            ? const .symmetric(horizontal: 16, vertical: 18)
-            : const .symmetric(horizontal: 16, vertical: 14),
+        padding: const .symmetric(horizontal: 16, vertical: 14),
         child: Column(
           crossAxisAlignment: .start,
           mainAxisSize: .min,
           children: [
             Padding(
-              padding: touch
-                  ? const .only(left: 8, right: 8, bottom: 9)
-                  : const .only(bottom: 5),
+              padding: const .only(bottom: 5),
               child: DefaultTextStyle.merge(
                 style: style.titleTextStyle,
                 child: title,
@@ -43,9 +39,7 @@ class AdaptiveDialog extends StatelessWidget {
             ),
             Flexible(
               child: Padding(
-                padding: touch
-                    ? const .only(left: 8, right: 8, bottom: 20)
-                    : const .only(bottom: 16),
+                padding: .only(bottom: actions.isEmpty ? 0 : 16),
                 child: DefaultTextStyle.merge(
                   style: style.bodyTextStyle,
                   child: body,
@@ -54,29 +48,22 @@ class AdaptiveDialog extends StatelessWidget {
             ),
             Row(
               mainAxisAlignment: .end,
-              spacing: touch ? 10 : 8,
-              children: touch
-                  ? [for (final action in actions) Expanded(child: action)]
-                  : actions,
+              spacing: 8,
+              children: [for (final action in actions) Expanded(child: action)],
             ),
           ],
         ),
       );
     },
     verticalBuilder: (context, style) {
-      final touch = context.platformVariant.touch;
       return Padding(
-        padding: touch
-            ? const .symmetric(horizontal: 16, vertical: 18)
-            : const .symmetric(horizontal: 16, vertical: 14),
+        padding: const .symmetric(horizontal: 16, vertical: 14),
         child: Column(
           crossAxisAlignment: .start,
           mainAxisSize: .min,
           children: [
             Padding(
-              padding: touch
-                  ? const .only(left: 8, right: 8, bottom: 9)
-                  : const .only(left: 8, right: 8, bottom: 5),
+              padding: const .only(left: 8, right: 8, bottom: 5),
               child: DefaultTextStyle.merge(
                 style: style.titleTextStyle,
                 child: title,
@@ -84,20 +71,18 @@ class AdaptiveDialog extends StatelessWidget {
             ),
             Flexible(
               child: Padding(
-                padding: touch
-                    ? const .only(left: 8, right: 8, bottom: 20)
-                    : const .only(left: 8, right: 8, bottom: 16),
+                padding: .only(
+                  left: 8,
+                  right: 8,
+                  bottom: actions.isEmpty ? 0 : 16,
+                ),
                 child: DefaultTextStyle.merge(
                   style: style.bodyTextStyle,
                   child: body,
                 ),
               ),
             ),
-            Column(
-              mainAxisSize: .min,
-              spacing: touch ? 10 : 8,
-              children: actions,
-            ),
+            Column(mainAxisSize: .min, spacing: 8, children: actions),
           ],
         ),
       );

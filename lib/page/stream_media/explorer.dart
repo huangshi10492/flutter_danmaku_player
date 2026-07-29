@@ -256,7 +256,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                   Padding(
                     padding: const .all(4),
                     child: Container(
-                      constraints: BoxConstraints(minWidth: 100),
+                      constraints: const BoxConstraints(minWidth: 100),
                       decoration: BoxDecoration(
                         borderRadius: .circular(8),
                         border: .all(color: context.theme.colors.border),
@@ -266,7 +266,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                         child: Text(
                           "加载中...",
                           textAlign: .center,
-                          style: context.theme.typography.body.md,
+                          style: context.theme.typography.body.sm,
                         ),
                       ),
                     ),

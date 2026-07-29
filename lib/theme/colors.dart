@@ -3,7 +3,6 @@ import 'package:forui/forui.dart';
 
 enum AppColors {
   neutral('neutral', 0xFF171717, 0xFFFAFAFA, 0xFFE5E5E5, 0xFF171717),
-  zinc('zinc', 0xFF18181B, 0xFFFAFAFA, 0xFFE4E4E7, 0xFF18181B),
   amber('amber', 0xFFBB4D00, 0xFFFFFBEB, 0xFF973C00, 0xFFFFFBEB),
   blue('blue', 0xFF1447E6, 0xFFEFF6FF, 0xFF193CB8, 0xFFEFF6FF),
   cyan('cyan', 0xFF007595, 0xFFECFEFF, 0xFF005F78, 0xFFECFEFF),
