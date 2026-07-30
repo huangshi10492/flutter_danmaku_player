@@ -39,7 +39,7 @@ jobs:
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -93,11 +93,23 @@ jobs:
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/fldanplay-${TAG}-android-x86_64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/fldanplay-${TAG}-android-armeabi-v7a.apk
 
-      - name: Upload APK artifacts
-        uses: actions/upload-artifact@v6
+      - name: Upload APK (arm64-v8a)
+        uses: actions/upload-artifact@v7
         with:
-          name: android-apk
-          path: dist/*.apk
+          path: dist/fldanplay-*-android-arm64-v8a.apk
+          archive: false
+
+      - name: Upload APK (x86_64)
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fldanplay-*-android-x86_64.apk
+          archive: false
+
+      - name: Upload APK (armeabi-v7a)
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/fldanplay-*-android-armeabi-v7a.apk
+          archive: false
 
       - name: Enable Linux desktop
         run: flutter config --enable-linux-desktop
@@ -108,20 +120,23 @@ jobs:
       - name: Package linux build output
         run: bash .github/scripts/package-linux.sh
 
-      - name: Upload Linux artifacts
-        uses: actions/upload-artifact@v6
+      - name: Upload Linux (portable)
+        uses: actions/upload-artifact@v7
         with:
-          name: linux
-          path: |
-            fldanplay-*.tar.gz
-            fldanplay-*.deb
+          path: fldanplay-*.tar.gz
+          archive: false
 
+      - name: Upload Linux (deb)
+        uses: actions/upload-artifact@v7
+        with:
+          path: fldanplay-*.deb
+          archive: false
   windows:
     name: Build Windows
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -174,11 +189,14 @@ jobs:
           fastforge package --platform windows --targets exe --skip-clean
           mv dist/**/*.exe release/fldanplay-$env:TAG-windows-x64-setup.exe
 
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v6
+      - name: Upload Windows (portable)
+        uses: actions/upload-artifact@v7
         with:
-          name: windows
-          path: |
-            release/*.zip
-            release/*.exe
-          if-no-files-found: warn
+          path: release/*.zip
+          archive: false
+
+      - name: Upload Windows (setup)
+        uses: actions/upload-artifact@v7
+        with:
+          path: release/*.exe
+          archive: false
