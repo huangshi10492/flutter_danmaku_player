@@ -157,6 +157,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           ),
           FButton(
             onPress: () => Navigator.pop(context),
+            autofocus: true,
             child: const Text('确定'),
           ),
         ];

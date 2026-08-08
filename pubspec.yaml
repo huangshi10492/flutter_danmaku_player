@@ -76,6 +76,7 @@ dependencies:
   fl_chart: ^1.2.0
   forui: 0.24.3
   skeletonizer: ^2.1.3
+  dpad: ^3.0.0
 
   # 平台与设备
   auto_orientation_v2: ^2.3.8

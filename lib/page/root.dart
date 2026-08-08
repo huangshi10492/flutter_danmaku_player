@@ -194,6 +194,7 @@ class RootPageState extends State<RootPage> {
                     prefix: const Icon(FLucideIcons.clock),
                     title: const Text('观看历史'),
                     subtitle: Text('查看观看历史'),
+                    autofocus: true,
                     onPress: () => context.push(historyPath),
                   ),
                   FItem(
@@ -271,6 +272,7 @@ class RootPageState extends State<RootPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        tooltip: '添加媒体库',
         onPressed: () => showModalBottomSheet(
           context: context,
           builder: (context) {
@@ -311,6 +313,7 @@ class _ContextMenuState extends State<_ContextMenu>
             .tile(
               prefix: const Icon(FLucideIcons.pencil),
               title: Text('编辑'),
+              autofocus: true,
               onPress: () {
                 controller.toggle();
                 widget.edit();

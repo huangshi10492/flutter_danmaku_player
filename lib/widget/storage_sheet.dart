@@ -617,6 +617,7 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
                 child: FTextFormField(
                   control: .managed(controller: _nameController),
                   label: Text('名称'),
+                  autofocus: true,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return '名称不能为空';

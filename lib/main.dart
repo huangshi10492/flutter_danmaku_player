@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:catcher_2/catcher_2.dart';
+import 'package:dpad/dpad.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/logger.dart';
 import 'package:fldanplay/hive/hive_registrar.g.dart';
@@ -68,6 +69,7 @@ Future<void> init() async {
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
         statusBarColor: Colors.transparent,
+        systemNavigationBarContrastEnforced: false,
       ),
     );
   }
@@ -93,8 +95,7 @@ class Application extends StatefulWidget {
 }
 
 class _ApplicationState extends State<Application> with WidgetsBindingObserver {
-  _ApplicationState();
-
+  final configureService = GetIt.I.get<ConfigureService>();
   final _isDark = signal(
     WidgetsBinding.instance.platformDispatcher.platformBrightness ==
         Brightness.dark,
@@ -123,33 +124,27 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return SignalBuilder(
       builder: (context) {
-        final configureService = GetIt.I.get<ConfigureService>();
         final themeMode = configureService.themeMode.value;
         final themeColor = configureService.themeColor.value;
-        var materialThemeMode = ThemeMode.system;
+        var brightness = ThemeMode.system;
+        bool isDark = false;
         switch (themeMode) {
           case '0':
-            materialThemeMode = ThemeMode.system;
+            isDark = _isDark.value;
             break;
           case '1':
-            materialThemeMode = ThemeMode.light;
+            isDark = false;
+            brightness = .light;
             break;
           case '2':
-            materialThemeMode = ThemeMode.dark;
+            isDark = true;
+            brightness = .dark;
             break;
         }
-        late FThemeData fTheme;
-        switch (themeMode) {
-          case '0':
-            fTheme = getTheme(themeColor, _isDark.value);
-            break;
-          case '1':
-            fTheme = getTheme(themeColor, false);
-            break;
-          case '2':
-            fTheme = getTheme(themeColor, true);
-            break;
-        }
+        final fTheme = getTheme(themeColor, isDark);
+        final dpad = configureService.dpadEnable.value;
+        final showFocusHighlight = configureService.showFocusHighlight.value;
+        final uiScale = configureService.uiScale.value;
         return MaterialApp.router(
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           supportedLocales: const [
@@ -164,25 +159,27 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
             scriptCode: 'Hans',
             countryCode: "CN",
           ),
-          theme: getTheme(themeColor, false).toApproximateMaterialTheme(),
-          darkTheme: getTheme(themeColor, true).toApproximateMaterialTheme(),
-          themeMode: materialThemeMode,
+          themeMode: brightness,
+          theme: fTheme.toApproximateMaterialTheme(),
           builder: (context, child) => FTheme(
             data: fTheme,
-            child: FAccessibilityScope(
-              data: FAccessibility(
-                accessibleNavigation: false,
-                motion: .all,
-                focusHighlight: false,
-              ),
-              child: FToaster(
-                child: _builder(
-                  context,
-                  Builder(
-                    builder: (context) {
-                      GetIt.I.get<GlobalService>().appContext = context;
-                      return child!;
-                    },
+            child: Dpad(
+              enabled: dpad,
+              child: FAccessibilityScope(
+                data: FAccessibility(
+                  accessibleNavigation: false,
+                  motion: .all,
+                  focusHighlight: showFocusHighlight,
+                ),
+                child: FToaster(
+                  child: _scaleBuilder(
+                    uiScale,
+                    Builder(
+                      builder: (context) {
+                        GetIt.I.get<GlobalService>().appContext = context;
+                        return child!;
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -194,8 +191,7 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
     );
   }
 
-  static Widget _builder(BuildContext context, Widget child) {
-    final uiScale = GetIt.I.get<ConfigureService>().uiScale.value;
+  Widget _scaleBuilder(double uiScale, Widget child) {
     if (uiScale != 1.0) {
       final mediaQuery = MediaQuery.of(context);
       child = MediaQuery(

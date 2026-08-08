@@ -32,10 +32,7 @@ class GeneralSettingsPage extends StatelessWidget {
                   final isSelected = configure.themeColor.value == color.tag;
                   final themeColor =
                       (isDark ? color.dark : color.light).primary;
-                  return GestureDetector(
-                    onTap: () {
-                      configure.themeColor.value = color.tag;
-                    },
+                  return Material(
                     child: Container(
                       width: 70,
                       height: 80,
@@ -45,21 +42,27 @@ class GeneralSettingsPage extends StatelessWidget {
                             : null,
                         borderRadius: .circular(8),
                       ),
-                      child: Column(
-                        mainAxisAlignment: .center,
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: themeColor,
-                              shape: .circle,
+                      child: InkWell(
+                        autofocus: isSelected,
+                        onTap: () {
+                          configure.themeColor.value = color.tag;
+                        },
+                        child: Column(
+                          mainAxisAlignment: .center,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: themeColor,
+                                shape: .circle,
+                              ),
+                              child: null,
                             ),
-                            child: null,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(color.tag),
-                        ],
+                            const SizedBox(height: 6),
+                            Text(color.tag),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -95,15 +98,20 @@ class GeneralSettingsPage extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: .start,
                   children: [
-                    Slider(
-                      value: uiScale.value,
-                      min: 0.5,
-                      max: 2.0,
-                      divisions: 15,
-                      label: uiScale.value.toStringAsFixed(1),
-                      onChanged: (value) {
-                        uiScale.value = value;
-                      },
+                    MediaQuery(
+                      data: MediaQuery.of(
+                        context,
+                      ).copyWith(navigationMode: .directional),
+                      child: Slider(
+                        value: uiScale.value,
+                        min: 0.5,
+                        max: 2.0,
+                        divisions: 15,
+                        label: uiScale.value.toStringAsFixed(1),
+                        onChanged: (value) {
+                          uiScale.value = value;
+                        },
+                      ),
                     ),
                     Text('当前缩放：${uiScale.value.toStringAsFixed(1)}'),
                   ],
@@ -161,6 +169,26 @@ class GeneralSettingsPage extends StatelessWidget {
                     title: 'ui缩放',
                     details: configure.uiScale.value.toStringAsFixed(1),
                     onPress: () => _showUiScaleDialog(context, configure),
+                  ),
+                ],
+              ),
+              SettingsSection(
+                title: 'dpad',
+                children: [
+                  SettingsTile.switchTile(
+                    title: '开启dpad',
+                    subtitle: '符合TV用户直觉的焦点系统',
+                    switchValue: configure.dpadEnable.value,
+                    onBoolChange: (value) {
+                      configure.dpadEnable.value = value;
+                    },
+                  ),
+                  SettingsTile.switchTile(
+                    title: '高亮显示焦点',
+                    switchValue: configure.showFocusHighlight.value,
+                    onBoolChange: (value) {
+                      configure.showFocusHighlight.value = value;
+                    },
                   ),
                 ],
               ),

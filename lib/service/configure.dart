@@ -140,6 +140,14 @@ class ConfigureService {
     key: 'uiScale',
     defaultValue: 1.0,
   );
+  late final Signal<bool> dpadEnable = _config(
+    key: 'dpadEnable',
+    defaultValue: false,
+  );
+  late final Signal<bool> showFocusHighlight = _config(
+    key: 'showFocusHighlight',
+    defaultValue: false,
+  );
   late final Signal<bool> offlineCacheFirst = _config(
     key: 'offlineCacheFirst',
     defaultValue: true,

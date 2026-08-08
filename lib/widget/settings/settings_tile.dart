@@ -245,14 +245,19 @@ class SettingsTile extends StatelessWidget with FTileMixin {
                     style: subtitleStyle(context),
                     overflow: TextOverflow.visible,
                   ),
-            Slider(
-              padding: EdgeInsets.only(top: 6, bottom: 0),
-              value: silderValue!,
-              min: silderMin!,
-              max: silderMax!,
-              divisions: silderDivisions,
-              onChanged: onSilderChange,
-              onChangeEnd: onSilderEnd,
+            MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(navigationMode: .directional),
+              child: Slider(
+                padding: EdgeInsets.only(top: 6, bottom: 0),
+                value: silderValue!,
+                min: silderMin!,
+                max: silderMax!,
+                divisions: silderDivisions,
+                onChanged: onSilderChange,
+                onChangeEnd: onSilderEnd,
+              ),
             ),
           ],
         ),
@@ -263,12 +268,15 @@ class SettingsTile extends StatelessWidget with FTileMixin {
   }
 
   Widget _buildRadioTile(BuildContext context) {
-    return FSelectMenuTile.fromMap(
+    return FSelectMenuTile<String>(
       selectControl: .lifted(
-        value: {radioValue},
-        onChange: (value) => onRadioChange!(value.last!),
+        value: {?radioValue},
+        onChange: (value) => onRadioChange!(value.last),
       ),
-      radioOptions!,
+      menu: [
+        for (final MapEntry(:key, :value) in radioOptions!.entries)
+          .tile(title: Text(key), value: value, autofocus: radioValue == value),
+      ],
       style: .delta(
         tileStyle: .delta(
           contentStyle: .delta(

@@ -9,11 +9,15 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = ColorScheme.of(context);
     List<Widget> acs = [];
     if (actions != null) {
       acs.addAll(actions!);
     }
     acs.add(const SizedBox(width: 8));
+    final brightnessReverse = colorScheme.brightness == .light
+        ? Brightness.dark
+        : Brightness.light;
     return AppBar(
       scrolledUnderElevation: 0,
       title: Text(
@@ -21,22 +25,13 @@ class SysAppBar extends StatelessWidget implements PreferredSizeWidget {
         style: context.theme.typography.body.xl.copyWith(height: 1),
       ),
       actions: acs,
-      leading: Navigator.canPop(context)
-          ? IconButton(
-              onPressed: () {
-                Navigator.maybePop(context);
-              },
-              icon: Icon(FLucideIcons.arrowLeft),
-            )
-          : null,
       systemOverlayStyle: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness:
-            Theme.of(context).brightness == Brightness.light
-            ? Brightness.dark
-            : Brightness.light,
+        statusBarBrightness: colorScheme.brightness,
+        statusBarIconBrightness: brightnessReverse,
+        systemStatusBarContrastEnforced: false,
         systemNavigationBarColor: Colors.transparent,
-        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: brightnessReverse,
       ),
     );
   }

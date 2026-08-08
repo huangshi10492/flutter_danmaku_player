@@ -23,6 +23,7 @@ class SettingsPage extends StatelessWidget {
                 prefix: const Icon(FLucideIcons.settings),
                 title: const Text('通用'),
                 subtitle: const Text('界面、播放缓存优先度'),
+                autofocus: true,
                 onPress: () => context.push('/settings/general'),
               ),
               FItem(
