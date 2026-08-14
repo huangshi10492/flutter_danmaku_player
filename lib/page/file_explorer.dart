@@ -152,7 +152,26 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         }
       },
       child: Scaffold(
-        appBar: SysAppBar(title: _storage?.name ?? ''),
+        appBar: SysAppBar(
+          title: _storage?.name ?? '',
+          actions: [
+            SignalBuilder(
+              builder: (context) {
+                final isFiltered = _fileExplorerService.filter.value
+                    .isFiltered();
+                return FButton.icon(
+                  variant: .ghost,
+                  onPress: () => _openConfigSheet(),
+                  child: Icon(
+                    FLucideIcons.listFilter,
+                    size: 24,
+                    color: isFiltered ? context.theme.colors.primary : null,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
         body: _initError != null
             ? ErrorRefresh(error: _initError!, onRefresh: _retryInit)
             : _storage == null
@@ -176,22 +195,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                   child: _buildBody(),
                 ),
               ),
-        floatingActionButton: isFABVisible
-            ? SignalBuilder(
-                builder: (context) {
-                  bool isFiltered = _fileExplorerService.filter.value
-                      .isFiltered();
-                  return FloatingActionButton(
-                    onPressed: () => _openConfigSheet(),
-                    shape: CircleBorder(),
-                    child: isFiltered
-                        ? const Icon(FLucideIcons.listFilterPlus)
-                        : const Icon(FLucideIcons.listFilter),
-                    // backgroundColor: ,
-                  );
-                },
-              )
-            : null,
       ),
     );
   }
@@ -483,14 +486,21 @@ class _FileExplorerFilterSheetState extends State<FileExplorerFilterSheet> {
           hint: '输入关键词',
         ),
         const SizedBox(height: 12),
-        FSelectMenuTile.fromMap(
+        FSelectMenuTile<int>(
+          menu: [
+            for (final MapEntry(:key, :value) in displayModeOptions.entries)
+              .tile(
+                title: Text(key),
+                value: value,
+                autofocus: displayMode == value,
+              ),
+          ],
           selectControl: .lifted(
             value: {displayMode},
             onChange: (value) => setState(() {
               displayMode = value.last;
             }),
           ),
-          displayModeOptions,
           title: Text('内容类型'),
           details: Text(
             displayModeOptions.entries

@@ -2,12 +2,14 @@ import 'dart:io';
 
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/danmaku_match_dialog.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 
 class FileImageEx extends FileImage {
@@ -269,7 +271,8 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ...widget.items,
       ],
-      child: FItem(
+      childOnPress: widget.onPress,
+      child: (onPress) => FItem(
         prefix: SizedBox(
           width: widget.coutinue ? 144 : 100,
           height: widget.coutinue ? 81 : 65,
@@ -372,39 +375,67 @@ class _VideoItemState extends State<VideoItem> {
             ],
           ),
         ),
-        onPress: widget.onPress,
+        onPress: onPress,
       ),
     );
   }
 }
 
-class _ContextMenu extends StatefulWidget {
+class _ContextMenu extends StatefulWidget with FItemMixin {
   final List<ContextMenuItem> items;
-  final Widget child;
-  const _ContextMenu({required this.items, required this.child});
+  final VoidCallback childOnPress;
+  final FItem Function(VoidCallback onPress) child;
+  const _ContextMenu({
+    required this.items,
+    required this.child,
+    required this.childOnPress,
+  });
   @override
   _ContextMenuState createState() => _ContextMenuState();
 }
 
 class _ContextMenuState extends State<_ContextMenu>
     with TickerProviderStateMixin {
+  late final FPopoverController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = FPopoverController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = FPopoverController(vsync: this);
+    final dpadEnabled = GetIt.I.get<ConfigureService>().dpadEnable.value;
     return FContextMenu.tiles(
-      control: .managed(controller: controller),
-      style: .delta(),
+      control: .managed(controller: _controller),
       menu: [
         .group(
           divider: .full,
           children: [
+            if (dpadEnabled)
+              .tile(
+                prefix: const Icon(FLucideIcons.play),
+                title: Text('播放'),
+                autofocus: true,
+                onPress: () {
+                  _controller.toggle();
+                  widget.childOnPress();
+                },
+              ),
             ...widget.items.map(
               (item) => .tile(
                 prefix: Icon(item.icon),
                 variant: item.variant,
                 title: Text(item.title),
                 onPress: () async {
-                  await controller.toggle();
+                  await _controller.toggle();
                   item.onPress();
                 },
               ),
@@ -412,7 +443,9 @@ class _ContextMenuState extends State<_ContextMenu>
           ],
         ),
       ],
-      child: widget.child,
+      child: widget.child(
+        dpadEnabled ? () => _controller.show() : widget.childOnPress,
+      ),
     );
   }
 }

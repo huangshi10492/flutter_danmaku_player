@@ -5,6 +5,7 @@ import 'package:fldanplay/widget/scale_app.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
+import 'package:fldanplay/widget/tappable.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
@@ -26,44 +27,32 @@ class GeneralSettingsPage extends StatelessWidget {
             child: Center(
               child: Wrap(
                 alignment: .center,
-                spacing: 8,
-                runSpacing: 4,
                 children: AppColors.values.map((color) {
                   final isSelected = configure.themeColor.value == color.tag;
                   final themeColor =
                       (isDark ? color.dark : color.light).primary;
-                  return Material(
-                    child: Container(
-                      width: 70,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? themeColor.withValues(alpha: 0.1)
-                            : null,
-                        borderRadius: .circular(8),
-                      ),
-                      child: InkWell(
-                        autofocus: isSelected,
-                        onTap: () {
-                          configure.themeColor.value = color.tag;
-                        },
-                        child: Column(
-                          mainAxisAlignment: .center,
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: themeColor,
-                                shape: .circle,
-                              ),
-                              child: null,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(color.tag),
-                          ],
+                  return Tappable(
+                    width: 70,
+                    height: 80,
+                    isSelected: isSelected,
+                    onPress: () {
+                      configure.themeColor.value = color.tag;
+                    },
+                    child: Column(
+                      mainAxisAlignment: .center,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: themeColor,
+                            shape: .circle,
+                          ),
+                          child: null,
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        Text(color.tag),
+                      ],
                     ),
                   );
                 }).toList(),
@@ -177,17 +166,10 @@ class GeneralSettingsPage extends StatelessWidget {
                 children: [
                   SettingsTile.switchTile(
                     title: '开启dpad',
-                    subtitle: '符合TV用户直觉的焦点系统',
+                    subtitle: '符合TV用户直觉的焦点系统，重启后完整生效',
                     switchValue: configure.dpadEnable.value,
                     onBoolChange: (value) {
                       configure.dpadEnable.value = value;
-                    },
-                  ),
-                  SettingsTile.switchTile(
-                    title: '高亮显示焦点',
-                    switchValue: configure.showFocusHighlight.value,
-                    onBoolChange: (value) {
-                      configure.showFocusHighlight.value = value;
                     },
                   ),
                 ],

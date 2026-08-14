@@ -7,6 +7,7 @@ import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
+import 'package:fldanplay/widget/tappable.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
@@ -130,29 +131,27 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildLibraryItem(CollectionItem library, bool selected) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 100),
-      decoration: BoxDecoration(
-        borderRadius: .circular(8),
-        border: Border.all(
-          color: selected
-              ? context.theme.colors.primary
-              : context.theme.colors.border,
-        ),
+    final shape = RoundedRectangleBorder(
+      side: BorderSide(
+        color: selected
+            ? context.theme.colors.primary
+            : context.theme.colors.border,
+        width: context.theme.style.borderWidth,
       ),
-      child: InkWell(
-        borderRadius: .circular(8),
-        onTap: () => streamMediaExplorerService.libraryId.value = library.id,
-        child: Padding(
-          padding: const .symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            library.name,
-            maxLines: 1,
-            textAlign: .center,
-            overflow: .ellipsis,
-            style: context.theme.typography.body.sm.copyWith(
-              color: selected ? context.theme.colors.primary : null,
-            ),
+      borderRadius: context.theme.style.borderRadius.md,
+    );
+    return FButton.icon(
+      style: .delta(decoration: .delta([.all(.shapeDelta(shape: shape))])),
+      onPress: () => streamMediaExplorerService.libraryId.value = library.id,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 70),
+        child: Text(
+          library.name,
+          maxLines: 1,
+          textAlign: .center,
+          overflow: .ellipsis,
+          style: context.theme.typography.body.sm.copyWith(
+            color: selected ? context.theme.colors.primary : null,
           ),
         ),
       ),
@@ -160,24 +159,14 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildLibraryToggle() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: .circular(8),
-        border: .all(color: context.theme.colors.border),
-      ),
-      child: InkWell(
-        borderRadius: .circular(8),
-        onTap: () => _librariesExpanded.value = !_librariesExpanded.value,
-        child: Padding(
-          padding: const .symmetric(horizontal: 8, vertical: 8),
-          child: SignalBuilder(
-            builder: (context) => AnimatedRotation(
-              turns: _librariesExpanded.value ? 0.5 : 0,
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              child: const Icon(Icons.chevron_right, size: 24),
-            ),
-          ),
+    return FButton.icon(
+      onPress: () => _librariesExpanded.value = !_librariesExpanded.value,
+      child: SignalBuilder(
+        builder: (context) => AnimatedRotation(
+          turns: _librariesExpanded.value ? 0.5 : 0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          child: const Icon(Icons.chevron_right, size: 24),
         ),
       ),
     );
@@ -193,16 +182,19 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       curve: Curves.easeOut,
       child: child,
       builder: (context, value, child) {
-        return IgnorePointer(
-          ignoring: value < 0.99,
-          child: ClipRect(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              widthFactor: value,
-              heightFactor: value,
-              child: Opacity(
-                opacity: value,
-                child: Padding(padding: .all(4), child: child),
+        return ExcludeFocus(
+          excluding: !visible,
+          child: IgnorePointer(
+            ignoring: !visible,
+            child: ClipRect(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: value,
+                heightFactor: value,
+                child: Opacity(
+                  opacity: value,
+                  child: Padding(padding: .all(4), child: child),
+                ),
               ),
             ),
           ),
@@ -289,8 +281,8 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
     final unplayedBadgeText = unplayedItemCount > 99
         ? '99+'
         : '$unplayedItemCount';
-    return InkWell(
-      onTap: () {
+    return Tappable(
+      onPress: () {
         context.push(streamMediaDetailPath, extra: mediaItem);
       },
       child: Column(
@@ -415,80 +407,74 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
     final progressValue = durationMs <= 0
         ? null
         : (positionMs / durationMs).clamp(0.0, 1.0).toDouble();
-    return InkWell(
-      borderRadius: .circular(8),
-      onTap: () => _openResumeDetail(item),
-      child: Container(
-        width: width,
-        padding: .all(4),
-        child: Column(
-          crossAxisAlignment: .stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return ClipRRect(
-                    borderRadius: .circular(8),
-                    child: Stack(
-                      children: [
-                        imageUrl == null
-                            ? _buildEmptyPrefix()
-                            : NetworkImageWidget(
-                                url: imageUrl,
-                                headers: streamMediaExplorerService.headers,
-                                maxWidth: constraints.maxWidth,
-                                maxHeight: constraints.maxHeight,
-                                fit: .contain,
-                                errorWidget: _buildEmptyPrefix(),
+    return Tappable(
+      width: width,
+      onPress: () => _openResumeDetail(item),
+      child: Column(
+        crossAxisAlignment: .stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return ClipRRect(
+                  borderRadius: .circular(8),
+                  child: Stack(
+                    children: [
+                      imageUrl == null
+                          ? _buildEmptyPrefix()
+                          : NetworkImageWidget(
+                              url: imageUrl,
+                              headers: streamMediaExplorerService.headers,
+                              maxWidth: constraints.maxWidth,
+                              maxHeight: constraints.maxHeight,
+                              fit: .contain,
+                              errorWidget: _buildEmptyPrefix(),
+                            ),
+                      if (progressValue != null)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: FDeterminateProgress(
+                            value: progressValue,
+                            style: .delta(
+                              motion: .delta(duration: Duration.zero),
+                              trackDecoration: .boxDelta(
+                                color: Colors.transparent,
                               ),
-                        if (progressValue != null)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: FDeterminateProgress(
-                              value: progressValue,
-                              style: .delta(
-                                motion: .delta(duration: Duration.zero),
-                                trackDecoration: .boxDelta(
-                                  color: Colors.transparent,
-                                ),
-                                constraints: .tightFor(height: 4),
-                              ),
+                              constraints: .tightFor(height: 4),
                             ),
                           ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const .fromLTRB(2, 4, 2, 2),
-              child: Column(
-                crossAxisAlignment: .start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: .ellipsis,
-                    style: context.theme.typography.body.sm.copyWith(
-                      height: 1.2,
-                    ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: .ellipsis,
-                    style: subtitleStyle,
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const .fromLTRB(2, 4, 2, 2),
+            child: Column(
+              crossAxisAlignment: .start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: .ellipsis,
+                  style: context.theme.typography.body.sm.copyWith(height: 1.2),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: .ellipsis,
+                  style: subtitleStyle,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -532,8 +518,8 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         final itemWidth =
             (screenWidth - itemSpacing * (crossAxisCount + 1)) / crossAxisCount;
         final imageHeight = itemWidth / 0.7;
-        const textHeight = 30;
-        final totalHeight = imageHeight + textHeight + 6;
+        const textHeight = 32;
+        final totalHeight = imageHeight + textHeight;
         return SignalBuilder(
           builder: (context) {
             return streamMediaExplorerService.items.value.map(
@@ -543,8 +529,6 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                     SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: itemSpacing,
-                        mainAxisSpacing: 4,
                         childAspectRatio: itemWidth / totalHeight,
                       ),
                       delegate: SliverChildBuilderDelegate((context, index) {
@@ -608,7 +592,6 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
             slivers: [
               SliverToBoxAdapter(child: _buildContinueWatchingSection()),
               SliverToBoxAdapter(child: _buildLibrarySection()),
-              const SliverToBoxAdapter(child: SizedBox(height: 8)),
               _buildGridSection(),
             ],
           ),
@@ -620,23 +603,27 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: SysAppBar(title: storage?.name ?? ''),
+      appBar: SysAppBar(
+        title: storage?.name ?? '',
+        actions: [
+          SignalBuilder(
+            builder: (context) {
+              final isFiltered = streamMediaExplorerService.filter.value
+                  .isFiltered();
+              return FButton.icon(
+                variant: .ghost,
+                onPress: () => _openFilterSheet(),
+                child: Icon(
+                  FLucideIcons.listFilter,
+                  size: 24,
+                  color: isFiltered ? context.theme.colors.primary : null,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: _buildBody(),
-      floatingActionButton: isFABVisible
-          ? SignalBuilder(
-              builder: (context) {
-                final isFiltered = streamMediaExplorerService.filter.value
-                    .isFiltered();
-                return FloatingActionButton(
-                  onPressed: () => _openFilterSheet(),
-                  shape: const CircleBorder(),
-                  child: isFiltered
-                      ? const Icon(FLucideIcons.listFilterPlus)
-                      : const Icon(FLucideIcons.listFilter),
-                );
-              },
-            )
-          : null,
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/storage_sheet.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/storage.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -240,28 +241,29 @@ class RootPageState extends State<RootPage> {
                         confirmText: '删除',
                         destructive: true,
                       ),
-                      child: FItem(
+                      childOnPress: () {
+                        switch (storage.storageType) {
+                          case StorageType.webdav:
+                          case StorageType.ftp:
+                          case StorageType.smb:
+                          case StorageType.local:
+                            context.push(
+                              '$fileExplorerPath?key=${storage.key}',
+                            );
+                            break;
+                          case StorageType.jellyfin:
+                          case StorageType.emby:
+                            context.push(
+                              '$streamMediaExplorerPath?key=${storage.key}',
+                            );
+                            break;
+                        }
+                      },
+                      child: (onPress) => FItem(
                         prefix: _buildPrefix(storage.storageType),
                         title: Text(storage.name),
                         subtitle: Text(storage.url),
-                        onPress: () {
-                          switch (storage.storageType) {
-                            case StorageType.webdav:
-                            case StorageType.ftp:
-                            case StorageType.smb:
-                            case StorageType.local:
-                              context.push(
-                                '$fileExplorerPath?key=${storage.key}',
-                              );
-                              break;
-                            case StorageType.jellyfin:
-                            case StorageType.emby:
-                              context.push(
-                                '$streamMediaExplorerPath?key=${storage.key}',
-                              );
-                              break;
-                          }
-                        },
+                        onPress: onPress,
                       ),
                     ),
                   ),
@@ -287,12 +289,14 @@ class RootPageState extends State<RootPage> {
 }
 
 class _ContextMenu extends StatefulWidget with FItemMixin {
-  final Function edit;
-  final Function delete;
-  final Widget child;
+  final VoidCallback edit;
+  final VoidCallback delete;
+  final VoidCallback childOnPress;
+  final FItem Function(VoidCallback onPress) child;
   const _ContextMenu({
     required this.edit,
     required this.delete,
+    required this.childOnPress,
     required this.child,
   });
   @override
@@ -301,37 +305,59 @@ class _ContextMenu extends StatefulWidget with FItemMixin {
 
 class _ContextMenuState extends State<_ContextMenu>
     with TickerProviderStateMixin {
+  late final FPopoverController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = FPopoverController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _closeAndRun(VoidCallback action) async {
+    await _controller.hide();
+    if (mounted) action();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final controller = FPopoverController(vsync: this);
+    final dpadEnabled = GetIt.I.get<ConfigureService>().dpadEnable.value;
     return FContextMenu.tiles(
-      control: .managed(controller: controller),
+      control: .managed(controller: _controller),
       menu: [
         .group(
           divider: .full,
           children: [
+            if (dpadEnabled)
+              .tile(
+                prefix: const Icon(FLucideIcons.play),
+                title: Text('打开'),
+                autofocus: true,
+                onPress: () => _closeAndRun(widget.childOnPress),
+              ),
             .tile(
               prefix: const Icon(FLucideIcons.pencil),
               title: Text('编辑'),
-              autofocus: true,
-              onPress: () {
-                controller.toggle();
-                widget.edit();
-              },
+              autofocus: !dpadEnabled,
+              onPress: () => _closeAndRun(widget.edit),
             ),
             .tile(
               variant: .destructive,
               prefix: Icon(FLucideIcons.trash),
               title: Text('删除'),
-              onPress: () {
-                controller.toggle();
-                widget.delete();
-              },
+              onPress: () => _closeAndRun(widget.delete),
             ),
           ],
         ),
       ],
-      child: widget.child,
+      child: widget.child(
+        dpadEnabled ? () => _controller.show() : widget.childOnPress,
+      ),
     );
   }
 }

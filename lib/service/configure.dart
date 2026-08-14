@@ -144,10 +144,6 @@ class ConfigureService {
     key: 'dpadEnable',
     defaultValue: false,
   );
-  late final Signal<bool> showFocusHighlight = _config(
-    key: 'showFocusHighlight',
-    defaultValue: false,
-  );
   late final Signal<bool> offlineCacheFirst = _config(
     key: 'offlineCacheFirst',
     defaultValue: true,

@@ -114,28 +114,34 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
           ),
           const SizedBox(height: 12),
         ],
-        FSelectMenuTile.fromMap(
+        FSelectMenuTile<String>(
+          menu: [
+            for (final MapEntry(:key, :value) in statusOptions.entries)
+              .tile(title: Text(key), value: value, autofocus: status == value),
+          ],
           selectControl: .lifted(
             value: {status},
             onChange: (value) => setState(() {
               status = value.last;
             }),
           ),
-          statusOptions,
           title: Text('连载状态'),
           details: Text(
             statusOptions.entries.firstWhere((e) => e.value == status).key,
           ),
         ),
         const SizedBox(height: 12),
-        FSelectMenuTile.fromMap(
+        FSelectMenuTile<String>(
+          menu: [
+            for (final MapEntry(:key, :value) in sortOptions.entries)
+              .tile(title: Text(key), value: value, autofocus: sortBy == value),
+          ],
           selectControl: .lifted(
             value: {sortBy},
             onChange: (value) => setState(() {
               sortBy = value.last;
             }),
           ),
-          sortOptions,
           title: Text('排序类型'),
           details: Text(
             sortOptions.entries.firstWhere((e) => e.value == sortBy).key,

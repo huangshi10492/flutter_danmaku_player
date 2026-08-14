@@ -143,7 +143,6 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
         }
         final fTheme = getTheme(themeColor, isDark);
         final dpad = configureService.dpadEnable.value;
-        final showFocusHighlight = configureService.showFocusHighlight.value;
         final uiScale = configureService.uiScale.value;
         return MaterialApp.router(
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -169,7 +168,7 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
                 data: FAccessibility(
                   accessibleNavigation: false,
                   motion: .all,
-                  focusHighlight: showFocusHighlight,
+                  focusHighlight: dpad,
                 ),
                 child: FToaster(
                   child: _scaleBuilder(

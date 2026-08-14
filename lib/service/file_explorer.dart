@@ -38,7 +38,7 @@ class Filter {
   Filter();
 
   bool isFiltered() {
-    return searchTerm.isNotEmpty || sortOrder != true;
+    return searchTerm.isNotEmpty || displayMode != 0 || sortOrder != true;
   }
 }
 
