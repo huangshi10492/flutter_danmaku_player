@@ -16,7 +16,13 @@ class SettingsScaffold extends StatelessWidget {
         child: SingleChildScrollView(
           child: SafeArea(
             minimum: const EdgeInsets.only(bottom: 8),
-            child: Align(alignment: Alignment.topCenter, child: child),
+            child: Align(
+              alignment: .topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 1000),
+                child: child,
+              ),
+            ),
           ),
         ),
       ),

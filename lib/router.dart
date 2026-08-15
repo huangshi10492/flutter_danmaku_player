@@ -5,6 +5,7 @@ import 'package:fldanplay/page/file_explorer.dart';
 import 'package:fldanplay/page/history.dart';
 import 'package:fldanplay/page/offline_cache.dart';
 import 'package:fldanplay/page/player/player.dart';
+import 'package:fldanplay/page/player/tv_player.dart';
 import 'package:fldanplay/page/root.dart';
 import 'package:fldanplay/page/settings/about_page.dart';
 import 'package:fldanplay/page/settings/general_settings.dart';
@@ -18,10 +19,12 @@ import 'package:fldanplay/page/settings/maintenance_page.dart';
 import 'package:fldanplay/page/settings/sync_settings.dart';
 import 'package:fldanplay/page/stream_media/detail.dart';
 import 'package:fldanplay/page/stream_media/explorer.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 const String rootPath = '/';
@@ -196,6 +199,7 @@ final router = GoRouter(
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
         AutoOrientation.landscapeAutoMode(forceSensor: true);
         final videoInfo = state.extra as VideoInfo;
+        final dpad = GetIt.I.get<ConfigureService>().dpadEnable.value;
         final theme = getTheme('neutral', true, touchUI: true);
         return CustomTransitionPage(
           child: Theme(
@@ -206,9 +210,11 @@ final router = GoRouter(
                 data: FAccessibility(
                   accessibleNavigation: false,
                   motion: .all,
-                  focusHighlight: false,
+                  focusHighlight: dpad,
                 ),
-                child: VideoPlayerPage(videoInfo),
+                child: dpad
+                    ? TvVideoPlayerPage(videoInfo)
+                    : VideoPlayerPage(videoInfo),
               ),
             ),
           ),

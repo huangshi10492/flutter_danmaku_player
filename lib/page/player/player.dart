@@ -1,57 +1,61 @@
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
-import 'package:auto_orientation_v2/auto_orientation_v2.dart';
-import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/page/player/player_common.dart';
 import 'package:fldanplay/page/player/right_drawer/right_drawer.dart';
 import 'package:fldanplay/service/configure.dart';
-import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/global.dart';
-import 'package:fldanplay/service/history.dart';
-import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/service/player/ui_state.dart';
-import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
-import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:flutter/material.dart' hide ProgressIndicator;
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import 'package:media_kit_video/media_kit_video.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:window_manager/window_manager.dart';
 import 'gesture.dart';
 import 'indicator.dart';
 import 'progress_bar.dart';
 
-class VideoPlayerPage extends StatefulWidget {
+class VideoPlayerPage extends StatelessWidget {
   final VideoInfo videoInfo;
 
   const VideoPlayerPage(this.videoInfo, {super.key});
 
   @override
-  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+  Widget build(BuildContext context) {
+    return PlayerPageHost(
+      videoInfo: videoInfo,
+      builder: (context, session) => _StandardPlayerView(session: session),
+    );
+  }
 }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late final _playerService = VideoPlayerService(
-    widget.videoInfo,
-    () => _uiState.showControlsTemporarily(),
-  );
+class _StandardPlayerView extends StatefulWidget {
+  const _StandardPlayerView({required this.session});
+
+  final PlayerSessionController session;
+
+  @override
+  State<_StandardPlayerView> createState() => _StandardPlayerViewState();
+}
+
+class _StandardPlayerViewState extends State<_StandardPlayerView> {
   final PlayerUIState _uiState = PlayerUIState();
   final _globalService = GetIt.I.get<GlobalService>();
   final _configureService = GetIt.I.get<ConfigureService>();
-  late final Signal<VideoInfo> _videoInfo = signal(widget.videoInfo);
+  VideoPlayerService get _playerService => widget.session.playerService;
+  Signal<VideoInfo> get _videoInfo => widget.session.videoInfo;
 
   @override
   void initState() {
     super.initState();
-    WakelockPlus.enable();
     _uiState.init();
+    widget.session.loadComplete.stream.listen((_) {
+      _uiState.showControlsTemporarily();
+    });
     effect(() {
       if (_playerService.playerState.value == .completed) {
         _uiState.updateControlsVisibility(true);
@@ -61,16 +65,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   void dispose() {
-    // 释放UI状态管理器
     _uiState.dispose();
-    _playerService.dispose();
-    // 恢复系统UI
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    AutoOrientation.fullAutoMode();
-    if (Utils.isDesktop()) {
-      windowManager.setFullScreen(false);
-    }
-    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -218,109 +213,45 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   Widget _buildPlayerWidget() {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        _buildVideoPlayer(),
-        _buildDanmakuLayer(),
-        SignalBuilder(
-          builder: (context) {
-            final playerState = _playerService.playerState.value;
-            final errorMessage = _playerService.errorMessage.value;
-            if (playerState == PlayerState.error) {
-              return _buildErrorWidget(errorMessage);
-            }
-            if (playerState == PlayerState.loading) {
-              return _buildLoadingWidget();
-            }
-            return MouseRegion(
-              cursor: (_uiState.showControls.value)
-                  ? SystemMouseCursors.basic
-                  : SystemMouseCursors.none,
-              onHover: (PointerEvent pointerEvent) {
-                if (Utils.isDesktop()) {
-                  _uiState.showControlsTemporarily();
+    return PlayerStage(
+      playerService: _playerService,
+      overlayBuilder: (context) => MouseRegion(
+        cursor: _uiState.showControls.value
+            ? SystemMouseCursors.basic
+            : SystemMouseCursors.none,
+        onHover: (_) {
+          if (Utils.isDesktop()) _uiState.showControlsTemporarily();
+        },
+        child: Stack(
+          children: [
+            SignalBuilder(
+              builder: (context) {
+                if (!_configureService.alwaysShowProgressBar.value ||
+                    _uiState.showControls.value) {
+                  return const SizedBox.shrink();
                 }
+                return Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: ProgressBar(
+                    progress: _playerService.position.value,
+                    buffered: _playerService.bufferedPosition.value,
+                    total: _playerService.duration,
+                    barHeight: 2,
+                    thumbRadius: 0,
+                    timeLabelLocation: .none,
+                  ),
+                );
               },
-              child: Stack(
-                children: [
-                  SignalBuilder(
-                    builder: (context) {
-                      if (!_configureService.alwaysShowProgressBar.value ||
-                          _uiState.showControls.value) {
-                        return const SizedBox.shrink();
-                      }
-                      return Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: ProgressBar(
-                          progress: _playerService.position.value,
-                          buffered: _playerService.bufferedPosition.value,
-                          total: _playerService.duration,
-                          barHeight: 2,
-                          thumbRadius: 0,
-                          timeLabelLocation: .none,
-                        ),
-                      );
-                    },
-                  ),
-                  SignalBuilder(
-                    builder: (context) => _buildAnimatedControls(
-                      _uiState.showControls.value,
-                      _uiState.lockPanel.value,
-                    ),
-                  ),
-                  _buildIndicatorOverlay(),
-                  _buildBufferingIndicator(),
-                ],
+            ),
+            SignalBuilder(
+              builder: (context) => _buildAnimatedControls(
+                _uiState.showControls.value,
+                _uiState.lockPanel.value,
               ),
-            );
-          },
-        ),
-        _buildNotificationOverlay(),
-      ],
-    );
-  }
-
-  Widget _buildErrorWidget(String? errorMessage) {
-    return Scaffold(
-      appBar: SysAppBar(title: ''),
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              FLucideIcons.circleX,
-              color: context.theme.colors.error,
-              size: 64,
             ),
-            const SizedBox(height: 16),
-            Text('视频加载失败', style: context.theme.typography.body.lg),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage ?? '未知错误',
-              style: context.theme.typography.body.sm,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingWidget() {
-    return Scaffold(
-      appBar: SysAppBar(title: ''),
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: .center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text('正在加载视频...', style: context.theme.typography.body.md),
+            _buildIndicatorOverlay(),
           ],
         ),
       ),
@@ -455,8 +386,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_vert, size: 24),
-                  onPressed: () =>
-                      _showRightDrawer(RightDrawerType.danmakuActions),
+                  onPressed: () => _showRightDrawer(.moreActions),
                 ),
               ],
             ),
@@ -702,50 +632,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Future<void> _saveScreenshot() async {
     if (_uiState.saveScreenshoting.value) return;
     _uiState.saveScreenshoting.value = true;
-    final success = await _playerService.saveScreenshot();
+    final success = await widget.session.saveScreenshot();
     if (success) {
       _globalService.showNotification('截图已保存');
     } else {
       _globalService.showNotification('截图失败');
     }
     _uiState.saveScreenshoting.value = false;
-  }
-
-  /// 构建视频播放器组件
-  Widget _buildVideoPlayer() {
-    return SignalBuilder(
-      builder: (context) {
-        if (_playerService.controller.value == null) {
-          return Container();
-        }
-        return Center(
-          child: Video(
-            controller: _playerService.controller.value!,
-            controls: NoVideoControls,
-            wakelock: false,
-          ),
-        );
-      },
-    );
-  }
-
-  /// 构建弹幕层
-  Widget _buildDanmakuLayer() {
-    return SignalBuilder(
-      builder: (context) {
-        final opacity =
-            _playerService.danmakuService.danmakuSettings.value.opacity;
-        return Opacity(
-          opacity: opacity,
-          child: DanmakuScreen(
-            createdController: (controller) {
-              _playerService.danmakuService.controller = controller;
-            },
-            option: DanmakuOption(),
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildIndicatorOverlay() {
@@ -774,53 +667,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 },
               );
       },
-    );
-  }
-
-  /// 构建缓冲指示器
-  Widget _buildBufferingIndicator() {
-    return SignalBuilder(
-      builder: (context) {
-        final playerState = _playerService.playerState.value;
-        if (playerState != PlayerState.buffering) {
-          return const SizedBox.shrink();
-        }
-        final bufferedPosition = _playerService.bufferedPosition.value;
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 8),
-              Text(
-                Utils.formatDuration(bufferedPosition),
-                style: context.theme.typography.body.md,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  /// 构建通知覆盖层
-  Widget _buildNotificationOverlay() {
-    return Positioned(
-      left: 16,
-      bottom: 60,
-      child: SizedBox(
-        width: 300,
-        height: MediaQuery.of(context).size.height - 60,
-        child: FToaster(
-          style: .delta(expandBehavior: .always),
-          child: Builder(
-            builder: (context) {
-              _globalService.playerNotificationContext = context;
-              return Container();
-            },
-          ),
-        ),
-      ),
     );
   }
 
@@ -879,56 +725,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
-  void _switchVideo(int index) async {
-    final streamMediaExplorerService = GetIt.I
-        .get<StreamMediaExplorerService>();
-    final fileExplorerService = GetIt.I.get<FileExplorerService>();
-    final historyService = GetIt.I.get<HistoryService>();
-    final offlineCacheService = GetIt.I.get<OfflineCacheService>();
-    late VideoInfo newVideoInfo;
-    if (_videoInfo.value.historiesType == HistoriesType.fileStorage) {
-      final videoInfo = await fileExplorerService.selectVideo(index);
-      if (videoInfo == null) {
-        return;
-      }
-      newVideoInfo = videoInfo;
-    }
-    if (_videoInfo.value.historiesType == HistoriesType.streamMediaStorage) {
-      newVideoInfo = streamMediaExplorerService.getVideoInfo(index);
-      if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
-        newVideoInfo.cached = offlineCacheService.isCached(
-          newVideoInfo.uniqueKey,
-        );
-      }
-      final history = streamMediaExplorerService.getHistory(
-        streamMediaExplorerService.playbackEpisodes[index],
-      );
-      if (history != null) await historyService.save(history);
-    }
-    _videoInfo.value = newVideoInfo;
-    _playerService.switchVideo(newVideoInfo);
+  Future<void> _switchVideo(int index) async {
+    await widget.session.switchVideo(index);
     _uiState.updateControlsVisibility(true);
   }
 
   void _showRightDrawer(RightDrawerType drawerType) {
-    // 隐藏主控制栏以避免重叠
     _uiState.updateControlsVisibility(false);
-    showFSheet(
+    showPlayerRightDrawer(
       context: context,
-      side: FLayout.rtl,
-      draggable: false,
-      builder: (context) {
-        return RightDrawerContent(
-          drawerType: drawerType,
-          playerService: _playerService,
-          onEpisodeSelected: _switchVideo,
-          videoInfo: _videoInfo.value,
-          onDrawerChanged: (newType) {
-            Navigator.pop(context);
-            _showRightDrawer(newType);
-          },
-        );
-      },
+      drawerType: drawerType,
+      playerService: _playerService,
+      videoInfo: _videoInfo.value,
+      onEpisodeSelected: _switchVideo,
     );
   }
 }

@@ -174,6 +174,13 @@ class GeneralSettingsPage extends StatelessWidget {
                   ),
                 ],
               ),
+              SizedBox(height: 8),
+              FAlert(
+                title: Text(
+                  '开启dpad将会启用tv版播放界面和焦点高亮显示',
+                  style: context.theme.typography.body.xs,
+                ),
+              ),
               SettingsSection(
                 title: '缓存',
                 children: [

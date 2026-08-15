@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/page/player/player_common.dart';
 import 'package:fldanplay/page/player/right_drawer/danmaku_info.dart';
 import 'package:fldanplay/page/player/right_drawer/danmaku_filter.dart';
 import 'package:fldanplay/page/player/right_drawer/episode_list.dart';
@@ -21,7 +22,7 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 enum RightDrawerType {
-  danmakuActions,
+  moreActions,
   danmakuInfo,
   danmakuSearch,
   danmakuSettings,
@@ -55,28 +56,15 @@ class RightDrawerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const double width = 320;
-    const EdgeInsets padding = EdgeInsets.symmetric(horizontal: 8, vertical: 4);
-    return Container(
-      height: MediaQuery.sizeOf(context).height,
-      decoration: BoxDecoration(color: context.theme.colors.background),
-      child: SafeArea(
-        left: false,
-        minimum: padding,
-        child: SizedBox(
-          width: width,
-          child: Scaffold(body: _buildContent(context)),
-        ),
-      ),
-    );
+    return PlayerSidePanel(child: Scaffold(body: _buildContent(context)));
   }
 
   Widget _buildContent(BuildContext context) {
     switch (drawerType) {
       case RightDrawerType.speed:
         return _buildSpeedSettings(context);
-      case RightDrawerType.danmakuActions:
-        return _buildDanmakuActions(context);
+      case RightDrawerType.moreActions:
+        return _buildMoreActions(context);
       case RightDrawerType.danmakuInfo:
         return DanmakuInfoPanel(
           danmakuService: playerService.danmakuService,
@@ -160,7 +148,7 @@ class RightDrawerContent extends StatelessWidget {
     );
   }
 
-  Widget _buildDanmakuActions(BuildContext context) {
+  Widget _buildMoreActions(BuildContext context) {
     final configure = GetIt.I.get<ConfigureService>();
     return SingleChildScrollView(
       child: FItemGroup(
@@ -241,28 +229,35 @@ class RightDrawerContent extends StatelessWidget {
         }
         final data = snapshot.data!;
         final style = context.theme.typography.body.xl;
-        return ListView(
-          children: [
-            Text('视频来源', style: style),
-            const SizedBox(height: 8),
-            SelectableText(data.media),
-            const SizedBox(height: 16),
-            Text('硬件解码器', style: style),
-            const SizedBox(height: 8),
-            SelectableText(data.hwdec),
-            const SizedBox(height: 16),
-            Text('视频输出', style: style),
-            const SizedBox(height: 8),
-            SelectableText(data.videoOutput),
-            const SizedBox(height: 16),
-            Text('视频信息', style: style),
-            const SizedBox(height: 8),
-            SelectableText(data.videoParams),
-            const SizedBox(height: 16),
-            Text('音频信息', style: style),
-            const SizedBox(height: 8),
-            SelectableText(data.audioParams),
-          ],
+        final map = <(String, String)>[
+          ('视频来源', data.media),
+          ('硬件解码器', data.hwdec),
+          ('视频输出', data.videoOutput),
+          ('视频信息', data.videoParams),
+          ('音频信息', data.audioParams),
+        ];
+        return ListView.separated(
+          itemCount: map.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 16),
+          itemBuilder: (context, index) {
+            final (label, value) = map[index];
+            return Column(
+              crossAxisAlignment: .start,
+              children: [
+                Text(label, style: style),
+                const SizedBox(height: 8),
+                FTappable.static(
+                  focusedOutlineStyle: FFocusedOutlineStyle(
+                    color: context.theme.colors.primary,
+                    borderRadius: .all(.circular(8)),
+                  ),
+                  autofocus: index == 0,
+                  onPress: () {},
+                  child: SelectableText(value),
+                ),
+              ],
+            );
+          },
         );
       },
     );
