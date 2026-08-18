@@ -17,7 +17,6 @@ import 'package:fldanplay/widget/icon_switch.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:fldanplay/widget/video_item.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -41,7 +40,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   final _historyService = GetIt.I.get<HistoryService>();
   final ScrollController _scrollController = ScrollController();
   final Map<String, int> _refreshMap = {};
-  bool isFABVisible = true;
+  FocusNode? _focusNode;
+  final List<String> _enteredStack = [];
+  String? _pendingFocusKey;
+  bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override
   void initState() {
@@ -53,16 +55,62 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _focusNode?.dispose();
     GetIt.I.get<GlobalService>().updateListener = null;
     _fileExplorerService.provider.value?.dispose();
     super.dispose();
+  }
+
+  FocusNode? _getFocusNode(String key, int index) {
+    if (!_dpadEnabled) return null;
+    if (_pendingFocusKey != key) {
+      if (_pendingFocusKey != null || index != 0) return null;
+    }
+    _focusNode?.dispose();
+    _focusNode = FocusNode(debugLabel: 'file-explorer-$key-$index');
+    return _focusNode;
+  }
+
+  void _requestFocus() {
+    if (!_dpadEnabled) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _focusNode == null) return;
+      _focusNode?.requestFocus();
+      Scrollable.ensureVisible(
+        _focusNode!.context!,
+        duration: const Duration(milliseconds: 200),
+        alignmentPolicy: .keepVisibleAtEnd,
+      );
+    });
+  }
+
+  void _openFolder(FileItem file) {
+    _enteredStack.add(file.uniqueKey);
+    _pendingFocusKey = null;
+    _fileExplorerService.next(file.name);
+    _scrollToRight();
+  }
+
+  void _navigateToDirectory(String path) {
+    _enteredStack.clear();
+    _pendingFocusKey = null;
+    _fileExplorerService.cd(path);
+  }
+
+  void _navigateBack() {
+    if (!_fileExplorerService.back()) {
+      context.pop();
+      return;
+    }
+    _pendingFocusKey = _enteredStack.isEmpty
+        ? null
+        : _enteredStack.removeLast();
   }
 
   void refreshItem(String uniqueKey) {
     setState(() {
       _refreshMap[uniqueKey] = (_refreshMap[uniqueKey] ?? 0) + 1;
     });
-    _refresh();
   }
 
   void _scrollToRight() {
@@ -117,6 +165,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
       videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
     }
+    _pendingFocusKey = videoInfo.uniqueKey;
     final location = Uri(path: videoPlayerPath);
     context.push(location.toString(), extra: videoInfo);
   }
@@ -125,11 +174,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     final videoInfo = _fileExplorerService.getVideoInfo(index, path);
     _offlineCacheService.startDownload(videoInfo);
     showToast(title: '${videoInfo.name}已加入离线缓存');
-  }
-
-  Future<void> _refresh() async {
-    _fileExplorerService.getData();
-    setState(() {});
   }
 
   Future<void> _retryInit() async {
@@ -145,11 +189,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          if (!_fileExplorerService.back()) {
-            Navigator.of(context).pop();
-          }
-        }
+        if (!didPop) _navigateBack();
       },
       child: Scaffold(
         appBar: SysAppBar(
@@ -176,24 +216,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             ? ErrorRefresh(error: _initError!, onRefresh: _retryInit)
             : _storage == null
             ? const Center(child: CircularProgressIndicator())
-            : NotificationListener<UserScrollNotification>(
-                onNotification: (notification) {
-                  if (notification.direction == ScrollDirection.forward) {
-                    setState(() {
-                      isFABVisible = true;
-                    });
-                  }
-                  if (notification.direction == ScrollDirection.reverse) {
-                    setState(() {
-                      isFABVisible = false;
-                    });
-                  }
-                  return false;
-                },
-                child: RefreshIndicator(
-                  onRefresh: _refresh,
-                  child: _buildBody(),
-                ),
+            : RefreshIndicator(
+                onRefresh: () async =>
+                    _fileExplorerService.getData(load: false),
+                child: _buildBody(),
               ),
       ),
     );
@@ -219,7 +245,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     .toList();
                 final children = <Widget>[
                   FBreadcrumbItem(
-                    onPress: () => _fileExplorerService.cd('/'),
+                    onPress: () => _navigateToDirectory('/'),
                     child: Text(
                       '根目录',
                       style: TextStyle(
@@ -240,10 +266,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     FBreadcrumbItem(
                       onPress: isLast
                           ? null
-                          : () {
-                              _fileExplorerService.cd(targetPath);
-                              _scrollToRight();
-                            },
+                          : () => _navigateToDirectory(targetPath),
                       child: Text(
                         part,
                         style: TextStyle(
@@ -302,8 +325,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                   ],
                 );
               },
-              error: (error, stack) =>
-                  ErrorRefresh(error: error.toString(), onRefresh: _refresh),
+              error: (error, stack) => ErrorRefresh(
+                error: error.toString(),
+                onRefresh: _fileExplorerService.getData,
+              ),
               loading: () => const Center(child: CircularProgressIndicator()),
             ),
           ),
@@ -357,29 +382,31 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     final widgetList = <FItemMixin>[];
     for (var i = 0; i < files.length; i++) {
       final file = files[i];
+      final focusNode = _getFocusNode(file.uniqueKey, i);
       if (file.isFolder) {
         widgetList.add(
           FItem(
+            key: ValueKey(file.uniqueKey),
+            focusNode: focusNode,
             prefix: const Icon(FLucideIcons.folder, size: 40),
             title: Text(file.name, maxLines: 2),
             subtitle: Text('目录'),
-            onPress: () {
-              _fileExplorerService.next(file.name);
-              _scrollToRight();
-            },
+            onPress: () => _openFolder(file),
           ),
         );
         continue;
       }
       final refreshKey = _refreshMap[file.uniqueKey] ?? 0;
+      final history = _historyService.getHistory(file.uniqueKey);
       final videoInfo = _fileExplorerService.getVideoInfo(i, file.path);
       widgetList.add(
         VideoItem(
           key: ValueKey(file.uniqueKey),
           refreshKey: refreshKey,
-          history: file.history,
-          uniqueKey: file.uniqueKey!,
+          history: history,
+          uniqueKey: file.uniqueKey,
           name: file.name,
+          focusNode: focusNode,
           danmakuMatchInfo: .fromVideoInfo(videoInfo),
           onPress: () => _playVideo(file.path, file.videoIndex),
           items: [
@@ -388,7 +415,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
               title: '离线保存',
               onPress: () => _handleOfflineDownload(file.path, file.videoIndex),
             ),
-            if (file.history != null)
+            if (history != null)
               .new(
                 icon: FLucideIcons.trash,
                 variant: .destructive,
@@ -399,8 +426,8 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     title: '删除历史记录',
                     content: '是否删除观看历史？',
                     onConfirm: () async {
-                      await _historyService.delete(history: file.history!);
-                      refreshItem(file.uniqueKey!);
+                      await _historyService.delete(history: history);
+                      refreshItem(file.uniqueKey);
                     },
                     confirmText: '删除',
                     destructive: true,
@@ -411,6 +438,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
         ),
       );
     }
+    _requestFocus();
     return widgetList;
   }
 }

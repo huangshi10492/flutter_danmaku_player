@@ -36,7 +36,9 @@ const String offlineCachePath = '/offline-cache';
 const String videoPlayerPath = '/video-player';
 const String settingsPath = '/settings';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 final router = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: rootPath,
   routes: [
     GoRoute(

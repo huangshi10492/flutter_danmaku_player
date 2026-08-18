@@ -37,6 +37,9 @@ class _HistoryPageState extends State<HistoryPage> {
   final _streamMediaExplorerService = GetIt.I.get<StreamMediaExplorerService>();
 
   final Map<String, int> _refreshMap = {};
+  final FocusNode _initialFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override
   void initState() {
@@ -44,9 +47,25 @@ class _HistoryPageState extends State<HistoryPage> {
     super.initState();
   }
 
+  void _requestInitialFocus() {
+    if (!_dpadEnabled) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _initialFocusNode.context != null) {
+        _initialFocusNode.requestFocus();
+        Scrollable.ensureVisible(
+          _initialFocusNode.context!,
+          duration: const Duration(milliseconds: 200),
+          alignmentPolicy: .keepVisibleAtEnd,
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     GetIt.I.get<GlobalService>().updateListener = null;
+    _scrollController.dispose();
+    _initialFocusNode.dispose();
     super.dispose();
   }
 
@@ -166,6 +185,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    _requestInitialFocus();
     return Scaffold(
       appBar: SysAppBar(
         title: '观看历史',
@@ -214,6 +234,7 @@ class _HistoryPageState extends State<HistoryPage> {
           var list = value.values.toList();
           list.sort((a, b) => b.updateTime.compareTo(a.updateTime));
           return ListView.builder(
+            controller: _scrollController,
             itemCount: list.length,
             itemBuilder: (context, index) {
               final history = list[index];
@@ -225,6 +246,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 uniqueKey: history.uniqueKey,
                 refreshKey: refreshKey,
                 name: history.name,
+                focusNode: index == 0 ? _initialFocusNode : null,
                 onPress: () => _playVideo(history),
                 items: [
                   .new(

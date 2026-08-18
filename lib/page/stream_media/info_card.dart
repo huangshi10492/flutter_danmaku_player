@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/stream_media.dart';
+import 'package:fldanplay/widget/directional_scroll_view.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/rating_bar.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ class StreamMediaInfoCard extends StatelessWidget {
   final bool showFavoriteAction;
   final bool isFavorite;
   final MediaDetail? mediaDetail;
+  final FocusNode? actionFocusNode;
   final VoidCallback? onToggleFavorite;
 
   const StreamMediaInfoCard({
@@ -27,6 +29,7 @@ class StreamMediaInfoCard extends StatelessWidget {
     required this.showFavoriteAction,
     required this.isFavorite,
     required this.mediaDetail,
+    this.actionFocusNode,
     required this.onToggleFavorite,
   });
 
@@ -226,13 +229,14 @@ class StreamMediaInfoCard extends StatelessWidget {
   }
 
   Widget _buildActionRow(BuildContext context) {
-    final moreButton = FButton.icon(
+    Widget moreButton({bool focused = false}) => FButton.icon(
       variant: .ghost,
       size: .md,
+      focusNode: focused ? actionFocusNode : null,
       onPress: isLoading ? null : () => _showDetailsBottomSheet(context),
       child: const Icon(Icons.more_horiz),
     );
-    if (!showFavoriteAction) return moreButton;
+    if (!showFavoriteAction) return moreButton(focused: true);
     return LayoutBuilder(
       builder: (context, constraints) {
         const buttonMaxWidth = 150.0;
@@ -248,6 +252,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                 width: buttonWidth,
                 child: FButton(
                   size: .sm,
+                  focusNode: actionFocusNode,
                   onPress: isLoading ? null : onToggleFavorite,
                   child: Row(
                     mainAxisAlignment: .center,
@@ -266,7 +271,7 @@ class StreamMediaInfoCard extends StatelessWidget {
               ),
               const SizedBox(width: 4),
             ],
-            moreButton,
+            moreButton(focused: buttonWidth <= 0),
           ],
         );
       },
@@ -287,6 +292,7 @@ class StreamMediaInfoCard extends StatelessWidget {
 
   void _showDetailsBottomSheet(BuildContext context) {
     showModalBottomSheet(
+      requestFocus: true,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
@@ -295,7 +301,7 @@ class StreamMediaInfoCard extends StatelessWidget {
         expand: false,
         initialChildSize: 0.6,
         minChildSize: 0.4,
-        builder: (context, scrollController) => SingleChildScrollView(
+        builder: (context, scrollController) => DirectionalScrollView(
           controller: scrollController,
           child: Container(
             decoration: BoxDecoration(

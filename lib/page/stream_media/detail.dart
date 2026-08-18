@@ -4,6 +4,7 @@ import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/page/stream_media/info_card.dart';
 import 'package:fldanplay/router.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
@@ -40,16 +41,18 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   bool _isLoading = true;
   String? _error;
   final Map<String, int> _refreshMap = {};
+  final FocusNode _continueFocusNode = FocusNode();
+  final FocusNode _actionFocusNode = FocusNode();
   final Signal<bool> _isPlaying = signal(false);
   bool get _showContinueSection =>
       _service.storage?.useRemoteHistory == true && _continueItem != null;
+  bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 0, vsync: this);
-    _loadMediaDetail();
-    _loadContinueItem();
+    _initialize();
     GetIt.I.get<GlobalService>().updateListener = refreshItem;
   }
 
@@ -57,8 +60,20 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   void dispose() {
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
+    _continueFocusNode.dispose();
+    _actionFocusNode.dispose();
     GetIt.I.get<GlobalService>().updateListener = null;
     super.dispose();
+  }
+
+  Future<void> _initialize() async {
+    await Future.wait([_loadMediaDetail(), _loadContinueItem()]);
+    if (!_dpadEnabled || !mounted) return;
+    final node = _continueItem == null ? _actionFocusNode : _continueFocusNode;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || node.context == null) return;
+      node.requestFocus();
+    });
   }
 
   void refreshItem(String uniqueKey) {
@@ -252,6 +267,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                                   showFavoriteAction: _service.useRemoteHistory,
                                   isFavorite: _mediaDetail?.isFavorite ?? false,
                                   mediaDetail: _mediaDetail,
+                                  actionFocusNode: _actionFocusNode,
                                   onToggleFavorite: _toggleFavorite,
                                 ),
                               ),
@@ -399,6 +415,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         coutinue: true,
         uniqueKey: uniqueKey,
         name: item.name,
+        focusNode: _dpadEnabled ? _continueFocusNode : null,
         onPress: _playContinueItem,
         refreshKey: refreshKey,
         imageUrl: item.mainImage == null

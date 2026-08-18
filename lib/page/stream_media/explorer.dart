@@ -2,6 +2,7 @@ import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/page/stream_media/filter_sheet.dart';
 import 'package:fldanplay/router.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/toast.dart';
@@ -31,14 +32,33 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   final Signal<bool> _librariesExpanded = signal(false);
   final ScrollController _resumeScrollController = ScrollController();
   Storage? storage;
-  bool isFABVisible = true;
   String? _error;
   List<ResumeItem> _resumeItems = const [];
+  final FocusNode _libraryFocusNode = FocusNode();
+  bool _libraryFocusRequested = false;
+  bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override
   void initState() {
     _initializePage();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _resumeScrollController.dispose();
+    _libraryFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _requestLibraryFocus() {
+    if (!_dpadEnabled || _libraryFocusRequested) return;
+    _libraryFocusRequested = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _libraryFocusNode.context != null) {
+        _libraryFocusNode.requestFocus();
+      }
+    });
   }
 
   Future<void> _initializePage() async {
@@ -131,6 +151,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildLibraryItem(CollectionItem library, bool selected) {
+    if (selected) _requestLibraryFocus();
     final shape = RoundedRectangleBorder(
       side: BorderSide(
         color: selected
@@ -141,6 +162,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       borderRadius: context.theme.style.borderRadius.md,
     );
     return FButton.icon(
+      focusNode: selected && _dpadEnabled ? _libraryFocusNode : null,
       style: .delta(decoration: .delta([.all(.shapeDelta(shape: shape))])),
       onPress: () => streamMediaExplorerService.libraryId.value = library.id,
       child: ConstrainedBox(
@@ -577,24 +599,13 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       minimum: const .symmetric(horizontal: 8),
       child: RefreshIndicator(
         onRefresh: _refreshPage,
-        child: NotificationListener<UserScrollNotification>(
-          onNotification: (notification) {
-            if (notification.direction == .forward) {
-              setState(() => isFABVisible = true);
-            }
-            if (notification.direction == .reverse) {
-              setState(() => isFABVisible = false);
-            }
-            return false;
-          },
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(child: _buildContinueWatchingSection()),
-              SliverToBoxAdapter(child: _buildLibrarySection()),
-              _buildGridSection(),
-            ],
-          ),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildContinueWatchingSection()),
+            SliverToBoxAdapter(child: _buildLibrarySection()),
+            _buildGridSection(),
+          ],
         ),
       ),
     );

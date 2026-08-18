@@ -104,15 +104,17 @@ class _EpisodeListPanelState extends State<EpisodeListPanel> {
 
   List<FItemMixin> _buildItems(List<FileItem> files, BuildContext context) {
     final widgetList = <FItemMixin>[];
+    final historyService = GetIt.I.get<HistoryService>();
     for (var file in files) {
       if (!file.isVideo) continue;
+      final history = historyService.getHistory(file.uniqueKey);
       widgetList.add(
         FItem(
           key: file.videoIndex == widget.videoInfo.videoIndex
               ? _targetEpisodeKey
               : null,
           title: Text(file.name, maxLines: 2),
-          subtitle: _buildHistorySubtitle(file.history, file.videoIndex),
+          subtitle: _buildHistorySubtitle(history, file.videoIndex),
           onPress: () {
             widget.onEpisodeSelected(file.videoIndex);
             Navigator.pop(context);

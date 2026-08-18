@@ -57,6 +57,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final Map<String, String>? headers;
   final bool played;
   final List<ContextMenuItem> items;
+  final FocusNode? focusNode;
   const VideoItem({
     super.key,
     required this.history,
@@ -71,6 +72,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
     this.headers,
     this.played = false,
     this.items = const [],
+    this.focusNode,
   });
   @override
   State<VideoItem> createState() => _VideoItemState();
@@ -273,6 +275,7 @@ class _VideoItemState extends State<VideoItem> {
       ],
       childOnPress: widget.onPress,
       child: (onPress) => FItem(
+        focusNode: widget.focusNode,
         prefix: SizedBox(
           width: widget.coutinue ? 144 : 100,
           height: widget.coutinue ? 81 : 65,

@@ -160,31 +160,34 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
           ),
           themeMode: brightness,
           theme: fTheme.toApproximateMaterialTheme(),
-          builder: (context, child) => FTheme(
-            data: fTheme,
-            child: Dpad(
-              enabled: dpad,
-              child: FAccessibilityScope(
-                data: FAccessibility(
-                  accessibleNavigation: false,
-                  motion: .all,
-                  focusHighlight: dpad,
-                ),
-                child: FToaster(
-                  child: _scaleBuilder(
-                    uiScale,
-                    Builder(
-                      builder: (context) {
-                        GetIt.I.get<GlobalService>().appContext = context;
-                        return child!;
-                      },
+          routerConfig: router,
+          builder: (context, child) => GlobalEscapeBack(
+            rootNavigatorKey: rootNavigatorKey,
+            child: FTheme(
+              data: fTheme,
+              child: Dpad(
+                enabled: dpad,
+                child: FAccessibilityScope(
+                  data: FAccessibility(
+                    accessibleNavigation: false,
+                    motion: .all,
+                    focusHighlight: dpad,
+                  ),
+                  child: FToaster(
+                    child: _scaleBuilder(
+                      uiScale,
+                      Builder(
+                        builder: (context) {
+                          GetIt.I.get<GlobalService>().appContext = context;
+                          return child!;
+                        },
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-          routerConfig: router,
         );
       },
     );
@@ -205,5 +208,33 @@ class _ApplicationState extends State<Application> with WidgetsBindingObserver {
       );
     }
     return child;
+  }
+}
+
+class GlobalEscapeBack extends StatelessWidget {
+  const GlobalEscapeBack({
+    super.key,
+    required this.rootNavigatorKey,
+    required this.child,
+  });
+
+  final GlobalKey<NavigatorState> rootNavigatorKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent && event.logicalKey == .escape) {
+          final navigator = rootNavigatorKey.currentState;
+          if (navigator != null) {
+            navigator.maybePop();
+          }
+          return .handled;
+        }
+        return .ignored;
+      },
+      child: child,
+    );
   }
 }

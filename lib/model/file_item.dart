@@ -1,23 +1,19 @@
-import 'history.dart';
-
 enum FileType { folder, video }
 
 class FileItem {
   final String name;
   final String path;
   final FileType type;
+  final String uniqueKey;
   final int? size;
-  final String? uniqueKey;
-  final History? history;
   int videoIndex;
 
   FileItem({
     required this.name,
     required this.path,
     required this.type,
+    required this.uniqueKey,
     this.size,
-    this.uniqueKey,
-    this.history,
     this.videoIndex = 0,
   });
 
@@ -28,7 +24,6 @@ class FileItem {
     int? size,
     DateTime? modifiedTime,
     String? uniqueKey,
-    History? history,
   }) {
     return FileItem(
       name: name ?? this.name,
@@ -36,7 +31,6 @@ class FileItem {
       type: type ?? this.type,
       size: size ?? this.size,
       uniqueKey: uniqueKey ?? this.uniqueKey,
-      history: history ?? this.history,
     );
   }
 

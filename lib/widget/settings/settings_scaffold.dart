@@ -9,18 +9,26 @@ class SettingsScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final contentFocusScope = FocusScopeNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (contentFocusScope.focusedChild != null) return;
+      contentFocusScope.nextFocus();
+    });
     return Scaffold(
       appBar: SysAppBar(title: title),
-      body: Padding(
-        padding: context.theme.scaffoldStyle.childPadding,
-        child: SingleChildScrollView(
-          child: SafeArea(
-            minimum: const EdgeInsets.only(bottom: 8),
-            child: Align(
-              alignment: .topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 1000),
-                child: child,
+      body: FocusScope(
+        node: contentFocusScope,
+        child: Padding(
+          padding: context.theme.scaffoldStyle.childPadding,
+          child: SingleChildScrollView(
+            child: SafeArea(
+              minimum: const EdgeInsets.only(bottom: 8),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: child,
+                ),
               ),
             ),
           ),

@@ -6,7 +6,6 @@ import 'package:fldanplay/model/file_item.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/video_info.dart';
-import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/utils/android_saf.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
@@ -57,8 +56,8 @@ class FileExplorerService {
     GetIt.I.registerSingleton<FileExplorerService>(service);
   }
 
-  void getData() async {
-    files.value = AsyncLoading();
+  void getData({bool load = true}) async {
+    if (load) files.value = AsyncLoading();
     if (provider.value == null || _storage == null) {
       files.value = AsyncData([]);
       return;
@@ -220,8 +219,14 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
         }
         if (file.isDir) {
           if (filter.displayMode == 2) continue;
+          final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
           list.add(
-            FileItem(name: file.name, path: filePath, type: FileType.folder),
+            FileItem(
+              name: file.name,
+              path: filePath,
+              type: .folder,
+              uniqueKey: uniqueKey,
+            ),
           );
           continue;
         }
@@ -229,7 +234,6 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
         var uniqueKey = CryptoUtils.generateVideoUniqueKey(
           '$rootPath$filePath',
         );
-        var history = GetIt.I.get<HistoryService>().getHistory(uniqueKey);
         list.add(
           FileItem(
             name: file.name,
@@ -237,7 +241,6 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
             type: FileItem.getFileType(file.name),
             size: file.size,
             uniqueKey: uniqueKey,
-            history: history,
           ),
         );
       }
@@ -320,7 +323,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
   ) async {
     try {
       if (_useSaf) return _listSafFiles(path, rootPath, filter);
-      final historyService = GetIt.I.get<HistoryService>();
       if (path.isEmpty) {
         return [];
       }
@@ -333,11 +335,13 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
         }
         if (file is! File) {
           if (filter.displayMode == 2) continue;
+          final uniqueKey = CryptoUtils.generateVideoUniqueKey(file.path);
           list.add(
             FileItem(
               name: file.path.split('/').last,
               path: file.path,
               type: FileType.folder,
+              uniqueKey: uniqueKey,
             ),
           );
           continue;
@@ -350,7 +354,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
         var uniqueKey = CryptoUtils.generateVideoUniqueKey(
           '$rootPath$filePath',
         );
-        var history = historyService.getHistory(uniqueKey);
         list.add(
           FileItem(
             name: file.path.split('/').last,
@@ -358,7 +361,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
             type: FileItem.getFileType(file.path),
             size: file.lengthSync(),
             uniqueKey: uniqueKey,
-            history: history,
           ),
         );
       }
@@ -379,7 +381,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     String rootPath,
     Filter filter,
   ) async {
-    final historyService = GetIt.I.get<HistoryService>();
     final fileList = await AndroidSaf.listDirectory(url, path);
     var list = <FileItem>[];
     for (final file in fileList) {
@@ -390,8 +391,14 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
       final filePath = '$path${file.name}';
       if (file.isDir) {
         if (filter.displayMode == 2) continue;
+        final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
         list.add(
-          FileItem(name: file.name, path: filePath, type: FileType.folder),
+          FileItem(
+            name: file.name,
+            path: filePath,
+            type: .folder,
+            uniqueKey: uniqueKey,
+          ),
         );
         continue;
       }
@@ -400,7 +407,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
       final uniqueKey = CryptoUtils.generateVideoUniqueKey(
         '$rootPath$filePath',
       );
-      final history = historyService.getHistory(uniqueKey);
       list.add(
         FileItem(
           name: file.name,
@@ -408,7 +414,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
           type: FileType.video,
           size: file.length < 0 ? null : file.length,
           uniqueKey: uniqueKey,
-          history: history,
         ),
       );
     }

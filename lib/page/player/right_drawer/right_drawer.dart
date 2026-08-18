@@ -13,6 +13,7 @@ import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/danmaku_keyword_filter.dart';
+import 'package:fldanplay/widget/directional_scroll_view.dart';
 import 'package:fldanplay/widget/settings/radio_settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
@@ -236,28 +237,26 @@ class RightDrawerContent extends StatelessWidget {
           ('视频信息', data.videoParams),
           ('音频信息', data.audioParams),
         ];
-        return ListView.separated(
-          itemCount: map.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 16),
-          itemBuilder: (context, index) {
-            final (label, value) = map[index];
-            return Column(
-              crossAxisAlignment: .start,
-              children: [
-                Text(label, style: style),
-                const SizedBox(height: 8),
-                FTappable.static(
-                  focusedOutlineStyle: FFocusedOutlineStyle(
-                    color: context.theme.colors.primary,
-                    borderRadius: .all(.circular(8)),
-                  ),
-                  autofocus: index == 0,
-                  onPress: () {},
-                  child: SelectableText(value),
+        return DirectionalScrollView(
+          child: Column(
+            crossAxisAlignment: .stretch,
+            children: List.generate(map.length, (index) {
+              final (label, value) = map[index];
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: index < map.length - 1 ? 16 : 0,
                 ),
-              ],
-            );
-          },
+                child: Column(
+                  crossAxisAlignment: .start,
+                  children: [
+                    Text(label, style: style),
+                    const SizedBox(height: 8),
+                    SelectableText(value),
+                  ],
+                ),
+              );
+            }),
+          ),
         );
       },
     );

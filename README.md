@@ -9,11 +9,11 @@ fldanplay 是一款跨平台的本地/网络媒体播放应用，支持弹幕显
 - Android
 - Windows
 - Linux
+- Android TV (须在设置中开启dpad功能)
 
 ## 计划支持平台
 - macOS (缺少设备适配)
 - iOS (缺少设备适配)
-- Android TV
 ---
 
 ## 功能/开发中
