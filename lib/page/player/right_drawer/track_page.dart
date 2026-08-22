@@ -20,13 +20,13 @@ class TrackPage extends StatelessWidget {
   Future<void> _pickExternalSubtitle(BuildContext context) async {
     final globalService = GetIt.I.get<GlobalService>();
     try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
+      final result = await FilePicker.pickFile(
+        type: .custom,
         allowedExtensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'idx'],
       );
 
-      if (result != null && result.files.single.path != null) {
-        final filePath = result.files.single.path!;
+      if (result != null && result.path != null) {
+        final filePath = result.path!;
         await playerService.loadExternalSubtitle(filePath);
         globalService.showNotification('外部字幕加载成功');
       }

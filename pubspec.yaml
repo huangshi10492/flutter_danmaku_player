@@ -20,7 +20,7 @@ version: 0.4.3+00403
 
 environment:
   sdk: ^3.10.0
-  flutter: ^3.44.0
+  flutter: ^3.47.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -36,7 +36,7 @@ dependencies:
 
   # 架构：状态管理、依赖注入、路由
   get_it: ^9.2.1
-  go_router: ^17.3.0
+  go_router: ^17.5.0
   signals: ^7.1.0
   signals_flutter: ^7.1.0
 
@@ -50,22 +50,22 @@ dependencies:
 
   # 媒体与播放器
   audio_session: ^0.2.4
-  canvas_danmaku: ^0.3.1
+  canvas_danmaku: ^0.3.2
   volume_controller: ^3.6.0
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
+      ref: 994465d9bfca3f39d0b41199d16e7fd93fe97881
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
+      ref: 994465d9bfca3f39d0b41199d16e7fd93fe97881
       path: ./media_kit_video
   media_kit_libs_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: b11ec8050d1f07ca117022f2da3260281676346f
+      ref: 994465d9bfca3f39d0b41199d16e7fd93fe97881
       path: ./libs/universal/media_kit_libs_video
   screen_brightness: ^2.1.11
 
@@ -74,15 +74,15 @@ dependencies:
   cached_network_image: ^3.4.1
   cupertino_icons: ^1.0.9
   fl_chart: ^1.2.0
-  forui: 0.24.3
+  forui: ^0.25.0
   skeletonizer: ^2.1.3
   dpad: ^3.0.0
 
   # 平台与设备
-  auto_orientation_v2: ^2.3.8
+  auto_orientation_v2: 2.4.0
   battery_plus: ^7.1.1
   device_info_plus: ^13.2.0
-  file_picker: ^12.0.0-beta.7
+  file_picker: ^12.0.0
   path: ^1.9.1
   path_provider: ^2.1.6
   package_info_plus: ^10.2.1
@@ -93,16 +93,16 @@ dependencies:
   wakelock_plus: ^1.7.0
 
   # 工具库
-  archive: ^4.0.9
+  archive: ^4.1.0
   catcher_2:
     git:
       url: https://github.com/bggRGjQaUbCoE/catcher_2.git
       ref: 9138d8d2aeefc564efd2f35fde3f54ad1b7e89a7
-  image: ^4.8.0
-  intl: ^0.20.2
+  image: ^4.9.2
+  intl: ^0.20.3
   logger: ^2.7.0
   string_util_xx: ^0.2.4
-  synchronized: ^3.4.1+1
+  synchronized: ^3.4.1+2
   uuid: ^4.6.0
 
 dependency_overrides:
@@ -118,11 +118,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  signals_lint: ^7.1.0
-  hive_ce_generator: ^1.11.2
-  build_runner: ^2.15.1
+  hive_ce_generator: ^1.11.3
+  build_runner: ^2.16.0
   flutter_launcher_icons: ^0.14.4
-  forui_cli: 0.24.0
+  forui_cli: ^0.25.0
 
 flutter_launcher_icons:
   android: true

@@ -322,7 +322,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     Filter filter,
   ) async {
     try {
-      if (_useSaf) return _listSafFiles(path, rootPath, filter);
+      if (_useSaf) return await _listSafFiles(path, rootPath, filter);
       if (path.isEmpty) {
         return [];
       }

@@ -54,12 +54,12 @@ class _FontManagerPageState extends State<FontManagerPage> {
 
   Future<void> _importFont() async {
     try {
-      FilePickerResult? result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: .custom,
         allowedExtensions: ['ttf', 'otf', 'ttc'],
       );
-      if (result != null && result.files.single.path != null) {
-        final sourcePath = result.files.single.path!;
+      if (result != null && result.path != null) {
+        final sourcePath = result.path!;
         final sourceFile = File(sourcePath);
         final fileName = sourceFile.uri.pathSegments.last;
         final targetPath = '${fontsDir.path}/$fileName';

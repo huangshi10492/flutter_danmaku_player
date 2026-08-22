@@ -14,7 +14,7 @@ import 'package:path_provider/path_provider.dart';
 
 class FileImageEx extends FileImage {
   late final int fileSize;
-  FileImageEx(File file, {double scale = 1.0}) : super(file, scale: scale) {
+  FileImageEx(File file, {super.scale}) : super(file) {
     fileSize = file.lengthSync();
   }
 

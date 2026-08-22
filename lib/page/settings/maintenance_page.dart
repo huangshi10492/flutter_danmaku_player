@@ -65,11 +65,11 @@ class _MaintenancePageState extends State<MaintenancePage> {
   }
 
   Future<void> _restoreConfigAndStorage() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.custom,
+    final result = await FilePicker.pickFile(
+      type: .custom,
       allowedExtensions: ['zip'],
     );
-    if (result == null || result.files.single.path == null) return;
+    if (result == null || result.path == null) return;
     if (!mounted) return;
     showConfirmDialog(
       context,
@@ -78,7 +78,7 @@ class _MaintenancePageState extends State<MaintenancePage> {
       onConfirm: () async {
         setState(() => _isLoading = true);
         try {
-          final file = File(result.files.single.path!);
+          final file = File(result.path!);
           await _maintenanceUtils.restoreConfigAndStorage(file);
           showToast(level: 2, title: '还原成功', description: '请重启应用以使配置生效');
         } catch (e) {

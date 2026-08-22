@@ -100,7 +100,7 @@ class DanmakuApiUtils {
   Future<List<Anime>> searchEpisodes(String name) async {
     const path = '/api/v2/search/episodes';
     try {
-      final queryParameters = <String, dynamic>{'anime': name};
+      final queryParameters = <String, dynamic>{'anime': name, 'v2': true};
       final response = await _dio.get(path, queryParameters: queryParameters);
       final animes = <Anime>[];
       // 遍历所有番剧，收集所有集数
