@@ -8,6 +8,7 @@ import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
@@ -287,6 +288,7 @@ class VideoOutputPage extends StatelessWidget {
     'auto': '自动选择',
     'gpu': '基于 OpenGL, 通用和稳健的选项',
     'gpu-next': '基于 Vulkan, 在新设备上表现最好',
+    'mediacodec_embed': '原生解码和渲染',
   };
 
   @override
@@ -296,12 +298,23 @@ class VideoOutputPage extends StatelessWidget {
       title: '视频输出',
       child: SignalBuilder(
         builder: (context) {
-          return RadioSettingsSection(
-            options: videoOutputList,
-            value: configure.videoOutput.value,
-            onChange: (value) {
-              configure.videoOutput.value = value;
-            },
+          return Column(
+            children: [
+              RadioSettingsSection(
+                options: videoOutputList,
+                value: configure.videoOutput.value,
+                onChange: (value) {
+                  configure.videoOutput.value = value;
+                },
+              ),
+              SizedBox(height: 8),
+              FAlert(
+                title: Text(
+                  'mediacodec_embed 无法使用字幕渲染、超分辨率、截图，硬件解码固定为 mediacodec',
+                  style: context.theme.typography.body.xs,
+                ),
+              ),
+            ],
           );
         },
       ),

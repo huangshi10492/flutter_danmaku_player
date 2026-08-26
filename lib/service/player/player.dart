@@ -224,10 +224,16 @@ class VideoPlayerService {
       logLevel: _configureService.playerDebugMode.value ? .debug : .error,
       libass: true,
     );
+    var hardwareDecoderEnable = _configureService.hardwareDecoderEnable.value;
+    var hardwareDecoder = _configureService.hardwareDecoder.value;
+    if (videoRenderer == 'mediacodec_embed') {
+      hardwareDecoderEnable = true;
+      hardwareDecoder = 'mediacodec';
+    }
     _vc = VideoControllerConfiguration(
       vo: videoRenderer,
-      enableHardwareAcceleration: _configureService.hardwareDecoderEnable.value,
-      hwdec: _configureService.hardwareDecoder.value,
+      enableHardwareAcceleration: hardwareDecoderEnable,
+      hwdec: hardwareDecoder,
       androidAttachSurfaceAfterVideoParameters: false,
     );
   }
