@@ -118,16 +118,11 @@ class _TvPlayerViewState extends State<_TvPlayerView> {
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     final key = event.logicalKey;
     final direction = _keySet.directionOf(key);
-    final recognized =
-        direction != null || _keySet.isSelect(key) || _keySet.isBack(key);
+    final recognized = direction != null || _keySet.isSelect(key);
     if (!recognized) return .ignored;
     if (event is! KeyDownEvent) return .handled;
     if (_keySet.isSelect(key)) {
       _playerService.togglePlayPause();
-      return .handled;
-    }
-    if (_keySet.isBack(key)) {
-      _confirmExit();
       return .handled;
     }
     switch (direction) {

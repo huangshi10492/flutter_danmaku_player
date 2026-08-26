@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:auto_orientation_v2/auto_orientation_v2.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:dpad/dpad.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/page/player/right_drawer/right_drawer.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -301,25 +300,13 @@ class PlayerSidePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      canRequestFocus: false,
-      skipTraversal: true,
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            const DpadKeySet().isBack(event.logicalKey)) {
-          Navigator.maybePop(context);
-          return .handled;
-        }
-        return .ignored;
-      },
-      child: Container(
-        height: MediaQuery.sizeOf(context).height,
-        decoration: BoxDecoration(color: context.theme.colors.background),
-        child: SafeArea(
-          left: false,
-          minimum: const .symmetric(horizontal: 8, vertical: 4),
-          child: SizedBox(width: 320, child: child),
-        ),
+    return Container(
+      height: MediaQuery.sizeOf(context).height,
+      decoration: BoxDecoration(color: context.theme.colors.background),
+      child: SafeArea(
+        left: false,
+        minimum: const .symmetric(horizontal: 8, vertical: 4),
+        child: SizedBox(width: 320, child: child),
       ),
     );
   }
