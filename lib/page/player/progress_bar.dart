@@ -235,7 +235,7 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
       _cachedTimeLabelWidth = _layoutTextWidth(totalTimeText);
     }
     final timeLabelWidth = _cachedTimeLabelWidth ?? 0;
-
+    final primary = context.theme.colors.primary;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -289,6 +289,11 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
                     onDragUpdate: widget.onDragUpdate,
                     onDragEnd: widget.onDragEnd,
                     timeLabelLocation: .none,
+                    baseBarColor: primary.withValues(alpha: 0.24),
+                    progressBarColor: primary,
+                    bufferedBarColor: primary.withValues(alpha: 0.24),
+                    thumbColor: primary,
+                    thumbGlowColor: primary.withValues(alpha: 0.8),
                   ),
                 ),
               ],
