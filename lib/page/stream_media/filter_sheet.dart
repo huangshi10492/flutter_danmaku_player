@@ -1,6 +1,6 @@
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/widget/icon_switch.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 

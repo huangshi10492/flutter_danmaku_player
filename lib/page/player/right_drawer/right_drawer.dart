@@ -17,7 +17,7 @@ import 'package:fldanplay/widget/directional_scroll_view.dart';
 import 'package:fldanplay/widget/settings/radio_settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';

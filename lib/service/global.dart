@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:fldanplay/model/update.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/log.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:package_info_plus/package_info_plus.dart';

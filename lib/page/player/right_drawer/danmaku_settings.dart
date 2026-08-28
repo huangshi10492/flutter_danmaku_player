@@ -1,7 +1,7 @@
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 class DanmakuSettingsPanel extends StatelessWidget {

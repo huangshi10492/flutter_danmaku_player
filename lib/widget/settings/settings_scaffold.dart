@@ -1,5 +1,5 @@
 import 'package:fldanplay/widget/sys_app_bar.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 
 class SettingsScaffold extends StatelessWidget {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 视频播放器手势检测器
 /// 处理各种手势操作：单击、双击、长按、滑动等

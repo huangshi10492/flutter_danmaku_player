@@ -9,7 +9,7 @@
 // .icon-danmaku-off:before { content: "\e908"; }
 // .icon-danmaku-settings:before { content: "\e909"; }
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class MyIcon {
   static const String _family = 'IconFont';

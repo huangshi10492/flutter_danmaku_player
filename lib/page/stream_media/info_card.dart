@@ -2,7 +2,7 @@ import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/widget/directional_scroll_view.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/rating_bar.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:url_launcher/url_launcher.dart';

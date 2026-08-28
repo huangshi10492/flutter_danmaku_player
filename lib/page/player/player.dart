@@ -8,7 +8,7 @@ import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/service/player/ui_state.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
-import 'package:flutter/material.dart' hide ProgressIndicator;
+import 'package:material_ui/material_ui.dart' hide ProgressIndicator;
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';

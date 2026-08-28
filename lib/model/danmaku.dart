@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 弹幕数据模型
 class Danmaku {

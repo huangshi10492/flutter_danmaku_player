@@ -1,7 +1,7 @@
 import 'package:fldanplay/theme/styles/tile_style.dart';
 import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';

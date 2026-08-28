@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fldanplay/utils/utils.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 
 /// 章节显示条 - 在进度条上方显示章节分隔线和标题

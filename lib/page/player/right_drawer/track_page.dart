@@ -2,7 +2,7 @@ import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/player/player.dart';
 import 'package:fldanplay/utils/video_player_utils.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
