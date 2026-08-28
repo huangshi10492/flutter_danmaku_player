@@ -1,4 +1,8 @@
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:dio/dio.dart';
+import 'package:fldanplay/model/update.dart';
+import 'package:fldanplay/service/configure.dart';
+import 'package:fldanplay/utils/log.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:get_it/get_it.dart';
@@ -6,6 +10,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:signals/signals_core.dart';
 
 class GlobalService {
+  final ConfigureService _configureService;
+
+  GlobalService(this._configureService);
   String videoName = '';
   double speed = 0;
   final Signal<int> position = signal(0);
@@ -16,6 +23,7 @@ class GlobalService {
     'DanDanPlay': 0,
     'Other': 0,
   });
+  final Signal<UpdateResponse?> updateInfo = signal(null);
   int get danmakuCountValue {
     return danmakuCount.value.values.fold(
       0,
@@ -29,10 +37,22 @@ class GlobalService {
   String device = 'Unknown';
   String deviceId = 'Unknown';
   int androidSdkVersion = 0;
-  String version = '';
+  PackageInfo packageInfo = .new(
+    appName: 'fldanplay',
+    packageName: 'fldanplay',
+    version: '0.0.1',
+    buildNumber: '1',
+  );
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+    ),
+  );
+  final _logger = Logger('GlobalService');
 
-  static Future<void> register() async {
-    final service = GlobalService();
+  static Future<void> register(ConfigureService cs) async {
+    final service = GlobalService(cs);
     GetIt.I.registerSingleton<GlobalService>(service);
     await service.init();
   }
@@ -56,8 +76,12 @@ class GlobalService {
       device = deviceInfo.name;
       deviceId = deviceInfo.machineId ?? deviceInfo.id;
     }
-    final packageInfo = await PackageInfo.fromPlatform();
-    version = packageInfo.version;
+    packageInfo = await PackageInfo.fromPlatform();
+    Future(() async {
+      try {
+        if (_configureService.checkUpdate.value) await checkUpdate();
+      } catch (_) {}
+    });
   }
 
   void showNotification(String message) {
@@ -77,5 +101,28 @@ class GlobalService {
         );
       },
     );
+  }
+
+  Future<bool> checkUpdate() async {
+    try {
+      updateInfo.value = null;
+      final response = await _dio.get(
+        'https://fldanplay.huangshi10492.top/api/updates',
+        queryParameters: {'version': packageInfo.version},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final updateResponse = UpdateResponse.fromJson(response.data);
+        updateInfo.value = updateResponse;
+        return (updateResponse.hasUpdate) ? true : false;
+      } else {
+        _logger.warn('checkUpdate', '请求更新接口失败，状态码: ${response.statusCode}');
+        return false;
+      }
+    } on DioException catch (e, t) {
+      _logger.dio('checkUpdate', e, t, action: '检查更新');
+    } catch (e, t) {
+      _logger.error('checkUpdate', '检查更新失败', error: e, stackTrace: t);
+      return false;
+    }
   }
 }

@@ -452,7 +452,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   String _buildAuthHeader({UserInfo? userInfo}) {
     final globalService = GetIt.I.get<GlobalService>();
     String auth =
-        '$authPrefix Client="fldanplay", Device="${globalService.device}", DeviceId="${globalService.deviceId}", Version="${globalService.version}"';
+        '$authPrefix Client="fldanplay", Device="${globalService.device}", DeviceId="${globalService.deviceId}", Version="${globalService.packageInfo.version}"';
     final currentUserInfo = userInfo ?? _userInfo;
     if (currentUserInfo.token.isNotEmpty) {
       auth += ', Token="${currentUserInfo.token}"';

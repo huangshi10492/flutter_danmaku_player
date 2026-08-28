@@ -13,7 +13,7 @@ class ServiceLocator {
     ConfigureService cs = await ConfigureService.register();
     await LoggerService.register(cs);
     StorageService ss = await StorageService.register();
-    await GlobalService.register();
+    await GlobalService.register(cs);
     HistoryService hs = await HistoryService.register();
     FileExplorerService.register();
     StreamMediaExplorerService.register();

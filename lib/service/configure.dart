@@ -201,6 +201,10 @@ class ConfigureService {
     key: 'alwaysShowProgressBar',
     defaultValue: true,
   );
+  late final Signal<bool> checkUpdate = _config(
+    key: 'checkUpdate',
+    defaultValue: true,
+  );
 
   DanmakuSettings getDanmakuSettings() {
     final jsonString = _box.get('danmakuSettings');

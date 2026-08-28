@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/video_info.dart';
+import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/theme/widget/adaptive_dialog.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/icon.dart';
@@ -27,6 +28,7 @@ class RootPage extends StatefulWidget {
 
 class RootPageState extends State<RootPage> {
   final _storageService = GetIt.I.get<StorageService>();
+  final _globalService = GetIt.I.get<GlobalService>();
 
   void _showPlayVideoDialog() {
     showFDialog(
@@ -159,10 +161,30 @@ class RootPageState extends State<RootPage> {
       appBar: SysAppBar(
         title: '主页',
         actions: [
-          FButton.icon(
-            variant: .ghost,
-            child: const Icon(FLucideIcons.settings, size: 24),
-            onPress: () => context.push(settingsPath),
+          Stack(
+            alignment: .topEnd,
+            children: [
+              FButton.icon(
+                variant: .ghost,
+                child: const Icon(FLucideIcons.settings, size: 24),
+                onPress: () => context.push(settingsPath),
+              ),
+              SignalBuilder(
+                builder: (context) {
+                  if (_globalService.updateInfo.value != null &&
+                      _globalService.updateInfo.value!.hasUpdate) {
+                    return Padding(
+                      padding: .all(6),
+                      child: FBadge.raw(
+                        builder: (context, style) =>
+                            const SizedBox(width: 8, height: 8),
+                      ),
+                    );
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
+            ],
           ),
         ],
       ),

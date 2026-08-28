@@ -1,15 +1,19 @@
+import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:signals/signals_flutter.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final gs = GetIt.I<GlobalService>();
     return Scaffold(
       appBar: SysAppBar(title: '设置'),
       body: SingleChildScrollView(
@@ -64,7 +68,24 @@ class SettingsPage extends StatelessWidget {
               ),
               FItem(
                 prefix: const Icon(FLucideIcons.info),
-                title: const Text('关于'),
+                title: Row(
+                  children: [
+                    const Text('关于'),
+                    const SizedBox(width: 4),
+                    SignalBuilder(
+                      builder: (context) {
+                        if (gs.updateInfo.value != null &&
+                            gs.updateInfo.value!.hasUpdate) {
+                          return FBadge.raw(
+                            builder: (context, style) =>
+                                const SizedBox(width: 8, height: 8),
+                          );
+                        }
+                        return SizedBox.shrink();
+                      },
+                    ),
+                  ],
+                ),
                 subtitle: const Text('版本信息、项目主页、开源许可'),
                 onPress: () => context.push('/settings/about'),
               ),

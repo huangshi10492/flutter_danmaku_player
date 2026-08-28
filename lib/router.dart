@@ -153,6 +153,15 @@ final router = GoRouter(
             key: state.pageKey,
             child: const AboutPage(),
           ),
+          routes: [
+            GoRoute(
+              path: 'update',
+              pageBuilder: (context, state) => SlideAndExitTransitionPage(
+                key: state.pageKey,
+                child: const UpdateInfoPage(),
+              ),
+            ),
+          ],
         ),
       ],
     ),
