@@ -10,6 +10,7 @@ class Storage extends HiveObject {
   StorageType storageType;
   String? account;
   String? password;
+  String? ftpMode;
   bool? isAnonymous;
   String? mediaLibraryId;
   String? token;
@@ -24,6 +25,7 @@ class Storage extends HiveObject {
     required this.storageType,
     this.account,
     this.password,
+    this.ftpMode,
     this.isAnonymous,
     this.mediaLibraryId,
     this.token,
@@ -48,6 +50,7 @@ class Storage extends HiveObject {
     StorageType? storageType,
     String? account,
     String? password,
+    String? ftpMode,
     bool? isAnonymous,
     String? mediaLibraryId,
     String? token,
@@ -62,6 +65,7 @@ class Storage extends HiveObject {
       storageType: storageType ?? this.storageType,
       account: account ?? this.account,
       password: password ?? this.password,
+      ftpMode: ftpMode ?? this.ftpMode,
       isAnonymous: isAnonymous ?? this.isAnonymous,
       mediaLibraryId: mediaLibraryId ?? this.mediaLibraryId,
       token: token ?? this.token,

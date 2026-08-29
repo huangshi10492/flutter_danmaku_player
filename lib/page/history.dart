@@ -20,7 +20,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import '../model/history.dart';
-import '../model/storage.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -115,19 +114,12 @@ class _HistoryPageState extends State<HistoryPage> {
             showToast(level: 3, title: '播放失败', description: '找不到对应的媒体库');
             return;
           }
-          switch (storage.storageType) {
-            case StorageType.webdav:
-              final provider = WebDAVFileExplorerProvider(storage);
-              _fileExplorerService.setProvider(provider, storage);
-              break;
-            case StorageType.local:
-              final provider = LocalFileExplorerProvider(storage.url);
-              _fileExplorerService.setProvider(provider, storage);
-              break;
-            default:
-              showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
-              return;
+          final provider = createFileExplorerProvider(storage);
+          if (provider == null) {
+            showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
+            return;
           }
+          _fileExplorerService.setProvider(provider, storage);
           videoInfo = await _fileExplorerService.getVideoInfoFromHistory(
             history,
           );

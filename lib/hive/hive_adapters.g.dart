@@ -130,6 +130,7 @@ class StorageAdapter extends TypeAdapter<Storage> {
       storageType: fields[4] as StorageType,
       account: fields[5] as String?,
       password: fields[6] as String?,
+      ftpMode: fields[13] as String?,
       isAnonymous: fields[7] as bool?,
       mediaLibraryId: fields[9] as String?,
       token: fields[10] as String?,
@@ -141,7 +142,7 @@ class StorageAdapter extends TypeAdapter<Storage> {
   @override
   void write(BinaryWriter writer, Storage obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -165,7 +166,9 @@ class StorageAdapter extends TypeAdapter<Storage> {
       ..writeByte(11)
       ..write(obj.userId)
       ..writeByte(12)
-      ..write(obj.useRemoteHistory);
+      ..write(obj.useRemoteHistory)
+      ..writeByte(13)
+      ..write(obj.ftpMode);
   }
 
   @override

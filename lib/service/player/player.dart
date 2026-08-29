@@ -277,11 +277,18 @@ class VideoPlayerService {
       );
       _log.info('setVideoInfo', '加载缓存视频: $cachePath/${videoInfo.uniqueKey}');
     } else {
-      media = Media(
-        videoInfo.currentVideoPath,
-        httpHeaders: videoInfo.headers,
-        start: historyPosition,
-      );
+      if (videoInfo.currentVideoPath.startsWith("ftp")) {
+        media = Media(
+          'lavf://${videoInfo.currentVideoPath}',
+          start: historyPosition,
+        );
+      } else {
+        media = Media(
+          videoInfo.currentVideoPath,
+          httpHeaders: videoInfo.headers,
+          start: historyPosition,
+        );
+      }
       _log.info('setVideoInfo', '加载视频: ${videoInfo.currentVideoPath}');
     }
     danmakuService.history = _history;
@@ -352,6 +359,7 @@ class VideoPlayerService {
       );
     }
     final fontsDir = await getApplicationSupportDirectory();
+    await pp.setProperty('load-unsafe-playlists', 'yes');
     await pp.setProperty("sub-fonts-dir", '${fontsDir.path}/fonts');
     await pp.setProperty("sub-font", _configureService.subtitleFontName.value);
     _subtitleStyleEffect = effect(

@@ -9,6 +9,7 @@ import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/utils/android_saf.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
+import 'package:ftpconnect/ftpconnect.dart' hide Logger;
 import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:string_util_xx/StringUtilxx.dart';
@@ -26,6 +27,15 @@ abstract class FileExplorerProvider {
     CancelToken? cancelToken,
   });
   void dispose();
+}
+
+FileExplorerProvider? createFileExplorerProvider(Storage storage) {
+  return switch (storage.storageType) {
+    .webdav => WebDAVFileExplorerProvider(storage),
+    .ftp => FTPFileExplorerProvider(storage),
+    .local => LocalFileExplorerProvider(storage.url),
+    _ => null,
+  };
 }
 
 class Filter {
@@ -298,6 +308,155 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
 
   @override
   void dispose() {}
+}
+
+class FTPFileExplorerProvider implements FileExplorerProvider {
+  final Storage storage;
+  final _logger = Logger('FTPFileExplorerProvider');
+  FTPConnect? _client;
+
+  FTPFileExplorerProvider(this.storage);
+
+  @override
+  Map<String, String> get headers => {};
+
+  FTPConnect get _getClient {
+    if (_client == null) throw AppException('FTP客户端未连接', null);
+    return _client!;
+  }
+
+  @override
+  Future<void> init() async {
+    final client = FTPConnect(
+      storage.url,
+      port: storage.port ?? 21,
+      user: storage.account ?? '',
+      pass: storage.password ?? '',
+      supportIPV6: storage.url.contains(':'),
+      transferMode: storage.ftpMode == 'active' ? .active : .passive,
+    );
+    _client = client;
+    try {
+      final connected = await client.connect();
+      if (!connected) {
+        throw AppException('FTP连接失败', null);
+      }
+      _logger.info('init', 'FTP媒体库连接成功: ${storage.url}');
+    } catch (e, t) {
+      _client = null;
+      _logger.error('init', 'FTP媒体库连接失败', error: e, stackTrace: t);
+      if (e is AppException) rethrow;
+      throw AppException('FTP连接失败', e);
+    }
+  }
+
+  @override
+  String getVideoUrl(String path) {
+    return 'ftp://${storage.account ?? ''}:${storage.password ?? ''}@${storage.url}:${storage.port ?? 21}$path';
+  }
+
+  @override
+  Future<List<FileItem>> listFiles(
+    String path,
+    String rootPath,
+    Filter filter,
+  ) async {
+    try {
+      final entries = await _getClient.listDirectoryContent(path);
+      var list = <FileItem>[];
+      for (final entry in entries) {
+        if (entry.type != .dir && entry.type != .file) continue;
+        if (filter.searchTerm.isNotEmpty &&
+            !entry.name.contains(filter.searchTerm)) {
+          continue;
+        }
+        final filePath = '$path${entry.name}';
+        if (entry.type == .dir) {
+          if (filter.displayMode == 2) continue;
+          list.add(
+            FileItem(
+              name: entry.name,
+              path: filePath,
+              type: .folder,
+              uniqueKey: CryptoUtils.generateVideoUniqueKey(filePath),
+            ),
+          );
+          continue;
+        }
+        if (filter.displayMode == 1 ||
+            FileItem.getFileType(entry.name) != .video) {
+          continue;
+        }
+        list.add(
+          FileItem(
+            name: entry.name,
+            path: filePath,
+            type: .video,
+            size: entry.size,
+            uniqueKey: CryptoUtils.generateVideoUniqueKey('$rootPath$filePath'),
+          ),
+        );
+      }
+      list.sort(_compare);
+      if (!filter.sortOrder) list = list.reversed.toList();
+      return setVideoIndex(list);
+    } catch (e, t) {
+      _logger.error('listFiles', '获取FTP文件列表失败', error: e, stackTrace: t);
+      if (e is AppException) rethrow;
+      throw AppException('获取FTP文件列表失败', e);
+    }
+  }
+
+  @override
+  Future<bool> downloadVideo(
+    String path,
+    String localPath, {
+    void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    if (cancelToken?.isCancelled == true) return false;
+    try {
+      final client = _getClient;
+      final targetFile = File(localPath);
+      await targetFile.parent.create(recursive: true);
+      var cancelled = false;
+      if (cancelToken != null) {
+        cancelToken.whenCancel.then((_) async {
+          cancelled = true;
+          if (_client == client) await _disconnect(client);
+        });
+      }
+      final result = await client.downloadFile(
+        path,
+        targetFile,
+        onProgress: (_, received, total) {
+          if (!cancelled) onProgress?.call(received, total);
+        },
+      );
+      if (cancelled) return false;
+      _logger.info('downloadVideo', 'FTP下载完成: $path -> $localPath');
+      return result;
+    } catch (e, t) {
+      if (cancelToken?.isCancelled == true) return false;
+      _logger.error('downloadVideo', 'FTP下载失败', error: e, stackTrace: t);
+      return false;
+    }
+  }
+
+  @override
+  void dispose() {
+    final client = _client;
+    _client = null;
+    if (client != null) _disconnect(client);
+  }
+
+  Future<void> _disconnect(FTPConnect client) async {
+    try {
+      await client.disconnect();
+    } catch (e, t) {
+      _logger.warn('dispose', '关闭FTP连接失败', error: e, stackTrace: t);
+    }
+  }
 }
 
 class LocalFileExplorerProvider implements FileExplorerProvider {

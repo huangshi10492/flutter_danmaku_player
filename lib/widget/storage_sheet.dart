@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
@@ -78,11 +80,11 @@ class SelectStorageTypeSheet extends StatelessWidget {
                   prefix: const Icon(FLucideIcons.server),
                   onPress: () => select(context, StorageType.webdav),
                 ),
-                // FItem(
-                //   title: const Text('FTP'),
-                //   prefix: const Icon(MyIcon.ftp),
-                //   onPress: () => select(context, StorageType.ftp),
-                // ),
+                FItem(
+                  title: const Text('FTP'),
+                  prefix: const Icon(MyIcon.ftp),
+                  onPress: () => select(context, StorageType.ftp),
+                ),
                 // FItem(
                 //   title: const Text('SMB'),
                 //   prefix: const Icon(MyIcon.smb),
@@ -169,9 +171,7 @@ class _StorageFormData {
         case _FieldType.select:
           switch (field.key) {
             case 'ftpMode':
-            case 'smbVersion':
-              // TODO:
-              selectValues[field.key] = field.options!.values.first;
+              selectValues[field.key] = storage.ftpMode ?? 'passive';
               break;
           }
           break;
@@ -216,14 +216,7 @@ class _StorageFormData {
         case _FieldType.select:
           switch (field.key) {
             case 'ftpMode':
-              selectValues[field.key] =
-                  // _storage.ftpMode ??
-                  field.options!.values.first;
-              break;
-            case 'smbVersion':
-              selectValues[field.key] =
-                  // _storage.smbVersion ??
-                  field.options!.values.first;
+              storage.ftpMode = selectValues[field.key] ?? 'passive';
               break;
           }
           break;
@@ -264,6 +257,24 @@ List<_FieldConfig> _getConfigs(StorageType type) {
     return null;
   }
 
+  String? validateFtpHost(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final host = value.trim();
+    if (host.contains('://') ||
+        host.contains('/') ||
+        host.contains('@') ||
+        host.contains('?') ||
+        host.contains('#') ||
+        host.contains(RegExp(r'\s'))) {
+      return '请输入主机名或IP地址';
+    }
+    if (host.contains(':') &&
+        InternetAddress.tryParse(host)?.type != InternetAddressType.IPv6) {
+      return '端口请填写在端口字段中';
+    }
+    return null;
+  }
+
   switch (type) {
     case StorageType.webdav:
       return [
@@ -279,7 +290,13 @@ List<_FieldConfig> _getConfigs(StorageType type) {
       ];
     case StorageType.ftp:
       return [
-        _FieldConfig('url', 'FTP服务器', required: true),
+        _FieldConfig(
+          'url',
+          'FTP服务器',
+          required: true,
+          validator: validateFtpHost,
+          description: '192.168.1.100 / ftp.example.com',
+        ),
         _FieldConfig(
           'port',
           '端口',
@@ -402,6 +419,10 @@ class _EditStorageSheetState extends State<EditStorageSheet> {
       _nameController = TextEditingController(text: _storage.name);
       _uniqueKeyController = TextEditingController(text: _storage.uniqueKey);
       _formData.loadFromStorage(_storage, _fieldConfigs);
+      if (widget.storageType == StorageType.ftp &&
+          _formData.controllers['port']!.text.isEmpty) {
+        _formData.controllers['port']!.text = '21';
+      }
     });
   }
 

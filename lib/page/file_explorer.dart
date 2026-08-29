@@ -132,20 +132,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       if (storage == null) {
         return;
       }
-      late FileExplorerProvider provider;
-      switch (storage.storageType) {
-        case StorageType.webdav:
-          provider = WebDAVFileExplorerProvider(storage);
-          break;
-        case StorageType.ftp:
-          return;
-        case StorageType.smb:
-          return;
-        case StorageType.local:
-          provider = LocalFileExplorerProvider(storage.url);
-          break;
-        default:
-          return;
+      final provider = createFileExplorerProvider(storage);
+      if (provider == null) {
+        throw StateError('不支持的媒体库类型');
       }
       await provider.init();
       _fileExplorerService.setProvider(provider, storage);

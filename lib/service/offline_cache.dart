@@ -3,7 +3,6 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:fldanplay/model/offline_cache.dart';
-import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/service/file_explorer.dart';
@@ -98,6 +97,7 @@ class OfflineCacheService {
     int lastReportedReceived = offlineCache.downloadedBytes;
     int lastReportedTotal = offlineCache.fileSize;
     Timer? throttleTimer;
+    FileExplorerProvider? fileProvider;
     void throttledUpdateProgress(int received, int total) {
       lastReportedReceived = received;
       lastReportedTotal = total;
@@ -125,18 +125,12 @@ class OfflineCacheService {
       } else if (videoInfo.historiesType == HistoriesType.fileStorage) {
         final parts = videoInfo.virtualVideoPath.split('/');
         final path = parts.sublist(1, parts.length);
-        FileExplorerProvider provider;
-        switch (storage!.storageType) {
-          case StorageType.webdav:
-            provider = WebDAVFileExplorerProvider(storage);
-            break;
-          case StorageType.local:
-            provider = LocalFileExplorerProvider(storage.url);
-            break;
-          default:
-            throw AppException('不支持的媒体库类型', null);
+        fileProvider = createFileExplorerProvider(storage!);
+        if (fileProvider == null) {
+          throw AppException('不支持的媒体库类型', null);
         }
-        success = await provider.downloadVideo(
+        await fileProvider.init();
+        success = await fileProvider.downloadVideo(
           '/${path.join('/')}',
           localPath,
           onProgress: throttledUpdateProgress,
@@ -145,7 +139,11 @@ class OfflineCacheService {
       } else {
         throw AppException('不支持的媒体库类型', null);
       }
-      if (!success) return;
+      if (!success) {
+        offlineCache.status = DownloadStatus.failed;
+        await offlineCache.save();
+        return;
+      }
       final file = File(localPath);
       offlineCache.fileSize = await file.length();
       await file.rename('$_downloadPath/${videoInfo.uniqueKey}');
@@ -158,6 +156,7 @@ class OfflineCacheService {
       _logger.error('_executeDownload', '下载失败: $e', stackTrace: t);
     } finally {
       throttleTimer?.cancel();
+      fileProvider?.dispose();
       _downloadTokens.remove(videoInfo.uniqueKey);
     }
   }
