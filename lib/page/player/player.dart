@@ -15,6 +15,7 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:window_manager/window_manager.dart';
+
 import 'gesture.dart';
 import 'indicator.dart';
 import 'progress_bar.dart';
@@ -213,6 +214,7 @@ class _StandardPlayerViewState extends State<_StandardPlayerView> {
   }
 
   Widget _buildPlayerWidget() {
+    final primary = context.theme.colors.primary;
     return PlayerStage(
       playerService: _playerService,
       overlayBuilder: (context) => MouseRegion(
@@ -241,6 +243,11 @@ class _StandardPlayerViewState extends State<_StandardPlayerView> {
                     barHeight: 2,
                     thumbRadius: 0,
                     timeLabelLocation: .none,
+                    baseBarColor: primary.withValues(alpha: 0.24),
+                    progressBarColor: primary,
+                    bufferedBarColor: primary.withValues(alpha: 0.24),
+                    thumbColor: primary,
+                    thumbGlowColor: primary.withValues(alpha: 0.8),
                   ),
                 );
               },
