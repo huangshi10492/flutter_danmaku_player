@@ -163,23 +163,23 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                       const SizedBox(height: 4),
                     ],
                     if (cache.status == DownloadStatus.failed)
-                      Text('未完成下载，请重试'),
+                      Text(
+                        cache.content == cache.videoInfo.videoName
+                            ? '未完成下载，请重试'
+                            : cache.content,
+                      ),
                     if (cache.status == DownloadStatus.downloading)
                       Text(
                         '下载中... ${_formatFileSize(cache.downloadedBytes)} / ${_formatFileSize(cache.totalBytes)}',
                       ),
                     const SizedBox(height: 4),
-                    cache.downloadedBytes == 0
-                        ? FProgress(
-                            style: .delta(constraints: .tightFor(height: 6)),
-                          )
-                        : FDeterminateProgress(
-                            style: .delta(
-                              motion: .delta(duration: .zero),
-                              constraints: .tightFor(height: 6),
-                            ),
-                            value: cache.downloadedBytes / cache.totalBytes,
-                          ),
+                    FDeterminateProgress(
+                      style: .delta(
+                        motion: .delta(duration: .zero),
+                        constraints: .tightFor(height: 6),
+                      ),
+                      value: cache.downloadedBytes / cache.totalBytes,
+                    ),
                   ],
                 ),
               );

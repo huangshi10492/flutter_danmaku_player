@@ -64,8 +64,13 @@ Future<StreamMediaExplorerProvider?> createStreamMediaExplorerProvider(
     default:
       return null;
   }
-  await provider.initialize(validateCredentials: validateCredentials);
-  return provider;
+  try {
+    await provider.initialize(validateCredentials: validateCredentials);
+    return provider;
+  } catch (_) {
+    provider.dispose();
+    rethrow;
+  }
 }
 
 class Filter {
@@ -797,7 +802,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     } catch (e, t) {
       if (e is DioException && e.type == DioExceptionType.cancel) return false;
       _logger.error('downloadVideo', '下载失败', error: e, stackTrace: t);
-      return false;
+      rethrow;
     }
   }
 

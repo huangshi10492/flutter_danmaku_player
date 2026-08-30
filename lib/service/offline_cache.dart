@@ -20,7 +20,8 @@ class OfflineCacheService {
   late Box<OfflineCache> _cacheBox;
   final lock = Lock();
   final _logger = Logger('OfflineCacheService');
-  final Map<String, CancelToken> _downloadTokens = {};
+  final Map<String, ({CancelToken cancelToken, void Function() dispose})>
+  _downloadTasks = {};
   late String _downloadPath;
   ValueListenable<Box<OfflineCache>> get listener => _cacheBox.listenable();
 
@@ -68,7 +69,7 @@ class OfflineCacheService {
       _logger.info('startDownload', '视频已缓存: $uniqueKey');
       return;
     }
-    if (_downloadTokens.containsKey(uniqueKey)) {
+    if (_downloadTasks.containsKey(uniqueKey)) {
       _logger.info('startDownload', '视频正在下载: $uniqueKey');
       return;
     }
@@ -92,12 +93,10 @@ class OfflineCacheService {
     final cancelToken = CancelToken();
     final offlineCache = _cacheBox.get(uniqueKey)!;
     final videoInfo = offlineCache.videoInfo;
-    _downloadTokens[videoInfo.uniqueKey] = cancelToken;
     final storage = storageService.get(videoInfo.storageKey!);
     int lastReportedReceived = offlineCache.downloadedBytes;
     int lastReportedTotal = offlineCache.fileSize;
     Timer? throttleTimer;
-    FileExplorerProvider? fileProvider;
     void throttledUpdateProgress(int received, int total) {
       lastReportedReceived = received;
       lastReportedTotal = total;
@@ -116,48 +115,69 @@ class OfflineCacheService {
         if (provider == null) {
           throw AppException('不支持的媒体库类型', null);
         }
-        success = await provider.downloadVideo(
-          videoInfo.virtualVideoPath,
-          localPath,
-          onProgress: throttledUpdateProgress,
+        _downloadTasks[videoInfo.uniqueKey] = (
           cancelToken: cancelToken,
+          dispose: provider.dispose,
         );
+        if (!cancelToken.isCancelled) {
+          success = await provider.downloadVideo(
+            videoInfo.virtualVideoPath,
+            localPath,
+            onProgress: throttledUpdateProgress,
+            cancelToken: cancelToken,
+          );
+        }
       } else if (videoInfo.historiesType == HistoriesType.fileStorage) {
         final parts = videoInfo.virtualVideoPath.split('/');
         final path = parts.sublist(1, parts.length);
-        fileProvider = createFileExplorerProvider(storage!);
-        if (fileProvider == null) {
+        final provider = createFileExplorerProvider(storage!);
+        if (provider == null) {
           throw AppException('不支持的媒体库类型', null);
         }
-        await fileProvider.init();
-        success = await fileProvider.downloadVideo(
-          '/${path.join('/')}',
-          localPath,
-          onProgress: throttledUpdateProgress,
+        try {
+          await provider.init();
+        } catch (_) {
+          provider.dispose();
+          rethrow;
+        }
+        _downloadTasks[videoInfo.uniqueKey] = (
           cancelToken: cancelToken,
+          dispose: provider.dispose,
         );
+        if (!cancelToken.isCancelled) {
+          success = await provider.downloadVideo(
+            '/${path.join('/')}',
+            localPath,
+            onProgress: throttledUpdateProgress,
+            cancelToken: cancelToken,
+          );
+        }
       } else {
         throw AppException('不支持的媒体库类型', null);
       }
       if (!success) {
-        offlineCache.status = DownloadStatus.failed;
+        offlineCache.content = cancelToken.isCancelled ? '下载已取消' : '下载失败';
+        offlineCache.status = .failed;
         await offlineCache.save();
         return;
       }
       final file = File(localPath);
       offlineCache.fileSize = await file.length();
       await file.rename('$_downloadPath/${videoInfo.uniqueKey}');
-      offlineCache.status = DownloadStatus.finished;
+      offlineCache.status = .finished;
       offlineCache.updateProgress(lastReportedReceived, lastReportedTotal);
       _logger.info('_executeDownload', '下载完成: ${videoInfo.uniqueKey}');
     } catch (e, t) {
-      offlineCache.status = DownloadStatus.failed;
-      offlineCache.save();
+      offlineCache.content = cancelToken.isCancelled
+          ? '下载已取消'
+          : (e is AppException ? e.message : e.toString());
+      offlineCache.status = .failed;
+      await offlineCache.save();
       _logger.error('_executeDownload', '下载失败: $e', stackTrace: t);
     } finally {
       throttleTimer?.cancel();
-      fileProvider?.dispose();
-      _downloadTokens.remove(videoInfo.uniqueKey);
+      _downloadTasks[videoInfo.uniqueKey]?.dispose();
+      _downloadTasks.remove(videoInfo.uniqueKey);
     }
   }
 
@@ -170,14 +190,16 @@ class OfflineCacheService {
       throw AppException('无法恢复非暂停/失败状态的下载', null);
     }
     cache.status = DownloadStatus.downloading;
-    cache.save();
+    cache.content = cache.videoInfo.videoName;
+    await cache.save();
     _executeDownload(uniqueKey);
   }
 
   Future<void> cancelDownload(String uniqueKey) async {
-    final cancelToken = _downloadTokens[uniqueKey];
-    if (cancelToken != null && !cancelToken.isCancelled) {
-      cancelToken.cancel('用户取消下载');
+    final task = _downloadTasks[uniqueKey];
+    if (task != null) {
+      if (!task.cancelToken.isCancelled) task.cancelToken.cancel('用户取消下载');
+      task.dispose();
     }
   }
 
@@ -196,6 +218,10 @@ class OfflineCacheService {
   }
 
   void dispose() {
-    _downloadTokens.clear();
+    for (final task in _downloadTasks.values.toList()) {
+      if (!task.cancelToken.isCancelled) task.cancelToken.cancel('服务销毁');
+      task.dispose();
+    }
+    _downloadTasks.clear();
   }
 }

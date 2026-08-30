@@ -292,14 +292,12 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
       _logger.info('downloadVideo', 'WebDAV下载完成: $path -> $localPath');
       return true;
     } on DioException catch (e, t) {
-      if (e.type == DioExceptionType.cancel) {
-        return false;
-      }
+      if (e.type == DioExceptionType.cancel) return false;
       _logger.error('downloadVideo', 'WebDAV下载失败', error: e, stackTrace: t);
-      return false;
+      rethrow;
     } catch (e, t) {
       _logger.error('downloadVideo', 'WebDAV下载失败', error: e, stackTrace: t);
-      return false;
+      rethrow;
     }
   }
 
@@ -439,7 +437,7 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
     } catch (e, t) {
       if (cancelToken?.isCancelled == true) return false;
       _logger.error('downloadVideo', 'FTP下载失败', error: e, stackTrace: t);
-      return false;
+      rethrow;
     }
   }
 
