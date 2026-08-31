@@ -50,6 +50,10 @@ class VideoInfo {
   }) {
     uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
   }
+
+  bool get unsafeUrl {
+    return currentVideoPath.startsWith('ftp');
+  }
 }
 
 /// 轨道信息模型

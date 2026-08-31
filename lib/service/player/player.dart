@@ -129,11 +129,11 @@ class VideoPlayerService {
     _initialize();
   }
 
-  Future<void> _createPlayer() async {
+  Future<void> _createPlayer(bool unsafeUrl) async {
     _player = Player(configuration: _pc);
     controller.value = VideoController(_player, configuration: _vc);
     _listenPlayerStreams();
-    await _setProperty();
+    await _setProperty(unsafeUrl);
     await setPlaybackSpeed(playbackSpeed.value);
     setSuperResolution();
   }
@@ -189,7 +189,7 @@ class VideoPlayerService {
       playbackSpeed.value = _configureService.defaultPlaySpeed.value;
       superResolutionType = _configureService.superResolutionType.value;
       _setConfiguration();
-      await _createPlayer();
+      await _createPlayer(_videoInfo.unsafeUrl);
       await _initSession();
       await _setVideoInfo(_videoInfo);
       _log.info('initialize', '视频播放器初始化完成');
@@ -277,18 +277,13 @@ class VideoPlayerService {
       );
       _log.info('setVideoInfo', '加载缓存视频: $cachePath/${videoInfo.uniqueKey}');
     } else {
-      if (videoInfo.currentVideoPath.startsWith("ftp")) {
-        media = Media(
-          'lavf://${videoInfo.currentVideoPath}',
-          start: historyPosition,
-        );
-      } else {
-        media = Media(
-          videoInfo.currentVideoPath,
-          httpHeaders: videoInfo.headers,
-          start: historyPosition,
-        );
-      }
+      media = Media(
+        videoInfo.currentVideoPath.startsWith("ftp")
+            ? "lavf://${videoInfo.currentVideoPath}"
+            : videoInfo.currentVideoPath,
+        httpHeaders: videoInfo.headers,
+        start: historyPosition,
+      );
       _log.info('setVideoInfo', '加载视频: ${videoInfo.currentVideoPath}');
     }
     danmakuService.history = _history;
@@ -313,7 +308,7 @@ class VideoPlayerService {
         _resetPlaybackState();
         danmakuService = DanmakuService(videoInfo)
           ..controller = danmakuController;
-        await _createPlayer();
+        await _createPlayer(videoInfo.unsafeUrl);
         await _setVideoInfo(videoInfo);
       });
     } catch (e, stackTrace) {
@@ -343,7 +338,7 @@ class VideoPlayerService {
     }
   }
 
-  Future<void> _setProperty() async {
+  Future<void> _setProperty(bool unsafeUrl) async {
     var pp = _player.platform as NativePlayer;
     await pp.setProperty(
       "demuxer-cache-dir",
@@ -359,7 +354,7 @@ class VideoPlayerService {
       );
     }
     final fontsDir = await getApplicationSupportDirectory();
-    await pp.setProperty('load-unsafe-playlists', 'yes');
+    if (unsafeUrl) await pp.setProperty('load-unsafe-playlists', 'yes');
     await pp.setProperty("sub-fonts-dir", '${fontsDir.path}/fonts');
     await pp.setProperty("sub-font", _configureService.subtitleFontName.value);
     _subtitleStyleEffect = effect(
