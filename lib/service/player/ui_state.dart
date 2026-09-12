@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:battery_plus/battery_plus.dart';
 import 'package:fldanplay/page/player/indicator.dart';
 import 'package:fldanplay/service/configure.dart';

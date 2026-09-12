@@ -1,3 +1,4 @@
+import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -19,7 +20,6 @@ import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import '../model/history.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});

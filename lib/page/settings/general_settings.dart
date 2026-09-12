@@ -88,9 +88,8 @@ class GeneralSettingsPage extends StatelessWidget {
                   crossAxisAlignment: .start,
                   children: [
                     MediaQuery(
-                      data: MediaQuery.of(
-                        context,
-                      ).copyWith(navigationMode: .directional),
+                      data: MediaQuery.of(context)
+                          .copyWith(navigationMode: .directional),
                       child: Slider(
                         value: uiScale.value,
                         min: 0.5,

@@ -246,9 +246,8 @@ class SettingsTile extends StatelessWidget with FTileMixin {
                     overflow: TextOverflow.visible,
                   ),
             MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(navigationMode: .directional),
+              data: MediaQuery.of(context)
+                  .copyWith(navigationMode: .directional),
               child: Slider(
                 padding: EdgeInsets.only(top: 6, bottom: 0),
                 value: silderValue!,

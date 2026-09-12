@@ -1,8 +1,8 @@
+import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
-import '../model/storage.dart';
 
 class StorageService {
   late Box<Storage> _storageBox;
