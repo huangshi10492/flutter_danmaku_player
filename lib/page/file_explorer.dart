@@ -41,7 +41,6 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   final ScrollController _scrollController = ScrollController();
   final Map<String, int> _refreshMap = {};
   FocusNode? _focusNode;
-  final List<String> _enteredStack = [];
   String? _pendingFocusKey;
   bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
@@ -85,26 +84,19 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   }
 
   void _openFolder(FileItem file) {
-    _enteredStack.add(file.uniqueKey);
     _pendingFocusKey = null;
-    _fileExplorerService.next(file.name);
+    _fileExplorerService.enterDirectory(file.name);
     _scrollToRight();
   }
 
-  void _navigateToDirectory(String path) {
-    _enteredStack.clear();
+  void _navigateToBreadcrumb(int depth) {
     _pendingFocusKey = null;
-    _fileExplorerService.cd(path);
+    _fileExplorerService.jumpToIndex(depth);
   }
 
   void _navigateBack() {
-    if (!_fileExplorerService.back()) {
-      context.pop();
-      return;
-    }
-    _pendingFocusKey = _enteredStack.isEmpty
-        ? null
-        : _enteredStack.removeLast();
+    _pendingFocusKey = _fileExplorerService.back();
+    if (_pendingFocusKey == null) context.pop();
   }
 
   void refreshItem(String uniqueKey) {
@@ -227,37 +219,30 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
             controller: _scrollController,
             child: SignalBuilder(
               builder: (context) {
-                final path = _fileExplorerService.path;
-                final parts = path
-                    .split('/')
-                    .where((p) => p.isNotEmpty)
-                    .toList();
+                final navigation = _fileExplorerService.navigation.value;
+                final isRoot = navigation.isEmpty;
                 final children = <Widget>[
                   FBreadcrumbItem(
-                    onPress: () => _navigateToDirectory('/'),
+                    onPress: isRoot ? null : () => _navigateToBreadcrumb(0),
                     child: Text(
                       '根目录',
                       style: TextStyle(
-                        color: parts.isEmpty
+                        color: isRoot
                             ? context.theme.colors.primary
                             : context.theme.colors.foreground,
                       ),
                     ),
                   ),
                 ];
-                var currentPath = '';
-                for (var i = 0; i < parts.length; i++) {
-                  final part = parts[i];
-                  currentPath += '$part/';
-                  final targetPath = currentPath;
-                  final isLast = i == parts.length - 1;
+                for (var i = 0; i < navigation.length; i++) {
+                  final isLast = i == navigation.length - 1;
                   children.add(
                     FBreadcrumbItem(
                       onPress: isLast
                           ? null
-                          : () => _navigateToDirectory(targetPath),
+                          : () => _navigateToBreadcrumb(i + 1),
                       child: Text(
-                        part,
+                        navigation[i],
                         style: TextStyle(
                           color: isLast
                               ? context.theme.colors.primary
@@ -371,11 +356,11 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     final widgetList = <FItemMixin>[];
     for (var i = 0; i < files.length; i++) {
       final file = files[i];
-      final focusNode = _getFocusNode(file.uniqueKey, i);
       if (file.isFolder) {
+        final focusNode = _getFocusNode(file.name, i);
         widgetList.add(
           FItem(
-            key: ValueKey(file.uniqueKey),
+            key: ValueKey(file.name),
             focusNode: focusNode,
             prefix: const Icon(FLucideIcons.folder, size: 40),
             title: Text(file.name, maxLines: 2),
@@ -388,6 +373,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       final refreshKey = _refreshMap[file.uniqueKey] ?? 0;
       final history = _historyService.getHistory(file.uniqueKey);
       final videoInfo = _fileExplorerService.getVideoInfo(i, file.path);
+      final focusNode = _getFocusNode(file.uniqueKey, i);
       widgetList.add(
         VideoItem(
           key: ValueKey(file.uniqueKey),

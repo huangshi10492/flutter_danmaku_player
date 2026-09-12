@@ -16,6 +16,26 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:string_util_xx/StringUtilxx.dart';
 import 'package:webdav_client_plus/webdav_client_plus.dart';
 
+String joinFilePath(String parent, String name) =>
+    parent.isEmpty ? name : '$parent/$name';
+
+String joinUrlPath(String base, String path) {
+  if (path.isEmpty) return base;
+  final normalizedBase = base.endsWith('/')
+      ? base.substring(0, base.length - 1)
+      : base;
+  return '$normalizedBase/$path';
+}
+
+String filePathFromVirtualPath(String virtualPath, String storageKey) {
+  if (storageKey.isEmpty) return virtualPath;
+  if (virtualPath == storageKey) return '';
+  final prefix = '$storageKey/';
+  return virtualPath.startsWith(prefix)
+      ? virtualPath.substring(prefix.length)
+      : virtualPath;
+}
+
 abstract class FileExplorerProvider {
   Future<void> init();
   String getVideoUrl(String path);
@@ -79,9 +99,6 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
     }
   }
 
-  String _remotePath(String path) =>
-      path.replaceFirst(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
-
   @override
   String getVideoUrl(String path) {
     final user = storage.account?.isNotEmpty == true ? storage.account : null;
@@ -91,7 +108,7 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
     final userInfo = user == null ? null : '$user:${password ?? ''}';
     final remotePath = [
       storage.share!,
-      _remotePath(path),
+      path,
     ].where((value) => value.isNotEmpty).join('/');
     return Uri(
       scheme: 'smb2',
@@ -108,22 +125,22 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
     Filter filter,
   ) async {
     try {
-      final entries = await _client.listDirectory(_remotePath(path));
+      final entries = await _client.listDirectory(path);
       var list = <FileItem>[];
       for (final entry in entries) {
         if (filter.searchTerm.isNotEmpty &&
             !entry.name.contains(filter.searchTerm)) {
           continue;
         }
-        final filePath = '${path == '/' ? '/' : path}${entry.name}';
+        final filePath = joinFilePath(path, entry.name);
         if (entry.isDirectory) {
           if (filter.displayMode == 2) continue;
           list.add(
             FileItem(
               name: entry.name,
-              path: '$filePath/',
+              path: filePath,
               type: .folder,
-              uniqueKey: CryptoUtils.generateVideoUniqueKey('$filePath/'),
+              uniqueKey: CryptoUtils.generateVideoUniqueKey(filePath),
             ),
           );
           continue;
@@ -138,7 +155,9 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
             path: filePath,
             type: .video,
             size: entry.size,
-            uniqueKey: CryptoUtils.generateVideoUniqueKey('$rootPath$filePath'),
+            uniqueKey: CryptoUtils.generateVideoUniqueKey(
+              '$rootPath/$filePath',
+            ),
           ),
         );
       }
@@ -164,7 +183,7 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
       final targetFile = File(localPath);
       await targetFile.parent.create(recursive: true);
       await _client.downloadToFile(
-        _remotePath(path),
+        path,
         targetFile,
         onProgress: onProgress,
         isCanceled: () => cancelToken?.isCancelled == true,
@@ -203,8 +222,8 @@ class Filter {
 
 class FileExplorerService {
   final Signal<FileExplorerProvider?> provider = signal(null);
-  final path = signal('/');
-  final listLength = signal(0);
+  final Signal<List<String>> navigation = signal(<String>[]);
+  int listLength = 0;
   Storage? _storage;
   final _logger = Logger('FileExplorerService');
   final Signal<Filter> filter = signal(Filter());
@@ -224,11 +243,11 @@ class FileExplorerService {
     }
     try {
       final list = await provider.value!.listFiles(
-        path.value,
+        navigation.value.join('/'),
         _storage!.key,
         filter.value,
       );
-      listLength.value = list.length;
+      listLength = list.length;
       files.value = AsyncData(list);
     } catch (e, t) {
       _logger.error('files', '加载文件列表失败', error: e, stackTrace: t);
@@ -241,33 +260,35 @@ class FileExplorerService {
       provider.value?.dispose();
       provider.value = newProvider;
       _storage = storage;
-      path.value = '/';
+      navigation.value = [];
+      filter.value = Filter();
     });
     _logger.info('setProvider', '设置新的文件库提供者');
   }
 
-  void next(String name) {
+  void enterDirectory(String name) {
     batch(() {
-      path.value = '${path.value}$name/';
+      navigation.value = [...navigation.value, name];
       filter.value = Filter();
     });
   }
 
-  bool back() {
-    if (path.value == '/') {
-      return false;
-    }
+  String? back() {
+    final stack = navigation.value;
+    if (stack.isEmpty) return null;
+    final popped = stack.last;
     batch(() {
-      path.value =
-          '${path.value.split('/').sublist(0, path.value.split('/').length - 2).join('/')}/';
+      navigation.value = stack.sublist(0, stack.length - 1);
       filter.value = Filter();
     });
-    return true;
+    return popped;
   }
 
-  void cd(String newPath) {
+  void jumpToIndex(int depth) {
+    final stack = navigation.value;
+    if (depth < 0 || depth >= stack.length) return;
     batch(() {
-      path.value = newPath;
+      navigation.value = stack.sublist(0, depth);
       filter.value = Filter();
     });
   }
@@ -292,20 +313,21 @@ class FileExplorerService {
     final headers = provider.value!.headers;
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
-      virtualVideoPath: '${_storage!.key}$path',
+      virtualVideoPath: '${_storage!.key}/$path',
       headers: headers.map((key, value) => MapEntry(key, value.toString())),
       historiesType: HistoriesType.fileStorage,
       videoIndex: index,
-      listLength: listLength.value,
+      listLength: listLength,
       canSwitch: true,
       storageKey: _storage!.uniqueKey,
     );
   }
 
   Future<VideoInfo> getVideoInfoFromHistory(History history) async {
-    final parts = history.url!.split('/');
-    final path = parts.sublist(1, parts.length);
-    final videoPath = provider.value!.getVideoUrl('/${path.join('/')}');
+    final historyPath = history.url ?? '';
+    final storageKey = _storage!.key;
+    final path = filePathFromVirtualPath(historyPath, storageKey);
+    final videoPath = provider.value!.getVideoUrl(path);
     final headers = provider.value!.headers;
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
@@ -353,7 +375,7 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
 
   @override
   String getVideoUrl(String path) {
-    return '$url$path';
+    return joinUrlPath(url, path);
   }
 
   @override
@@ -373,7 +395,7 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
             !file.name.contains(filter.searchTerm)) {
           continue;
         }
-        final filePath = '$path${file.name}';
+        final filePath = joinFilePath(path, file.name);
         if (FileItem.getFileType(file.name) != FileType.video && !file.isDir) {
           continue;
         }
@@ -392,7 +414,7 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
         }
         if (filter.displayMode == 1) continue;
         var uniqueKey = CryptoUtils.generateVideoUniqueKey(
-          '$rootPath$filePath',
+          '$rootPath/$filePath',
         );
         list.add(
           FileItem(
@@ -500,7 +522,11 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
 
   @override
   String getVideoUrl(String path) {
-    return 'ftp://${storage.account ?? ''}:${storage.password ?? ''}@${storage.url}:${storage.port ?? 21}$path';
+    return joinUrlPath(
+      'ftp://${storage.account ?? ''}:${storage.password ?? ''}@'
+      '${storage.url}:${storage.port ?? 21}',
+      path,
+    );
   }
 
   @override
@@ -510,7 +536,9 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
     Filter filter,
   ) async {
     try {
-      final entries = await _getClient.listDirectoryContent(path);
+      final entries = await _getClient.listDirectoryContent(
+        path.isEmpty ? '/' : '/$path',
+      );
       var list = <FileItem>[];
       for (final entry in entries) {
         if (entry.type != .dir && entry.type != .file) continue;
@@ -518,7 +546,7 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
             !entry.name.contains(filter.searchTerm)) {
           continue;
         }
-        final filePath = '$path${entry.name}';
+        final filePath = joinFilePath(path, entry.name);
         if (entry.type == .dir) {
           if (filter.displayMode == 2) continue;
           list.add(
@@ -541,7 +569,9 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
             path: filePath,
             type: .video,
             size: entry.size,
-            uniqueKey: CryptoUtils.generateVideoUniqueKey('$rootPath$filePath'),
+            uniqueKey: CryptoUtils.generateVideoUniqueKey(
+              '$rootPath/$filePath',
+            ),
           ),
         );
       }
@@ -575,7 +605,7 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
         });
       }
       final result = await client.downloadFile(
-        path,
+        '/$path',
         targetFile,
         onProgress: (_, received, total) {
           if (!cancelled) onProgress?.call(received, total);
@@ -618,8 +648,10 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
 
   @override
   String getVideoUrl(String path) {
-    if (_useSaf) return '$url${Uri.encodeComponent(path)}';
-    return '$url$path';
+    if (_useSaf) {
+      return '$url${Uri.encodeComponent(path.isEmpty ? '/' : '/$path')}';
+    }
+    return joinUrlPath(url, path);
   }
 
   @override
@@ -630,23 +662,23 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
   ) async {
     try {
       if (_useSaf) return await _listSafFiles(path, rootPath, filter);
-      if (path.isEmpty) {
-        return [];
-      }
       var list = <FileItem>[];
-      final fileList = Directory('$url$path').list();
+      final fileList = Directory(joinUrlPath(url, path)).list();
       await for (var file in fileList) {
-        if (filter.searchTerm.isNotEmpty &&
-            !file.path.contains(filter.searchTerm)) {
+        final name = file.uri.pathSegments.lastWhere(
+          (segment) => segment.isNotEmpty,
+        );
+        if (filter.searchTerm.isNotEmpty && !name.contains(filter.searchTerm)) {
           continue;
         }
         if (file is! File) {
           if (filter.displayMode == 2) continue;
-          final uniqueKey = CryptoUtils.generateVideoUniqueKey(file.path);
+          final filePath = joinFilePath(path, name);
+          final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
           list.add(
             FileItem(
-              name: file.path.split('/').last,
-              path: file.path,
+              name: name,
+              path: filePath,
               type: FileType.folder,
               uniqueKey: uniqueKey,
             ),
@@ -654,18 +686,18 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
           continue;
         }
         if (filter.displayMode == 1) continue;
-        final filePath = '$path${file.path.split('/').last}';
-        if (FileItem.getFileType(file.path) != FileType.video) {
+        final filePath = joinFilePath(path, name);
+        if (FileItem.getFileType(name) != FileType.video) {
           continue;
         }
         var uniqueKey = CryptoUtils.generateVideoUniqueKey(
-          '$rootPath$filePath',
+          '$rootPath/$filePath',
         );
         list.add(
           FileItem(
-            name: file.path.split('/').last,
+            name: name,
             path: filePath,
-            type: FileItem.getFileType(file.path),
+            type: FileItem.getFileType(name),
             size: file.lengthSync(),
             uniqueKey: uniqueKey,
           ),
@@ -695,7 +727,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
           !file.name.contains(filter.searchTerm)) {
         continue;
       }
-      final filePath = '$path${file.name}';
+      final filePath = joinFilePath(path, file.name);
       if (file.isDir) {
         if (filter.displayMode == 2) continue;
         final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
@@ -712,7 +744,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
       if (filter.displayMode == 1) continue;
       if (FileItem.getFileType(file.name) != FileType.video) continue;
       final uniqueKey = CryptoUtils.generateVideoUniqueKey(
-        '$rootPath$filePath',
+        '$rootPath/$filePath',
       );
       list.add(
         FileItem(

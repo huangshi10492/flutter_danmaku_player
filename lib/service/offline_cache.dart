@@ -128,8 +128,9 @@ class OfflineCacheService {
           );
         }
       } else if (videoInfo.historiesType == HistoriesType.fileStorage) {
-        final parts = videoInfo.virtualVideoPath.split('/');
-        final path = parts.sublist(1, parts.length);
+        final storageKey = videoInfo.storageKey!;
+        final virtualPath = videoInfo.virtualVideoPath;
+        final path = filePathFromVirtualPath(virtualPath, storageKey);
         final provider = createFileExplorerProvider(storage!);
         if (provider == null) {
           throw AppException('不支持的媒体库类型', null);
@@ -146,7 +147,7 @@ class OfflineCacheService {
         );
         if (!cancelToken.isCancelled) {
           success = await provider.downloadVideo(
-            '/${path.join('/')}',
+            path,
             localPath,
             onProgress: throttledUpdateProgress,
             cancelToken: cancelToken,
