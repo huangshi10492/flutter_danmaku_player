@@ -204,9 +204,9 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     }
   }
 
-  void _onDownloadEpisode(SeasonInfo season, int index) {
+  void _onDownloadEpisode(SeasonInfo season, int index) async {
     _service.selectPlaybackSeason(season.id);
-    final videoInfo = _service.getVideoInfo(index);
+    final videoInfo = await _service.getVideoInfo(index, isFile: true);
     _offlineCacheService.startDownload(videoInfo);
     showToast(title: '${videoInfo.name}已加入离线缓存');
   }
@@ -481,7 +481,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       name: episode.name,
       danmakuMatchInfo: .new(
         fileName: episode.fileName,
-        currentVideoPath: _service.getPlaybackUrl(episode.id),
+        currentVideoPath: _service.getVideoFile(episode.id),
         headers: _service.headers,
       ),
       subtitle: episode.subtitle,

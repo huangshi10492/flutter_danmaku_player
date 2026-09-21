@@ -141,7 +141,7 @@ class _HistoryPageState extends State<HistoryPage> {
             return;
           }
           _streamMediaExplorerService.setProvider(provider, storage);
-          videoInfo = _streamMediaExplorerService.getVideoInfoFromHistory(
+          videoInfo = await _streamMediaExplorerService.getVideoInfoFromHistory(
             history,
           );
           break;

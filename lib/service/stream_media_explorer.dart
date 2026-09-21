@@ -32,20 +32,35 @@ abstract class StreamMediaExplorerProvider {
   Future<PlaybackTarget> getPlaybackTarget(String itemId);
   Map<String, String> get headers;
   String getImageUrl(String itemId, {String tag = 'Primary'});
-  String getStreamUrl(String itemId);
+  String getVideoFile(String itemId);
+  Future<String> getVideoUrl(
+    String itemId,
+    PlayBackInfo playbackInfo, {
+    TranscodeOptions? options,
+  });
+  Future<PlayBackInfo> getPlaybackInfo(String itemId);
   Future<bool> downloadVideo(
     String itemId,
     String localPath, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   });
-  Future<void> reportPlaybackStart(String itemId, int position);
+  Future<void> reportPlaybackStart(
+    String itemId,
+    int position,
+    String sessionId,
+  );
   Future<void> reportPlaybackProgress(
     String itemId,
+    String sessionId,
     int position,
     bool isPaused,
   );
-  Future<void> reportPlaybackStopped(String itemId, int position);
+  Future<void> reportPlaybackStopped(
+    String itemId,
+    String sessionId,
+    int position,
+  );
   void dispose();
 }
 
@@ -102,7 +117,10 @@ class StreamMediaExplorerService {
   );
   Storage? storage;
   void Function()? _reportEffect;
-  String? _playbackSeasonId;
+  String? _seasonId;
+  List<MediaStreamInfo> audioStreams = const [];
+  List<MediaStreamInfo> subtitleStreams = const [];
+  late TranscodeOptions tranOpt = .new('');
   final Map<String, AsyncSignal<List<EpisodeInfo>>> episodeMap = {};
   final _logger = Logger('StreamMediaExplorerService');
   final Signal<Filter> filter = signal(Filter());
@@ -140,7 +158,10 @@ class StreamMediaExplorerService {
       filter.value = Filter();
       libraries.value = AsyncLoading();
       items.value = AsyncLoading();
-      _playbackSeasonId = null;
+      _seasonId = null;
+      tranOpt = .new('');
+      audioStreams = const [];
+      subtitleStreams = const [];
       episodeMap.clear();
       this.storage = storage;
       provider.value = newProvider;
@@ -220,7 +241,7 @@ class StreamMediaExplorerService {
 
   Future<VideoInfo> _prepareVideoInfo(int index) async {
     final episodes = playbackEpisodes;
-    final videoInfo = getVideoInfo(index);
+    var videoInfo = await getVideoInfo(index);
     final history = getHistory(episodes[index]);
     if (history != null) {
       await GetIt.I.get<HistoryService>().save(history);
@@ -248,7 +269,7 @@ class StreamMediaExplorerService {
   }
 
   List<EpisodeInfo> get playbackEpisodes {
-    final seasonId = _playbackSeasonId;
+    final seasonId = _seasonId;
     if (seasonId == null) return const [];
     return episodeMap[seasonId]?.value.value ?? const [];
   }
@@ -258,15 +279,24 @@ class StreamMediaExplorerService {
     if (episodes == null) {
       throw AppException('获取播放列表失败', '当前季度尚未加载');
     }
-    _playbackSeasonId = seasonId;
+    _seasonId = seasonId;
   }
 
-  VideoInfo getVideoInfo(int index) {
+  Future<VideoInfo> getVideoInfo(int index, {bool isFile = false}) async {
     final episodes = playbackEpisodes;
     final episode = episodes[index];
-    final playbackUrl = getPlaybackUrl(episode.id);
+    String videoUrl = '';
+    List<ExternalSubtitle> externalSubtitles = const [];
+    if (isFile) {
+      videoUrl = getVideoFile(episode.id);
+    } else {
+      final playbackInfo = await provider.value!.getPlaybackInfo(episode.id);
+      final stream = await _resolveStream(episode.id, playbackInfo);
+      videoUrl = stream.url;
+      externalSubtitles = stream.subtitles;
+    }
     return VideoInfo(
-      currentVideoPath: playbackUrl,
+      currentVideoPath: videoUrl,
       virtualVideoPath: episode.id,
       headers: headers,
       historiesType: HistoriesType.streamMediaStorage,
@@ -277,20 +307,69 @@ class StreamMediaExplorerService {
       listLength: episodes.length,
       videoIndex: index,
       canSwitch: true,
+      externalSubtitles: externalSubtitles,
     );
   }
 
-  VideoInfo getVideoInfoFromHistory(History history) {
-    final playbackUrl = getPlaybackUrl(history.url!);
+  Future<({String url, List<ExternalSubtitle> subtitles})> _resolveStream(
+    String itemId,
+    PlayBackInfo info,
+  ) async {
+    if (tranOpt.itemId != itemId) tranOpt = .fromPlayBackInfo(itemId, info);
+    if (!info.supportsTranscoding || tranOpt.isOriginal) {
+      audioStreams = const [];
+      subtitleStreams = const [];
+      final url = await provider.value!.getVideoUrl(itemId, info);
+      return (url: url, subtitles: const <ExternalSubtitle>[]);
+    }
+    audioStreams = info.audioStreams;
+    subtitleStreams = info.subtitleStreams;
+    final embed = GetIt.I.get<ConfigureService>().transEmbedSub.value;
+    final url = await provider.value!.getVideoUrl(
+      itemId,
+      info,
+      options: tranOpt,
+    );
+    final subtitles = <ExternalSubtitle>[];
+    if (!embed) {
+      final subtitle = MediaStreamInfo.findByIndex(
+        subtitleStreams,
+        tranOpt.subtitleStreamIndex,
+      );
+      final subtitleUrl = subtitle?.subtitleUrl;
+      if (subtitle != null && subtitleUrl != null) {
+        subtitles.add(
+          ExternalSubtitle(subtitleUrl, subtitle.label, subtitle.language),
+        );
+      }
+    }
+    return (url: url, subtitles: subtitles);
+  }
+
+  Future<VideoInfo> refreshVideoInfo(VideoInfo videoInfo) async {
+    final itemId = videoInfo.virtualVideoPath;
+    final playbackInfo = await provider.value!.getPlaybackInfo(itemId);
+    final stream = await _resolveStream(itemId, playbackInfo);
+    return videoInfo
+      ..currentVideoPath = stream.url
+      ..externalSubtitles = stream.subtitles;
+  }
+
+  Future<VideoInfo> getVideoInfoFromHistory(History history) async {
+    final itemId = history.url!;
+    final playbackInfo = await provider.value!.getPlaybackInfo(itemId);
+    final stream = await _resolveStream(itemId, playbackInfo);
     return VideoInfo(
-      currentVideoPath: playbackUrl,
-      virtualVideoPath: history.url!,
+      currentVideoPath: stream.url,
+      virtualVideoPath: itemId,
       headers: headers,
       historiesType: HistoriesType.streamMediaStorage,
       storageKey: storage!.uniqueKey,
       name: history.name,
       videoName: history.fileName ?? '',
       subtitle: history.subtitle,
+      videoIndex: -1,
+      externalSubtitles: stream.subtitles,
     );
   }
 
@@ -300,8 +379,14 @@ class StreamMediaExplorerService {
     return provider.value!.getImageUrl(itemId, tag: tag);
   }
 
-  String getPlaybackUrl(String itemId) {
-    return provider.value!.getStreamUrl(itemId);
+  String getVideoFile(String itemId) {
+    return provider.value!.getVideoFile(itemId);
+  }
+
+  String? playSessionIdFromUrl(String url) {
+    final uri = Uri.tryParse(url);
+    final query = uri?.queryParameters;
+    return query?['PlaySessionId'] ?? query?['playSessionId'];
   }
 
   Future<MediaDetail> getMediaDetail(String itemId) async {
@@ -378,18 +463,23 @@ class StreamMediaExplorerService {
     setPlayed(itemId, false);
   }
 
-  Future<void> startPlayback(String itemId) async {
+  Future<void> startPlayback(String itemId, String playbackUrl) async {
     if (provider.value == null) return;
     if (storage?.useRemoteHistory != true) return;
     try {
+      _reportEffect?.call();
+      final sessionId = playSessionIdFromUrl(playbackUrl);
+      if (sessionId == null) return;
       await provider.value!.reportPlaybackStart(
         itemId,
         globalService.position.value,
+        sessionId,
       );
       _reportEffect = effect(() {
         if (provider.value == null) return;
         provider.value!.reportPlaybackProgress(
           itemId,
+          sessionId,
           globalService.position.value,
           !globalService.isPlaying.value,
         );
@@ -399,14 +489,20 @@ class StreamMediaExplorerService {
     }
   }
 
-  Future<void> stopPlayback(String itemId) async {
+  Future<void> stopPlayback(String itemId, String playbackUrl) async {
     if (provider.value == null) return;
     if (storage?.useRemoteHistory != true) return;
+    final sessionId = playSessionIdFromUrl(playbackUrl);
+    if (sessionId == null) return;
     final positionTicks = globalService.position.value;
     try {
       _reportEffect?.call();
       _reportEffect = null;
-      await provider.value!.reportPlaybackStopped(itemId, positionTicks);
+      await provider.value!.reportPlaybackStopped(
+        itemId,
+        sessionId,
+        positionTicks,
+      );
     } catch (e, t) {
       _logger.error('stopPlayback', '上报播放停止失败', error: e, stackTrace: t);
     }
@@ -417,8 +513,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   final Storage storage;
   late UserInfo _userInfo;
   late Dio dio;
-  final Map<String, String> _playSessionIds = {};
   late final Logger _logger = Logger(loggerName);
+  final _configure = GetIt.I.get<ConfigureService>();
 
   EmbyStreamMediaExplorerProvider(this.storage) {
     _userInfo = UserInfo(
@@ -557,8 +653,109 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   @override
-  String getStreamUrl(String itemId) {
+  String getVideoFile(String itemId) {
     return '$url/Videos/$itemId/stream?static=true&api_key=${_userInfo.token}';
+  }
+
+  @override
+  Future<String> getVideoUrl(
+    String itemId,
+    PlayBackInfo playbackInfo, {
+    TranscodeOptions? options,
+  }) async {
+    if (options == null) {
+      return '$url/Videos/$itemId/stream?static=true&api_key=${_userInfo.token}&PlaySessionId=${playbackInfo.playSessionId}';
+    }
+    final subtitleIndex = options.subtitleStreamIndex;
+    final embedSubtitle =
+        _configure.transEmbedSub.value && subtitleIndex != null;
+    final uri = Uri.parse('$url/Videos/$itemId/master.m3u8').replace(
+      queryParameters: <String, String>{
+        'MediaSourceId': playbackInfo.mediaSourceId,
+        'PlaySessionId': playbackInfo.playSessionId,
+        'segmentContainer': 'ts',
+        'VideoCodec': 'h264',
+        'AudioCodec': 'aac',
+        'VideoBitRate': options.bitrate.toString(),
+        'SubtitleMethod': embedSubtitle ? 'Encode' : 'External',
+        'AlwaysBurnInSubtitleWhenTranscoding': embedSubtitle ? 'true' : 'false',
+        if (options.audioStreamIndex != null)
+          'AudioStreamIndex': options.audioStreamIndex.toString(),
+        if (embedSubtitle) 'subtitleStreamIndex': subtitleIndex.toString(),
+      },
+    );
+    return uri.toString();
+  }
+
+  @override
+  Future<PlayBackInfo> getPlaybackInfo(String itemId) {
+    return _request('getPlaybackInfo', '获取播放信息', () async {
+      final response = await dio.get(
+        '/Items/$itemId/PlaybackInfo',
+        queryParameters: {'UserId': _userInfo.userId},
+      );
+      final data = response.data as Map<String, dynamic>;
+      final mediaSources = data['MediaSources'] as List<dynamic>? ?? [];
+      if (mediaSources.isEmpty) throw AppException('获取播放信息失败', '服务器未返回媒体源');
+      final source = mediaSources.first as Map<String, dynamic>;
+      final mediaSourceId = source['Id']?.toString() ?? '';
+      final playSessionId = data['PlaySessionId']?.toString() ?? '';
+      if (mediaSourceId.isEmpty || playSessionId.isEmpty) {
+        throw AppException('获取播放信息失败', '媒体源信息不完整');
+      }
+      final supportsTranscoding = source['SupportsTranscoding'] == true;
+      final bitrate = source['Bitrate'] ?? 0;
+      final mediaStreams = (source['MediaStreams'] ?? []) as List<dynamic>;
+      final streams = _parseMediaStreams(itemId, mediaSourceId, mediaStreams);
+      final audioStreams = streams.audioStreams;
+      final subtitleStreams = streams.subtitleStreams;
+      final defaultAudioIndex = audioStreams.isEmpty
+          ? null
+          : audioStreams.first.index;
+      final defaultSubtitleIndex = subtitleStreams.isEmpty
+          ? null
+          : subtitleStreams.first.index;
+      return PlayBackInfo(
+        mediaSourceId,
+        playSessionId,
+        supportsTranscoding,
+        bitrate,
+        audioStreams,
+        subtitleStreams,
+        defaultAudioIndex,
+        defaultSubtitleIndex,
+      );
+    });
+  }
+
+  ({List<MediaStreamInfo> audioStreams, List<MediaStreamInfo> subtitleStreams})
+  _parseMediaStreams(
+    String itemId,
+    String mediaSourceId,
+    List<dynamic> mediaStreams,
+  ) {
+    final audioStreams = <MediaStreamInfo>[];
+    final subtitleStreams = <MediaStreamInfo>[];
+    for (final item in mediaStreams) {
+      if (item is! Map) continue;
+      final type = item['Type']?.toString();
+      if (type == 'Audio') {
+        final streams = MediaStreamInfo.fromJson(item);
+        streams.isDefault
+            ? audioStreams.insert(0, streams)
+            : audioStreams.add(streams);
+      } else if (type == 'Subtitle') {
+        final index = item['Index'] ?? -1;
+        final codec = item['Codec'] ?? '';
+        final uri =
+            '$url/Videos/$itemId/$mediaSourceId/Subtitles/$index/Stream.$codec?api_key=${_userInfo.token}';
+        final streams = MediaStreamInfo.fromJson(item, subtitleUrl: uri);
+        streams.isDefault
+            ? subtitleStreams.insert(0, streams)
+            : subtitleStreams.add(streams);
+      }
+    }
+    return (audioStreams: audioStreams, subtitleStreams: subtitleStreams);
   }
 
   @override
@@ -790,7 +987,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     CancelToken? cancelToken,
   }) async {
     try {
-      final streamUrl = getStreamUrl(itemId);
+      final streamUrl = getVideoFile(itemId);
       await dio.download(
         streamUrl,
         localPath,
@@ -817,34 +1014,23 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       'CanSeek': true,
       'IsPaused': isPaused,
       'IsMuted': false,
-      'PlayMethod': 'DirectPlay',
       'PlaySessionId': playSessionId,
       'PositionTicks': positionTicks,
     };
   }
 
-  Future<String> _getSessionId(String itemId) {
-    return _request('getPlaybackInfo', '获取播放信息', () async {
-      final response = await dio.post(
-        '/Items/$itemId/PlaybackInfo',
-        queryParameters: {'UserId': _userInfo.userId},
-      );
-      final playSessionId = response.data['PlaySessionId'] as String;
-      _logger.info('getPlaybackInfo', '获取 PlaySessionId: $playSessionId');
-      return playSessionId;
-    });
-  }
-
   @override
-  Future<void> reportPlaybackStart(String itemId, int position) {
+  Future<void> reportPlaybackStart(
+    String itemId,
+    int position,
+    String sessionId,
+  ) {
     return _request('reportPlaybackStart', '上报播放开始', () async {
-      final playSessionId = await _getSessionId(itemId);
-      _playSessionIds[itemId] = playSessionId;
       await dio.post(
         '/Sessions/Playing',
         data: _buildPlaybackBody(
           itemId,
-          playSessionId: playSessionId,
+          playSessionId: sessionId,
           positionTicks: position * 10000,
           isPaused: false,
         ),
@@ -856,20 +1042,16 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   @override
   Future<void> reportPlaybackProgress(
     String itemId,
+    String sessionId,
     int position,
     bool isPaused,
   ) {
     return _request('reportPlaybackProgress', '上报播放进度', () async {
-      final playSessionId = _playSessionIds[itemId];
-      if (playSessionId == null) {
-        _logger.warn('reportPlaybackProgress', 'PlaySessionId 为空');
-        return;
-      }
       await dio.post(
         '/Sessions/Playing/Progress',
         data: _buildPlaybackBody(
           itemId,
-          playSessionId: playSessionId,
+          playSessionId: sessionId,
           positionTicks: position * 10000,
           isPaused: isPaused,
         ),
@@ -878,23 +1060,21 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   @override
-  Future<void> reportPlaybackStopped(String itemId, int position) {
+  Future<void> reportPlaybackStopped(
+    String itemId,
+    String sessionId,
+    int position,
+  ) {
     return _request('reportPlaybackStopped', '上报播放停止', () async {
-      final playSessionId = _playSessionIds[itemId];
-      if (playSessionId == null) {
-        _logger.warn('reportPlaybackStopped', 'PlaySessionId 为空');
-        return;
-      }
       await dio.post(
         '/Sessions/Playing/Stopped',
         data: _buildPlaybackBody(
           itemId,
-          playSessionId: playSessionId,
+          playSessionId: sessionId,
           positionTicks: position * 10000,
           isPaused: true,
         ),
       );
-      _playSessionIds.remove(itemId);
       _logger.info('reportPlaybackStopped', '上报播放停止: $itemId');
     });
   }

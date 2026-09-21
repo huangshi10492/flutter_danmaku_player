@@ -9,6 +9,7 @@ import 'package:fldanplay/page/player/right_drawer/danmaku_settings.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/player/player.dart';
+import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/theme.dart';
 import 'package:fldanplay/utils/utils.dart';
@@ -30,6 +31,7 @@ enum RightDrawerType {
   danmakuFilter,
   episode,
   speed,
+  streamQuality,
   audioTrack,
   subtitleTrack,
   metadata,
@@ -64,6 +66,8 @@ class RightDrawerContent extends StatelessWidget {
     switch (drawerType) {
       case RightDrawerType.speed:
         return _buildSpeedSettings(context);
+      case RightDrawerType.streamQuality:
+        return _buildStreamQualitySettings(context);
       case RightDrawerType.moreActions:
         return _buildMoreActions(context);
       case RightDrawerType.danmakuInfo:
@@ -90,9 +94,17 @@ class RightDrawerContent extends StatelessWidget {
           videoInfo: videoInfo,
         );
       case RightDrawerType.audioTrack:
-        return TrackPage(playerService: playerService, isAudio: true);
+        return TrackPage(
+          playerService: playerService,
+          isAudio: true,
+          onStreamReload: () => onEpisodeSelected(videoInfo.videoIndex),
+        );
       case RightDrawerType.subtitleTrack:
-        return TrackPage(playerService: playerService, isAudio: false);
+        return TrackPage(
+          playerService: playerService,
+          isAudio: false,
+          onStreamReload: () => onEpisodeSelected(videoInfo.videoIndex),
+        );
       case RightDrawerType.metadata:
         return _buildMetadataPanel(context);
       case RightDrawerType.playerUI:
@@ -149,6 +161,54 @@ class RightDrawerContent extends StatelessWidget {
     );
   }
 
+  Widget _buildStreamQualitySettings(BuildContext context) {
+    final explorer = GetIt.I.get<StreamMediaExplorerService>();
+    final configure = GetIt.I.get<ConfigureService>();
+    var pendingBitrate = explorer.tranOpt.bitrate;
+    var pendingEmbedSubtitle = configure.transEmbedSub.value;
+    return StatefulBuilder(
+      builder: (context, setState) {
+        return ListView(
+          children: [
+            SettingsSectionTitle('码率'),
+            RadioSettingsSection(
+              showOnlySubtitle: true,
+              options: explorer.tranOpt.generateBitrateMap(),
+              value: pendingBitrate.toString(),
+              onChange: (value) {
+                setState(() => pendingBitrate = int.parse(value));
+              },
+            ),
+            SettingsSectionTitle('字幕加载方式'),
+            RadioSettingsSection(
+              showOnlySubtitle: true,
+              options: const {'false': '外部字幕（客户端加载）', 'true': '内嵌字幕（服务端烧录）'},
+              value: pendingEmbedSubtitle.toString(),
+              onChange: (value) {
+                setState(() => pendingEmbedSubtitle = value == 'true');
+              },
+            ),
+            Padding(
+              padding: const .symmetric(vertical: 16),
+              child: FButton(
+                onPress: () async {
+                  if (context.mounted) Navigator.pop(context);
+                  final changed =
+                      pendingBitrate != explorer.tranOpt.bitrate ||
+                      pendingEmbedSubtitle != configure.transEmbedSub.value;
+                  explorer.tranOpt.bitrate = pendingBitrate;
+                  configure.transEmbedSub.value = pendingEmbedSubtitle;
+                  if (changed) onEpisodeSelected(videoInfo.videoIndex);
+                },
+                child: const Text('确定'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildMoreActions(BuildContext context) {
     final configure = GetIt.I.get<ConfigureService>();
     return SingleChildScrollView(
@@ -187,6 +247,12 @@ class RightDrawerContent extends StatelessWidget {
             title: Text('播放器显示设置'),
             onPress: () => onDrawerChanged(.playerUI),
           ),
+          if (playerService.canChangeStreamQuality)
+            FItem(
+              prefix: const Icon(FLucideIcons.gauge, size: 20),
+              title: const Text('码率设置'),
+              onPress: () => onDrawerChanged(.streamQuality),
+            ),
           FItem(
             prefix: const Icon(FLucideIcons.hd, size: 20),
             title: Text('超分辨率'),

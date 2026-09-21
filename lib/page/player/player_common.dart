@@ -38,23 +38,37 @@ class PlayerSessionController {
 
   Future<void> switchVideo(int index) async {
     final current = videoInfo.value;
-    if (index < 0 || index >= current.listLength) return;
-
     VideoInfo? nextVideo;
-    if (current.historiesType == .fileStorage) {
-      nextVideo = await GetIt.I.get<FileExplorerService>().selectVideo(index);
-    } else if (current.historiesType == .streamMediaStorage) {
-      final explorer = GetIt.I.get<StreamMediaExplorerService>();
-      final historyService = GetIt.I.get<HistoryService>();
-      final offlineCacheService = GetIt.I.get<OfflineCacheService>();
-      nextVideo = explorer.getVideoInfo(index);
-      if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
-        nextVideo.cached = offlineCacheService.isCached(nextVideo.uniqueKey);
+    final historyService = GetIt.I.get<HistoryService>();
+    if (index == -1) {
+      final history = historyService.getHistoryByPath(current.virtualVideoPath);
+      if (history == null) return;
+      if (current.historiesType == .streamMediaStorage) {
+        final explorer = GetIt.I.get<StreamMediaExplorerService>();
+        nextVideo = await explorer.getVideoInfoFromHistory(history);
       }
-      final history = explorer.getHistory(explorer.playbackEpisodes[index]);
-      if (history != null) await historyService.save(history);
+    } else {
+      if (index < 0 || index >= current.listLength) return;
+      if (current.historiesType == .fileStorage) {
+        nextVideo = await GetIt.I.get<FileExplorerService>().selectVideo(index);
+      } else if (current.historiesType == .streamMediaStorage) {
+        final explorer = GetIt.I.get<StreamMediaExplorerService>();
+        final historyService = GetIt.I.get<HistoryService>();
+        final offlineCacheService = GetIt.I.get<OfflineCacheService>();
+        if (current.listLength == 0 && index == current.videoIndex) {
+          nextVideo = await explorer.refreshVideoInfo(current);
+        } else {
+          nextVideo = await explorer.getVideoInfo(index);
+          if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
+            nextVideo.cached = offlineCacheService.isCached(
+              nextVideo.uniqueKey,
+            );
+          }
+          final history = explorer.getHistory(explorer.playbackEpisodes[index]);
+          if (history != null) await historyService.save(history);
+        }
+      }
     }
-
     if (nextVideo == null) return;
     videoInfo.value = nextVideo;
     await playerService.switchVideo(nextVideo);

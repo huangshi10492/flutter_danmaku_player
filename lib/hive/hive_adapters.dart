@@ -12,7 +12,13 @@ part 'hive_adapters.g.dart';
   AdapterSpec<HistoriesType>(),
   AdapterSpec<OfflineCache>(),
   AdapterSpec<VideoInfo>(
-    ignoredFields: {'videoIndex', 'listLength', 'canSwitch', 'cached'},
+    ignoredFields: {
+      'videoIndex',
+      'listLength',
+      'canSwitch',
+      'cached',
+      'externalSubtitles',
+    },
   ),
   AdapterSpec<DownloadStatus>(),
 ])

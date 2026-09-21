@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:audio_session/audio_session.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/player.dart';
+import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/history.dart';
@@ -88,11 +89,6 @@ class VideoPlayerService {
   final Signal<double> playbackSpeed = Signal(1.0);
   final Signal<String?> errorMessage = Signal(null);
   final Signal<String> name = Signal('');
-  final Signal<List<TrackInfo>> audioTracks = Signal([]);
-  final Signal<List<TrackInfo>> subtitleTracks = Signal([]);
-  final Signal<TrackInfo?> externalSubtitle = signal(null);
-  final Signal<int> activeAudioTrack = Signal(0);
-  final Signal<int> activeSubtitleTrack = Signal(0);
   final Signal<Map<int, String>> chapters = Signal({});
 
   VideoInfo _videoInfo;
@@ -109,6 +105,12 @@ class VideoPlayerService {
   late VideoControllerConfiguration _vc;
   Function()? _subtitleStyleEffect;
   int superResolutionType = 0;
+  List<TrackInfo> audioTracks = [];
+  List<TrackInfo> subtitleTracks = [];
+  int activeAudioTrack = 0;
+  int activeSubtitleTrack = 0;
+  bool get canChangeStreamQuality =>
+      _videoInfo.historiesType == .streamMediaStorage && !_videoInfo.cached;
 
   // 定时器组
   late final Map<TimerType, UpdateTimer> _timerGroup = {
@@ -165,6 +167,12 @@ class VideoPlayerService {
       _player.stream.buffering.listen(_onBufferingStateChanged),
       _player.stream.position.listen((p) => position.value = p),
       _player.stream.buffer.listen((b) => bufferedPosition.value = b),
+      _player.stream.tracks.listen((t) => refrashSubtitle(t.subtitle)),
+      _player.stream.duration.listen((d) {
+        if (d == duration) return;
+        duration = d;
+        danmakuService.computeTrend(duration.inSeconds);
+      }),
     ]);
   }
 
@@ -174,11 +182,10 @@ class VideoPlayerService {
     bufferedPosition.value = Duration.zero;
     duration = Duration.zero;
     errorMessage.value = null;
-    audioTracks.value = [];
-    subtitleTracks.value = [];
-    externalSubtitle.value = null;
-    activeAudioTrack.value = 0;
-    activeSubtitleTrack.value = 0;
+    audioTracks = [];
+    subtitleTracks = [];
+    activeAudioTrack = 0;
+    activeSubtitleTrack = 0;
     chapters.value = {};
   }
 
@@ -257,6 +264,7 @@ class VideoPlayerService {
       _globalService.isPlaying.value = true;
       GetIt.I.get<StreamMediaExplorerService>().startPlayback(
         videoInfo.virtualVideoPath,
+        videoInfo.currentVideoPath,
       );
     }
     late Duration historyPosition;
@@ -294,6 +302,7 @@ class VideoPlayerService {
       (d) => d != Duration.zero,
     );
     danmakuService.computeTrend(duration.inSeconds);
+    await _loadExternalSubtitles(videoInfo.externalSubtitles);
     _getChapter();
     await _loadTracks();
     loadComplete.call();
@@ -302,16 +311,15 @@ class VideoPlayerService {
   Future<void> switchVideo(VideoInfo videoInfo) async {
     try {
       final danmakuController = danmakuService.controller;
-      closeVideo().then((_) async {
-        playerState.value = .loading;
-        _videoInfo = videoInfo;
-        name.value = videoInfo.name;
-        _resetPlaybackState();
-        danmakuService = DanmakuService(videoInfo)
-          ..controller = danmakuController;
-        await _createPlayer(videoInfo.unsafeUrl);
-        await _setVideoInfo(videoInfo);
-      });
+      playerState.value = .loading;
+      await closeVideo();
+      _videoInfo = videoInfo;
+      name.value = videoInfo.name;
+      _resetPlaybackState();
+      danmakuService = DanmakuService(videoInfo)
+        ..controller = danmakuController;
+      await _createPlayer(videoInfo.unsafeUrl);
+      await _setVideoInfo(videoInfo);
     } catch (e, stackTrace) {
       playerState.value = .error;
       errorMessage.value = e.toString();
@@ -370,9 +378,11 @@ class VideoPlayerService {
   }
 
   void _setSubtitleStyle(SubtitleStyle style) {
-    var pp = _player.platform as NativePlayer;
-    pp.setProperty("sub-font-size", style.fontSize.toString());
-    pp.setProperty("sub-margin-y", style.marginY.toString());
+    try {
+      var pp = _player.platform as NativePlayer;
+      pp.setProperty("sub-font-size", style.fontSize.toString());
+      pp.setProperty("sub-margin-y", style.marginY.toString());
+    } catch (_) {}
   }
 
   Future<void> setSuperResolution() async {
@@ -659,6 +669,7 @@ class VideoPlayerService {
       if (_videoInfo.historiesType == .streamMediaStorage) {
         GetIt.I.get<StreamMediaExplorerService>().stopPlayback(
           _videoInfo.virtualVideoPath,
+          _videoInfo.currentVideoPath,
         );
       }
       final player = _player;
@@ -693,23 +704,35 @@ class VideoPlayerService {
     }
   }
 
-  /// 获取音频轨道信息
+  List<TrackInfo> _buildAudioTracks(List<AudioTrack> audios) {
+    return [
+      for (var i = 0; i < audios.length; i++)
+        TrackInfo(
+          index: i,
+          id: audios[i].id,
+          language: audios[i].language ?? audios[i].id,
+          title: audios[i].title ?? '',
+        ),
+    ];
+  }
+
+  List<TrackInfo> _buildSubtitleTracks(List<SubtitleTrack> subtitles) {
+    return [
+      for (var i = 0; i < subtitles.length; i++)
+        TrackInfo(
+          index: i,
+          id: subtitles[i].id,
+          language: subtitles[i].language ?? subtitles[i].id,
+          title: subtitles[i].title ?? '',
+        ),
+    ];
+  }
+
   Future<void> loadAudioTracks() async {
     try {
       final audios = _player.state.tracks.audio;
-      final tracks = <TrackInfo>[];
-      for (var i = 0; i < audios.length; i++) {
-        final audio = audios[i];
-        tracks.add(
-          TrackInfo(
-            index: i,
-            id: audio.id,
-            language: audio.language ?? audio.id,
-            title: audio.title ?? '',
-          ),
-        );
-      }
-      audioTracks.value = tracks;
+      final tracks = _buildAudioTracks(audios);
+      audioTracks = tracks;
       _log.info('loadAudioTracks', '加载音频轨道完成');
       if (_configureService.autoAudioLanguage.value) {
         final jpnTrack = tracks.indexWhere((t) => t.language.contains('jpn'));
@@ -718,75 +741,110 @@ class VideoPlayerService {
         }
       }
       final activeTrack = _player.state.track.audio;
-      final activeIndex = audios.indexWhere((t) => t.id == activeTrack.id);
-      activeAudioTrack.value = activeIndex;
+      activeAudioTrack = audios.indexWhere((t) => t.id == activeTrack.id);
     } catch (e, t) {
       _log.error('loadAudioTracks', '获取音频轨道信息失败', error: e, stackTrace: t);
-      audioTracks.value = [];
     }
   }
 
   /// 设置活动音频轨道
   Future<void> setActiveAudioTrack(int trackIndex) async {
-    final tracks = audioTracks.value;
-    if (trackIndex < 0 || trackIndex >= tracks.length) {
+    if (trackIndex < 0 || trackIndex >= audioTracks.length) {
       throw AppException('无效的音频轨道索引: $trackIndex', null);
     }
     try {
       await _player.setAudioTrack(_player.state.tracks.audio[trackIndex]);
-      activeAudioTrack.value = trackIndex;
-      final track = tracks[trackIndex];
+      activeAudioTrack = trackIndex;
+      final track = audioTracks[trackIndex];
       _log.info('setActiveAudioTrack', '切换音频轨道成功 - ${track.title}');
     } catch (e, t) {
       _log.error('setActiveAudioTrack', '切换音频轨道失败', error: e, stackTrace: t);
     }
   }
 
-  /// 获取字幕轨道信息
   Future<void> loadSubtitleTracks() async {
     try {
       final subtitles = _player.state.tracks.subtitle;
-      var tracks = <TrackInfo>[];
-      for (var i = 0; i < subtitles.length; i++) {
-        final sub = subtitles[i];
-        tracks.add(
-          TrackInfo(
-            index: i,
-            id: sub.id,
-            language: sub.language ?? sub.id,
-            title: sub.title ?? '',
-          ),
-        );
-      }
-      subtitleTracks.value = tracks;
+      var tracks = _buildSubtitleTracks(subtitles);
+      subtitleTracks = tracks;
       _log.info('loadSubtitleTracks', '加载了 ${tracks.length} 个字幕轨道');
       if (_configureService.autoLanguage.value != 0) {
-        final lan = _configureService.autoLanguage.value == 1
-            ? 'Simplified'
-            : 'Traditional';
-        final chiTrack = tracks.indexWhere((t) => t.title.contains(lan));
+        final keywords = _configureService.autoLanguage.value == 1
+            ? const ['simplified', '简体', 'zh-hans']
+            : const ['traditional', '繁体', 'zh-hant'];
+        final chiTrack = tracks.indexWhere((track) {
+          final text = '${track.title} ${track.language}'.toLowerCase();
+          return keywords.any(text.contains);
+        });
         if (chiTrack != -1) {
           await setActiveSubtitleTrack(chiTrack);
         }
       }
       final activeTrack = _player.state.track.subtitle;
-      final activeIndex = subtitles.indexWhere((t) => t.id == activeTrack.id);
-      activeSubtitleTrack.value = activeIndex;
+      activeSubtitleTrack = subtitles.indexWhere((t) => t.id == activeTrack.id);
     } catch (e, t) {
       _log.error('loadSubtitleTracks', '获取字幕轨道信息失败', error: e, stackTrace: t);
-      subtitleTracks.value = [];
     }
+  }
+
+  Future<void> refrashSubtitle(List<SubtitleTrack> subtitles) async {
+    subtitleTracks = _buildSubtitleTracks(subtitles);
+    final id = await _getSid();
+    activeSubtitleTrack = subtitleTracks.indexWhere((track) => track.id == id);
+  }
+
+  Future<void> _loadExternalSubtitles(List<ExternalSubtitle> subtitles) async {
+    if (subtitles.isEmpty) return;
+    await Future.wait(subtitles.map((subtitle) => _addSubtitle(subtitle)));
+    _log.info('_loadExternalSubtitles', '已加载 ${subtitles.length} 条外部字幕');
+  }
+
+  Future<void> _addSubtitle(ExternalSubtitle subtitle) async {
+    try {
+      final pp = _player.platform as NativePlayer;
+      await pp.command([
+        'sub-add',
+        subtitle.url,
+        'cached',
+        subtitle.title,
+        subtitle.language ?? 'external',
+      ]);
+      refrashSubtitle(_player.state.tracks.subtitle);
+    } catch (e, t) {
+      _log.error(
+        '_addSubtitle',
+        '加载外部字幕异常: ${subtitle.url}',
+        error: e,
+        stackTrace: t,
+      );
+    }
+  }
+
+  Future<String> _getSid() =>
+      (_player.platform as NativePlayer).getProperty('sid');
+
+  Future<void> addServerSubtitle(MediaStreamInfo? stream) async {
+    if (stream == null) return;
+    final service = GetIt.I.get<StreamMediaExplorerService>();
+    final embed = GetIt.I.get<ConfigureService>().transEmbedSub.value;
+    if (service.tranOpt.isOriginal || embed) return;
+    final subtitleUrl = stream.subtitleUrl;
+    if (subtitleUrl == null) return;
+    await _addSubtitle(
+      ExternalSubtitle(subtitleUrl, stream.label, stream.language),
+    );
+    _log.info('addServerSubtitle', '已添加字幕: ${stream.label}');
   }
 
   /// 设置活动字幕轨道
   Future<void> setActiveSubtitleTrack(int trackIndex) async {
+    final tracks = subtitleTracks;
+    if (trackIndex < 0 || trackIndex >= tracks.length) {
+      throw AppException('无效的字幕轨道索引: $trackIndex', null);
+    }
     try {
-      final tracks = subtitleTracks.value;
-      if (trackIndex < 0 || trackIndex >= tracks.length) {
-        throw AppException('无效的字幕轨道索引: $trackIndex', null);
-      }
       await _player.setSubtitleTrack(_player.state.tracks.subtitle[trackIndex]);
-      activeSubtitleTrack.value = trackIndex;
+      activeSubtitleTrack = trackIndex;
       final track = tracks[trackIndex];
       _log.info('setActiveSubtitleTrack', '切换字幕轨道成功 - ${track.title}');
     } catch (e) {
@@ -794,32 +852,14 @@ class VideoPlayerService {
     }
   }
 
-  /// 加载外部字幕 TODO
   Future<void> loadExternalSubtitle(String filePath) async {
     try {
-      await _player.setSubtitleTrack(SubtitleTrack.uri(filePath));
       final fileName = filePath.split('/').last;
-      final externalTrack = TrackInfo(
-        index: -1,
-        id: 'external',
-        language: '',
-        title: fileName,
-      );
-      externalSubtitle.value = externalTrack;
-      activeSubtitleTrack.value = subtitleTracks.value.length;
-      subtitleTracks.value = [...subtitleTracks.value, externalTrack];
+      final subtitle = ExternalSubtitle(filePath, fileName, 'external');
+      await _addSubtitle(subtitle);
       _log.info('loadExternalSubtitle', '加载外部字幕成功 - $fileName');
     } catch (e, t) {
       _log.error('loadExternalSubtitle', '加载外部字幕失败', error: e, stackTrace: t);
     }
-  }
-
-  /// 移除外部字幕
-  Future<void> removeExternalSubtitle() async {
-    await setActiveSubtitleTrack(-1);
-    externalSubtitle.value = null;
-    subtitleTracks.value = subtitleTracks.value
-        .where((t) => t.index != -1)
-        .toList();
   }
 }

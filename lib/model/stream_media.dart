@@ -1,3 +1,5 @@
+import 'package:fldanplay/utils/video_player_utils.dart';
+
 enum MediaType {
   movie('Movie'),
   series('Series'),
@@ -238,6 +240,102 @@ class PlaybackTarget {
     required this.episodeId,
     required this.type,
   });
+}
+
+class PlayBackInfo(
+  final String mediaSourceId,
+  final String playSessionId,
+  final bool supportsTranscoding,
+  final int bitrate,
+  final List<MediaStreamInfo> audioStreams,
+  final List<MediaStreamInfo> subtitleStreams,
+  final int? defaultAudio,
+  final int? defaultSubtitle,
+);
+
+class MediaStreamInfo {
+  final int index;
+  final String? language;
+  final String? title;
+  final bool isDefault;
+  final String? subtitleUrl;
+
+  const MediaStreamInfo({
+    required this.index,
+    this.language,
+    this.title,
+    this.isDefault = false,
+    this.subtitleUrl,
+  });
+
+  factory MediaStreamInfo.fromJson(
+    Map<dynamic, dynamic> json, {
+    String? subtitleUrl,
+  }) {
+    final map = Map<String, dynamic>.from(json);
+    final rawIndex = map['Index'];
+    return MediaStreamInfo(
+      index: rawIndex is int
+          ? rawIndex
+          : int.tryParse(rawIndex?.toString() ?? '') ?? -1,
+      language: map['Language']?.toString(),
+      title: (map['DisplayTitle'] ?? map['Title'])?.toString(),
+      isDefault: map['IsDefault'] == true,
+      subtitleUrl: subtitleUrl,
+    );
+  }
+
+  String get label {
+    if (title != null && title!.isNotEmpty) return title!;
+    return VideoPlayerUtils.subtitleLanguageTranslation(language ?? '');
+  }
+
+  static MediaStreamInfo? findByIndex(
+    List<MediaStreamInfo> streams,
+    int? index,
+  ) {
+    if (index == null) return null;
+    for (final stream in streams) {
+      if (stream.index == index) return stream;
+    }
+    return null;
+  }
+}
+
+class TranscodeOptions {
+  TranscodeOptions(this.itemId);
+  String itemId;
+  int bitrate = 0;
+  int? audioStreamIndex;
+  int? subtitleStreamIndex;
+  int maxBitrate = 0;
+
+  bool get isOriginal => bitrate == 0;
+
+  factory fromPlayBackInfo(String itemId, PlayBackInfo info) =>
+      TranscodeOptions(itemId)
+        ..audioStreamIndex = info.defaultAudio
+        ..subtitleStreamIndex = info.defaultSubtitle
+        ..maxBitrate = info.bitrate;
+
+  Map<String, String> generateBitrateMap() {
+    const Map<int, String> presetLadder = {
+      0: '原画',
+      800000: '800 Kbps',
+      1000000: '1 Mbps',
+      2000000: '2 Mbps',
+      4000000: '4 Mbps',
+      8000000: '8 Mbps',
+      16000000: '16 Mbps',
+    };
+    final Map<String, String> resultMap = {};
+    presetLadder.forEach((bitrate, displayName) {
+      if (bitrate <= maxBitrate) {
+        resultMap[bitrate.toString()] = displayName;
+      }
+    });
+    return resultMap;
+  }
 }
 
 class EpisodeInfo {

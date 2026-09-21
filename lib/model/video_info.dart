@@ -18,6 +18,7 @@ class VideoInfo {
   late String name; // 显示在播放器顶部
   String? subtitle;
   bool cached = false;
+  List<ExternalSubtitle> externalSubtitles = const [];
 
   VideoInfo.fromFile({
     required this.currentVideoPath,
@@ -29,10 +30,12 @@ class VideoInfo {
     this.listLength = 0,
     this.canSwitch = false,
     this.subtitle,
+    List<ExternalSubtitle>? externalSubtitles,
   }) {
     name = virtualVideoPath.split('/').last;
     videoName = Utils.removeExtension(name);
     uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
+    this.externalSubtitles = externalSubtitles ?? const [];
   }
 
   VideoInfo({
@@ -47,8 +50,10 @@ class VideoInfo {
     required this.videoName,
     required this.name,
     this.subtitle,
+    List<ExternalSubtitle>? externalSubtitles,
   }) {
     uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
+    this.externalSubtitles = externalSubtitles ?? const [];
   }
 
   bool get unsafeUrl {
@@ -56,6 +61,12 @@ class VideoInfo {
         currentVideoPath.startsWith('smb2');
   }
 }
+
+class ExternalSubtitle(
+  final String url,
+  final String title,
+  final String? language,
+);
 
 /// 轨道信息模型
 class TrackInfo {

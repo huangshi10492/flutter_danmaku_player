@@ -89,6 +89,14 @@ class PlayerSettingsPage extends StatelessWidget {
                     },
                     details: '${configure.seekOPSeconds.value}秒',
                   ),
+                  SettingsTile.switchTile(
+                    title: '转码时内嵌字幕',
+                    subtitle: "开启后服务端将所选字幕烧录进转码画面",
+                    switchValue: configure.transEmbedSub.value,
+                    onBoolChange: (value) {
+                      configure.transEmbedSub.value = value;
+                    },
+                  ),
                 ],
               ),
               SettingsSection(

@@ -97,6 +97,10 @@ class ConfigureService {
     key: 'hardwareDecoderEnable',
     defaultValue: true,
   );
+  late final Signal<bool> transEmbedSub = _config(
+    key: 'transEmbedSub',
+    defaultValue: false,
+  );
   late final Signal<String> hardwareDecoder = _config(
     key: 'hardwareDecoder',
     defaultValue: 'auto',
