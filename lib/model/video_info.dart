@@ -19,6 +19,7 @@ class VideoInfo {
   String? subtitle;
   bool cached = false;
   List<ExternalSubtitle> externalSubtitles = const [];
+  Map<int, String> chapters = const {};
 
   VideoInfo.fromFile({
     required this.currentVideoPath,
@@ -31,11 +32,13 @@ class VideoInfo {
     this.canSwitch = false,
     this.subtitle,
     List<ExternalSubtitle>? externalSubtitles,
+    Map<int, String>? chapters,
   }) {
     name = virtualVideoPath.split('/').last;
     videoName = Utils.removeExtension(name);
     uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
     this.externalSubtitles = externalSubtitles ?? const [];
+    this.chapters = chapters ?? const {};
   }
 
   VideoInfo({
@@ -51,9 +54,11 @@ class VideoInfo {
     required this.name,
     this.subtitle,
     List<ExternalSubtitle>? externalSubtitles,
+    Map<int, String>? chapters,
   }) {
     uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
     this.externalSubtitles = externalSubtitles ?? const [];
+    this.chapters = chapters ?? const {};
   }
 
   bool get unsafeUrl {

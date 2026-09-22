@@ -1,3 +1,4 @@
+import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/utils/video_player_utils.dart';
 
 enum MediaType {
@@ -348,6 +349,7 @@ class EpisodeInfo {
   final int? runTimeTicks;
   UserData? userData;
   String fileName;
+  Map<int, String> chapters;
 
   EpisodeInfo({
     required this.id,
@@ -359,6 +361,7 @@ class EpisodeInfo {
     this.runTimeTicks,
     this.userData,
     required this.fileName,
+    this.chapters = const {},
   });
 
   factory EpisodeInfo.fromJson(Map<String, dynamic> json) {
@@ -392,8 +395,13 @@ class EpisodeInfo {
 class ItemInfo {
   final String fileName;
   final UserData? userData;
+  final Map<int, String> chapters;
 
-  ItemInfo({required this.fileName, required this.userData});
+  ItemInfo({
+    required this.fileName,
+    required this.userData,
+    this.chapters = const {},
+  });
 
   factory ItemInfo.fromJson(
     Map<String, dynamic> json, {
@@ -408,7 +416,31 @@ class ItemInfo {
       userData: includeUserData && json['UserData'] != null
           ? UserData.fromJson(json['UserData'])
           : null,
+      chapters: parseChapters(json['Chapters']),
     );
+  }
+
+  static Map<int, String> parseChapters(dynamic json) {
+    if (json is! List) return const {};
+    final entries = <(int, String)>[];
+    for (final item in json) {
+      if (item is! Map) continue;
+      final rawTicks = item['StartPositionTicks'];
+      final ticks = rawTicks is num
+          ? rawTicks.toInt()
+          : int.tryParse(rawTicks?.toString() ?? '');
+      if (ticks == null) continue;
+      final seconds = ticks ~/ 10000000;
+      final name = item['Name']?.toString() ?? '';
+      entries.add((
+        seconds,
+        name.isNotEmpty
+            ? name
+            : Utils.formatDuration(Duration(seconds: seconds)),
+      ));
+    }
+    entries.sort((a, b) => a.$1.compareTo(b.$1));
+    return {for (final entry in entries) entry.$1: entry.$2};
   }
 }
 

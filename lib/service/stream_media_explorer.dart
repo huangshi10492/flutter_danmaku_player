@@ -27,6 +27,7 @@ abstract class StreamMediaExplorerProvider {
   Future<List<MediaItem>> getItems(String parentId, {required Filter filter});
   Future<MediaDetail> getMediaDetail(String itemId);
   Future<List<EpisodeInfo>> getEpisodes(String itemId, MediaType type);
+  Future<ItemInfo> getItemInfo(String itemId);
   Future<void> setFavorite(String itemId, bool isFavorite);
   Future<void> setPlayed(String itemId, bool isPlayed);
   Future<PlaybackTarget> getPlaybackTarget(String itemId);
@@ -308,6 +309,7 @@ class StreamMediaExplorerService {
       videoIndex: index,
       canSwitch: true,
       externalSubtitles: externalSubtitles,
+      chapters: episode.chapters,
     );
   }
 
@@ -358,6 +360,7 @@ class StreamMediaExplorerService {
   Future<VideoInfo> getVideoInfoFromHistory(History history) async {
     final itemId = history.url!;
     final playbackInfo = await provider.value!.getPlaybackInfo(itemId);
+    final chapters = (await provider.value!.getItemInfo(itemId)).chapters;
     final stream = await _resolveStream(itemId, playbackInfo);
     return VideoInfo(
       currentVideoPath: stream.url,
@@ -370,6 +373,7 @@ class StreamMediaExplorerService {
       subtitle: history.subtitle,
       videoIndex: -1,
       externalSubtitles: stream.subtitles,
+      chapters: chapters,
     );
   }
 
@@ -945,6 +949,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
             runTimeTicks: item['RunTimeTicks'],
             userData: itemInfo.userData,
             fileName: itemInfo.fileName,
+            chapters: itemInfo.chapters,
           ),
         ];
       } else if (type == .series) {
@@ -958,6 +963,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
           final itemInfo = await getItemInfo(episode.id);
           episode.fileName = itemInfo.fileName;
           episode.userData = itemInfo.userData;
+          episode.chapters = itemInfo.chapters;
           episodes.add(episode);
         }
         episodes.sort(
@@ -969,6 +975,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     });
   }
 
+  @override
   Future<ItemInfo> getItemInfo(String itemId) {
     return _request('getItemInfo', '获取项目信息', () async {
       final response = await dio.get(getItemsPath(itemId));

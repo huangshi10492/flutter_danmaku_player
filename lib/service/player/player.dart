@@ -303,7 +303,11 @@ class VideoPlayerService {
     );
     danmakuService.computeTrend(duration.inSeconds);
     await _loadExternalSubtitles(videoInfo.externalSubtitles);
-    _getChapter();
+    if (videoInfo.chapters.isNotEmpty) {
+      chapters.value = videoInfo.chapters;
+    } else {
+      _getChapter();
+    }
     await _loadTracks();
     loadComplete.call();
   }
