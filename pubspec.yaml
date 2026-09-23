@@ -56,19 +56,14 @@ dependencies:
   volume_controller: ^3.6.1
   media_kit:
     git:
-      url: https://github.com/huangshi10492/media-kit.git
-      ref: 7eaff7b83638b140320f79155c92e9d4a9fbb024
+      url: https://github.com/Predidit/media-kit.git
+      ref: d13fc22ba1b19b45de3090c2d1b0f8a541b585a0
       path: ./media_kit
   media_kit_video:
     git:
-      url: https://github.com/huangshi10492/media-kit.git
-      ref: 7eaff7b83638b140320f79155c92e9d4a9fbb024
+      url: https://github.com/Predidit/media-kit.git
+      ref: d13fc22ba1b19b45de3090c2d1b0f8a541b585a0
       path: ./media_kit_video
-  media_kit_libs_video:
-    git:
-      url: https://github.com/huangshi10492/media-kit.git
-      ref: 7eaff7b83638b140320f79155c92e9d4a9fbb024
-      path: ./libs/universal/media_kit_libs_video
   screen_brightness: ^2.1.11
 
   # UI 组件
