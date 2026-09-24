@@ -382,7 +382,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           uniqueKey: file.uniqueKey,
           name: file.name,
           focusNode: focusNode,
-          danmakuMatchInfo: .fromVideoInfo(videoInfo),
+          getDanmakuMatchInfo: () => Future.value(.fromVideoInfo(videoInfo)),
           onPress: () => _playVideo(file.path, file.videoIndex),
           items: [
             .new(

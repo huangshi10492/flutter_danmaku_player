@@ -49,7 +49,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
   final bool coutinue;
   final String uniqueKey;
   final String name;
-  final DanmakuMatchVideoInfo? danmakuMatchInfo;
+  final Future<DanmakuMatchInfo> Function()? getDanmakuMatchInfo;
   final String? subtitle;
   final void Function() onPress;
   final int refreshKey;
@@ -64,7 +64,7 @@ class VideoItem extends StatefulWidget with FItemMixin {
     this.coutinue = false,
     required this.uniqueKey,
     required this.name,
-    this.danmakuMatchInfo,
+    this.getDanmakuMatchInfo,
     this.subtitle,
     required this.onPress,
     required this.refreshKey,
@@ -104,6 +104,7 @@ class _VideoItemState extends State<VideoItem> {
     if (oldWidget.refreshKey != widget.refreshKey) {
       setState(() {
         _prefixFuture = _buildPrefix(widget.history);
+        init();
       });
     }
   }
@@ -254,7 +255,7 @@ class _VideoItemState extends State<VideoItem> {
     final subtitle = widget.subtitle ?? widget.history?.subtitle;
     return _ContextMenu(
       items: [
-        if (widget.danmakuMatchInfo != null)
+        if (widget.getDanmakuMatchInfo != null)
           .new(
             icon: MyIcon.danmaku,
             title: '获取并保存弹幕',
@@ -265,7 +266,7 @@ class _VideoItemState extends State<VideoItem> {
                   style: style,
                   animation: animation,
                   uniqueKey: widget.uniqueKey,
-                  danmakuMatchVideoInfo: widget.danmakuMatchInfo!,
+                  getDanmakuMatchInfo: widget.getDanmakuMatchInfo!,
                 ),
               );
               init();

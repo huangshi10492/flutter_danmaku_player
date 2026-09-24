@@ -104,19 +104,19 @@ class Metadata {
   });
 }
 
-class DanmakuMatchVideoInfo {
+class DanmakuMatchInfo {
   final String fileName;
   String currentVideoPath;
   final Map<String, String> headers;
 
-  DanmakuMatchVideoInfo({
+  DanmakuMatchInfo({
     required this.fileName,
     required this.currentVideoPath,
     this.headers = const {},
   });
 
-  factory DanmakuMatchVideoInfo.fromVideoInfo(VideoInfo videoInfo) {
-    return DanmakuMatchVideoInfo(
+  factory DanmakuMatchInfo.fromVideoInfo(VideoInfo videoInfo) {
+    return DanmakuMatchInfo(
       fileName: videoInfo.videoName,
       currentVideoPath: videoInfo.currentVideoPath,
       headers: videoInfo.headers,

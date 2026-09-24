@@ -479,11 +479,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       imageUrl: _service.getImageUrl(episode.id),
       headers: _service.headers,
       name: episode.name,
-      danmakuMatchInfo: .new(
-        fileName: episode.fileName,
-        currentVideoPath: _service.getVideoFile(episode.id),
-        headers: _service.headers,
-      ),
+      getDanmakuMatchInfo: () => _service.getDanmakuMatchInfo(episode.id),
       subtitle: episode.subtitle,
       onPress: () => _onPlayEpisode(season, index),
       played: episode.userData?.played ?? false,

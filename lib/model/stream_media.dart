@@ -339,13 +339,33 @@ class TranscodeOptions {
   }
 }
 
+Map<int, String> parseChapters(dynamic json) {
+  if (json is! List) return const {};
+  final entries = <(int, String)>[];
+  for (final item in json) {
+    if (item is! Map) continue;
+    final rawTicks = item['StartPositionTicks'];
+    final ticks = rawTicks is num
+        ? rawTicks.toInt()
+        : int.tryParse(rawTicks?.toString() ?? '');
+    if (ticks == null) continue;
+    final seconds = ticks ~/ 10000000;
+    final name = item['Name']?.toString() ?? '';
+    entries.add((
+      seconds,
+      name.isNotEmpty ? name : Utils.formatDuration(Duration(seconds: seconds)),
+    ));
+  }
+  entries.sort((a, b) => a.$1.compareTo(b.$1));
+  return {for (final entry in entries) entry.$1: entry.$2};
+}
+
 class EpisodeInfo {
   final String id;
   final String name;
   final int? indexNumber;
   final int? parentIndexNumber;
   final String? seriesName;
-  final String? overview;
   final int? runTimeTicks;
   UserData? userData;
   String fileName;
@@ -357,23 +377,32 @@ class EpisodeInfo {
     this.indexNumber,
     this.parentIndexNumber,
     this.seriesName,
-    this.overview,
     this.runTimeTicks,
     this.userData,
     required this.fileName,
     this.chapters = const {},
   });
 
-  factory EpisodeInfo.fromJson(Map<String, dynamic> json) {
+  factory EpisodeInfo.fromJson(
+    Map<String, dynamic> json, {
+    bool includeUserData = false,
+  }) {
+    final List<dynamic>? mediaSources = json['MediaSources'];
+    if (mediaSources == null || mediaSources.isEmpty) {
+      throw Exception('MediaSources is null');
+    }
     return EpisodeInfo(
       id: json['Id'] ?? '',
       name: json['Name'] ?? '',
       indexNumber: json['IndexNumber'],
       parentIndexNumber: json['ParentIndexNumber'],
-      seriesName: json['SeriesName'],
-      overview: json['Overview'],
+      seriesName: json['SeriesName'] ?? json['Name'],
       runTimeTicks: json['RunTimeTicks'],
-      fileName: '',
+      fileName: mediaSources.first['Name'] ?? '',
+      chapters: parseChapters(json['Chapters']),
+      userData: includeUserData && json['UserData'] != null
+          ? UserData.fromJson(json['UserData'])
+          : null,
     );
   }
 
@@ -394,53 +423,19 @@ class EpisodeInfo {
 
 class ItemInfo {
   final String fileName;
-  final UserData? userData;
   final Map<int, String> chapters;
 
-  ItemInfo({
-    required this.fileName,
-    required this.userData,
-    this.chapters = const {},
-  });
+  ItemInfo(this.fileName, {this.chapters = const {}});
 
-  factory ItemInfo.fromJson(
-    Map<String, dynamic> json, {
-    bool includeUserData = false,
-  }) {
+  factory ItemInfo.fromJson(Map<String, dynamic> json) {
     final List<dynamic>? mediaSources = json['MediaSources'];
     if (mediaSources == null || mediaSources.isEmpty) {
       throw Exception('MediaSources is null');
     }
     return ItemInfo(
-      fileName: mediaSources.first['Name'] ?? '',
-      userData: includeUserData && json['UserData'] != null
-          ? UserData.fromJson(json['UserData'])
-          : null,
+      mediaSources.first['Name'] ?? '',
       chapters: parseChapters(json['Chapters']),
     );
-  }
-
-  static Map<int, String> parseChapters(dynamic json) {
-    if (json is! List) return const {};
-    final entries = <(int, String)>[];
-    for (final item in json) {
-      if (item is! Map) continue;
-      final rawTicks = item['StartPositionTicks'];
-      final ticks = rawTicks is num
-          ? rawTicks.toInt()
-          : int.tryParse(rawTicks?.toString() ?? '');
-      if (ticks == null) continue;
-      final seconds = ticks ~/ 10000000;
-      final name = item['Name']?.toString() ?? '';
-      entries.add((
-        seconds,
-        name.isNotEmpty
-            ? name
-            : Utils.formatDuration(Duration(seconds: seconds)),
-      ));
-    }
-    entries.sort((a, b) => a.$1.compareTo(b.$1));
-    return {for (final entry in entries) entry.$1: entry.$2};
   }
 }
 

@@ -17,12 +17,13 @@ class GlobalService {
   double speed = 0;
   final Signal<int> position = signal(0);
   final Signal<bool> isPlaying = signal(false);
-  final Signal<Map<String, int>> danmakuCount = signal({
+  static const initDanmakuCount = {
     'BiliBili': 0,
     'Gamer': 0,
     'DanDanPlay': 0,
     'Other': 0,
-  });
+  };
+  final Signal<Map<String, int>> danmakuCount = signal(initDanmakuCount);
   final Signal<UpdateResponse?> updateInfo = signal(null);
   int get danmakuCountValue {
     return danmakuCount.value.values.fold(

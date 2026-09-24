@@ -18,6 +18,7 @@ part 'hive_adapters.g.dart';
       'canSwitch',
       'cached',
       'externalSubtitles',
+      'chapters',
     },
   ),
   AdapterSpec<DownloadStatus>(),

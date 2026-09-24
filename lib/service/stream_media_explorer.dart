@@ -357,10 +357,19 @@ class StreamMediaExplorerService {
       ..externalSubtitles = stream.subtitles;
   }
 
+  Future<DanmakuMatchInfo> getDanmakuMatchInfo(String itemId) async {
+    final info = await provider.value!.getItemInfo(itemId);
+    return .new(
+      fileName: info.fileName,
+      currentVideoPath: provider.value!.getVideoFile(itemId),
+      headers: provider.value!.headers,
+    );
+  }
+
   Future<VideoInfo> getVideoInfoFromHistory(History history) async {
     final itemId = history.url!;
     final playbackInfo = await provider.value!.getPlaybackInfo(itemId);
-    final chapters = (await provider.value!.getItemInfo(itemId)).chapters;
+    final itemInfo = await provider.value!.getItemInfo(itemId);
     final stream = await _resolveStream(itemId, playbackInfo);
     return VideoInfo(
       currentVideoPath: stream.url,
@@ -373,7 +382,7 @@ class StreamMediaExplorerService {
       subtitle: history.subtitle,
       videoIndex: -1,
       externalSubtitles: stream.subtitles,
-      chapters: chapters,
+      chapters: itemInfo.chapters,
     );
   }
 
@@ -935,37 +944,21 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       if (type == .movie) {
         final response = await dio.get(getItemsPath(itemId));
         final item = response.data as Map<String, dynamic>;
-        final itemInfo = ItemInfo.fromJson(
-          item,
-          includeUserData: _useRemoteHistory,
-        );
-        return [
-          EpisodeInfo(
-            id: item['Id'] ?? itemId,
-            name: item['Name'] ?? '',
-            indexNumber: item['IndexNumber'],
-            seriesName: item['Name'] ?? '',
-            overview: item['Overview'],
-            runTimeTicks: item['RunTimeTicks'],
-            userData: itemInfo.userData,
-            fileName: itemInfo.fileName,
-            chapters: itemInfo.chapters,
-          ),
-        ];
+        return [EpisodeInfo.fromJson(item, includeUserData: _useRemoteHistory)];
       } else if (type == .series) {
         final response = await dio.get(
           getItemsPath(),
-          queryParameters: {'parentId': itemId},
+          queryParameters: {
+            'parentId': itemId,
+            'Fields': 'Chapters,MediaSources',
+          },
         );
-        List<EpisodeInfo> episodes = [];
-        for (var item in response.data['Items']) {
-          final episode = EpisodeInfo.fromJson(item);
-          final itemInfo = await getItemInfo(episode.id);
-          episode.fileName = itemInfo.fileName;
-          episode.userData = itemInfo.userData;
-          episode.chapters = itemInfo.chapters;
-          episodes.add(episode);
-        }
+        final episodes = (response.data['Items'] as List).map((item) {
+          return EpisodeInfo.fromJson(
+            item as Map<String, dynamic>,
+            includeUserData: _useRemoteHistory,
+          );
+        }).toList();
         episodes.sort(
           (a, b) => (a.indexNumber ?? 0).compareTo(b.indexNumber ?? 0),
         );
@@ -979,10 +972,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   Future<ItemInfo> getItemInfo(String itemId) {
     return _request('getItemInfo', '获取项目信息', () async {
       final response = await dio.get(getItemsPath(itemId));
-      return ItemInfo.fromJson(
-        response.data,
-        includeUserData: _useRemoteHistory,
-      );
+      return ItemInfo.fromJson(response.data);
     });
   }
 

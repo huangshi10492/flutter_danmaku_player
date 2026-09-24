@@ -24,7 +24,7 @@ enum _DanmakuSearchState {
 
 class DanmakuMatchDialog extends StatefulWidget {
   final String uniqueKey;
-  final DanmakuMatchVideoInfo danmakuMatchVideoInfo;
+  final Future<DanmakuMatchInfo> Function() getDanmakuMatchInfo;
   final FDialogStyle style;
   final Animation<double> animation;
   const DanmakuMatchDialog({
@@ -32,7 +32,7 @@ class DanmakuMatchDialog extends StatefulWidget {
     required this.style,
     required this.animation,
     required this.uniqueKey,
-    required this.danmakuMatchVideoInfo,
+    required this.getDanmakuMatchInfo,
   });
 
   @override
@@ -53,7 +53,6 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   void initState() {
     super.initState();
     _match();
-    _searchController.text = widget.danmakuMatchVideoInfo.fileName;
   }
 
   @override
@@ -63,25 +62,31 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
   }
 
   Future<void> _match() async {
-    var result = await danmakuGetter.match(
-      widget.uniqueKey,
-      widget.danmakuMatchVideoInfo,
-    );
-    if (result == null) {
+    try {
+      final info = await widget.getDanmakuMatchInfo();
+      _searchController.text = info.fileName;
+      var result = await danmakuGetter.match(widget.uniqueKey, info);
+      if (result == null) {
+        setState(() {
+          _state = _DanmakuSearchState.search;
+        });
+        showToast(title: '未找到弹幕');
+        return;
+      }
       setState(() {
-        _state = _DanmakuSearchState.search;
+        _state = _DanmakuSearchState.saving;
       });
-      showToast(title: '未找到弹幕');
-      return;
+      await danmakuGetter.save(widget.uniqueKey, result);
+      setState(() {
+        _state = _DanmakuSearchState.success;
+        _successResult = result;
+      });
+    } catch (e) {
+      showToast(title: '未找到弹幕', description: e.toString());
+      setState(() {
+        _state = .search;
+      });
     }
-    setState(() {
-      _state = _DanmakuSearchState.saving;
-    });
-    await danmakuGetter.save(widget.uniqueKey, result);
-    setState(() {
-      _state = _DanmakuSearchState.success;
-      _successResult = result;
-    });
   }
 
   Future<void> _search() async {
