@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:dart_smb2/dart_smb2.dart';
 import 'package:dio/dio.dart';
 
 typedef HashProgressCallback = void Function(int received, int total);
@@ -23,22 +24,74 @@ class CryptoUtils {
   }) async {
     final localHash = await _generateFileHash(fileUrl);
     if (localHash != null) return localHash;
-    return _generateRemoteHash(
-      fileUrl,
-      headers: headers,
-      onProgress: onProgress,
-    );
+    final uri = Uri.tryParse(fileUrl);
+    switch (uri?.scheme.toLowerCase()) {
+      case 'smb':
+      case 'smb2':
+        return _generateSmbHash(uri!, onProgress: onProgress);
+      case 'http':
+      case 'https':
+        return _generateHttpHash(
+          fileUrl,
+          headers: headers,
+          onProgress: onProgress,
+        );
+      default:
+        return null;
+    }
   }
 
-  static Future<String?> _generateRemoteHash(
+  static Future<String?> _generateSmbHash(
+    Uri uri, {
+    HashProgressCallback? onProgress,
+  }) async {
+    final segments = uri.pathSegments.where((e) => e.isNotEmpty).toList();
+    if (uri.host.isEmpty || segments.length < 2) return null;
+    final share = segments.first;
+    final remotePath = segments.skip(1).join('/');
+    final (user, password) = _splitUserInfo(uri.userInfo);
+    final pool = await Smb2Pool.connect(
+      host: uri.host,
+      share: share,
+      user: user,
+      password: password,
+      workers: 1,
+      version: .any,
+    );
+    try {
+      final bytes = BytesBuilder(copy: false);
+      var window = _dandanplayHashBytes;
+      await for (final chunk in pool.streamFile(
+        remotePath,
+        onProgress: (received, total) {
+          window = total < _dandanplayHashBytes ? total : _dandanplayHashBytes;
+          onProgress?.call(received > window ? window : received, window);
+        },
+      )) {
+        final remaining = _dandanplayHashBytes - bytes.length;
+        if (remaining <= 0) break;
+        if (chunk.length >= remaining) {
+          bytes.add(Uint8List.sublistView(chunk, 0, remaining));
+          break;
+        }
+        bytes.add(chunk);
+      }
+      final data = bytes.takeBytes();
+      if (data.isEmpty) return null;
+      onProgress?.call(data.length, window);
+      return md5.convert(data).toString();
+    } finally {
+      await pool.disconnect();
+    }
+  }
+
+  static Future<String?> _generateHttpHash(
     String url, {
     Map<String, String>? headers,
     HashProgressCallback? onProgress,
   }) async {
     final uri = Uri.tryParse(url);
-    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
-      return null;
-    }
+    if (uri == null) return null;
     final requestHeaders = <String, dynamic>{
       ...?headers,
       'Accept-Encoding': 'identity',
@@ -95,6 +148,25 @@ class CryptoUtils {
     final end = length < _dandanplayHashBytes ? length : _dandanplayHashBytes;
     final digest = await md5.bind(file.openRead(0, end)).first;
     return digest.toString();
+  }
+
+  static (String?, String?) _splitUserInfo(String userInfo) {
+    if (userInfo.isEmpty) return (null, null);
+    final index = userInfo.indexOf(':');
+    if (index < 0) return (_decodeUserInfo(userInfo), null);
+    return (
+      _decodeUserInfo(userInfo.substring(0, index)),
+      _decodeUserInfo(userInfo.substring(index + 1)),
+    );
+  }
+
+  static String? _decodeUserInfo(String value) {
+    if (value.isEmpty) return null;
+    try {
+      return Uri.decodeComponent(value);
+    } catch (_) {
+      return value;
+    }
   }
 
   static String generateDandanplaySignature({
