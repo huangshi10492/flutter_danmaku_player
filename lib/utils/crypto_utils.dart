@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
+typedef HashProgressCallback = void Function(int received, int total);
+
 class CryptoUtils {
   static const int _dandanplayHashBytes = 16 * 1024 * 1024;
 
@@ -16,16 +18,22 @@ class CryptoUtils {
 
   static Future<String?> generateHash(
     String fileUrl,
-    Map<String, String>? headers,
-  ) async {
+    Map<String, String>? headers, {
+    HashProgressCallback? onProgress,
+  }) async {
     final localHash = await _generateFileHash(fileUrl);
     if (localHash != null) return localHash;
-    return _generateRemoteHash(fileUrl, headers: headers);
+    return _generateRemoteHash(
+      fileUrl,
+      headers: headers,
+      onProgress: onProgress,
+    );
   }
 
   static Future<String?> _generateRemoteHash(
     String url, {
     Map<String, String>? headers,
+    HashProgressCallback? onProgress,
   }) async {
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
@@ -47,6 +55,16 @@ class CryptoUtils {
     final response = await dio.getUri<ResponseBody>(uri);
     final body = response.data;
     if (body == null) return null;
+    final contentLength = int.tryParse(
+      response.headers.value(Headers.contentLengthHeader) ?? '',
+    );
+    final total =
+        contentLength == null ||
+            contentLength <= 0 ||
+            contentLength > _dandanplayHashBytes
+        ? _dandanplayHashBytes
+        : contentLength;
+    onProgress?.call(0, total);
     final bytes = BytesBuilder(copy: false);
     var received = 0;
     await for (final chunk in body.stream) {
@@ -60,6 +78,7 @@ class CryptoUtils {
         bytes.add(chunk);
         received += chunk.length;
       }
+      onProgress?.call(received, total);
       if (received >= _dandanplayHashBytes) break;
     }
     if (received == 0) return null;

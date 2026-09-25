@@ -46,11 +46,14 @@ class AdaptiveDialog extends StatelessWidget {
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: .end,
-              spacing: 8,
-              children: [for (final action in actions) Expanded(child: action)],
-            ),
+            if (actions.isNotEmpty)
+              Row(
+                mainAxisAlignment: .end,
+                spacing: 8,
+                children: [
+                  for (final action in actions) Expanded(child: action),
+                ],
+              ),
           ],
         ),
       );

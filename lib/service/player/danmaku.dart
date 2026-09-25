@@ -19,6 +19,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 enum DanmakuStatus {
   none('无弹幕', 2),
   matching('匹配中', 1),
+  hashing('计算哈希中', 1),
   downloading('下载中', 1),
   failed('加载失败', 2),
   fromCached('从缓存加载', 0),
@@ -58,6 +59,7 @@ class DanmakuService {
   List<String> danmakuFilterKeywords = [];
   late bool danmakuServiceEnable = configureService.danmakuServiceEnable.value;
   late void Function() filterEffect;
+  Signal<String?> get statusDetail => danmakuGetter.statusDetail;
 
   Future<void> init() async {
     final documentsDir = await getApplicationSupportDirectory();
@@ -238,6 +240,7 @@ class DanmakuService {
         final exist = await _getCachedDanmakus(videoInfo.uniqueKey);
         if (exist) return;
       }
+      statusDetail.value = null;
       status.value = .matching;
       final DanmakuMatchInfo info;
       if (videoInfo.historiesType == .streamMediaStorage && !videoInfo.cached) {
@@ -252,7 +255,12 @@ class DanmakuService {
         info.currentVideoPath =
             '${documentsDir.path}/offline_cache/${videoInfo.uniqueKey}';
       }
-      Episode? result = await danmakuGetter.match(videoInfo.uniqueKey, info);
+      status.value = .hashing;
+      final result = await danmakuGetter.match(
+        videoInfo.uniqueKey,
+        info,
+        onHashCompleted: () => status.value = .matching,
+      );
       if (result == null) {
         globalService.showNotification('未匹配到弹幕');
         status.value = .none;
@@ -310,6 +318,8 @@ class DanmakuService {
         _log.info('_backgroundRefresh', '更新弹幕成功');
       }
     } catch (e, t) {
+      status.value = .fromCached;
+      statusDetail.value = null;
       _log.error('_backgroundRefresh', '更新弹幕失败', error: e, stackTrace: t);
     }
   }
@@ -324,6 +334,7 @@ class DanmakuService {
   ) async {
     try {
       this.episode.value = episode;
+      statusDetail.value = null;
       status.value = .downloading;
       final danmakus = await danmakuGetter.save(uniqueKey, episode);
       status.value = .fromApi;
@@ -331,6 +342,7 @@ class DanmakuService {
       _log.info('selectEpisodeAndLoadDanmaku', '搜索弹幕加载成功: ${danmakus.length}条');
     } catch (e, t) {
       status.value = .failed;
+      statusDetail.value = statusDetail.value ?? e.toString();
       _log.error(
         'selectEpisodeAndLoadDanmaku',
         '手动选择弹幕加载失败',
@@ -344,6 +356,7 @@ class DanmakuService {
   Future<void> refreshDanmaku() async {
     if (!episode.value.exist()) return;
     try {
+      statusDetail.value = null;
       status.value = .downloading;
       final danmakus = await danmakuGetter.save(
         videoInfo.uniqueKey,
@@ -354,6 +367,7 @@ class DanmakuService {
       _log.info('refreshDanmaku', '刷新弹幕成功: ${danmakus.length}条');
     } catch (e, t) {
       status.value = .failed;
+      statusDetail.value = statusDetail.value ?? e.toString();
       _log.error('refreshDanmaku', '刷新弹幕失败', error: e, stackTrace: t);
       globalService.showNotification('刷新弹幕失败');
     }
@@ -394,6 +408,7 @@ class DanmakuService {
 class DanmakuGetter {
   final configureService = GetIt.I.get<ConfigureService>();
   final _log = Logger('DanmakuGetter');
+  final Signal<String?> statusDetail = Signal(null);
 
   List<String> get serverList => configureService.danmakuServerList.value;
 
@@ -411,12 +426,32 @@ class DanmakuGetter {
     }
   }
 
-  Future<Episode?> match(String uniqueKey, DanmakuMatchInfo info) async {
-    final fileHash = await CryptoUtils.generateHash(
-      info.currentVideoPath,
-      info.headers,
-    );
+  Future<Episode?> match(
+    String uniqueKey,
+    DanmakuMatchInfo info, {
+    void Function()? onHashCompleted,
+  }) async {
+    statusDetail.value = null;
+    String? fileHash;
+    try {
+      fileHash = await CryptoUtils.generateHash(
+        info.currentVideoPath,
+        info.headers,
+        onProgress: (received, total) {
+          if (total <= 0) return;
+          final fraction = (received / total).clamp(0.0, 1.0);
+          final percent = (fraction * 100).round();
+          statusDetail.value = '$percent%';
+        },
+      );
+    } catch (e) {
+      _log.error('match', '计算文件哈希失败', error: e);
+    }
+    onHashCompleted?.call();
+    final errors = <String>[];
     for (final serverUrl in serverList) {
+      final label = _serverLabel(serverUrl);
+      statusDetail.value = '($label)';
       try {
         _log.info('match', '尝试使用服务器: $serverUrl');
         final apiUtils = _createApiUtils(serverUrl);
@@ -426,19 +461,28 @@ class DanmakuGetter {
         );
         if (episodes.isNotEmpty) {
           _log.info('match', '在服务器 $serverUrl 找到匹配结果');
+          statusDetail.value = null;
           return episodes.first;
         }
+        errors.add('$label: 未找到匹配结果');
         _log.info('match', '服务器 $serverUrl 未找到匹配结果，尝试下一个');
       } catch (e) {
+        final reason = e is AppException ? e.message : e.toString();
+        errors.add('$label: $reason');
         _log.warn('match', '服务器 $serverUrl 匹配失败: $e，尝试下一个');
         continue;
       }
     }
-    _log.info('match', '所有服务器均未找到匹配结果');
+    final message = errors.isEmpty
+        ? '匹配失败：未配置弹幕服务器'
+        : '匹配失败：${errors.join('；')}';
+    _log.info('match', message);
+    statusDetail.value = message;
     return null;
   }
 
   Future<List<Danmaku>> save(String uniqueKey, Episode episode) async {
+    statusDetail.value = null;
     try {
       final apiUtils = _createApiUtils(episode.url);
       final comments = await apiUtils.getComments(
@@ -469,10 +513,17 @@ class DanmakuGetter {
       );
       await cacheFile.writeAsString(cacheData.toJsonString());
       _log.info('save', '弹幕缓存保存成功， 弹幕数量: ${danmakus.length}');
+      statusDetail.value = null;
       return danmakus;
     } catch (e, t) {
+      statusDetail.value = '$e';
       _log.error('_save', '保存弹幕缓存失败', error: e, stackTrace: t);
       throw AppException('保存弹幕缓存失败', e);
     }
+  }
+
+  String _serverLabel(String serverUrl) {
+    final host = Uri.tryParse(serverUrl)?.host;
+    return host == null || host.isEmpty ? serverUrl : host;
   }
 }

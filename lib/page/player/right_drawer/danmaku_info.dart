@@ -19,6 +19,17 @@ class DanmakuInfoPanel extends StatelessWidget {
     required this.onDrawerChanged,
   });
 
+  String _statusLabel(DanmakuService danmakuService) {
+    final status = danmakuService.status.value;
+    final detail = danmakuService.statusDetail.value;
+    if (detail != null &&
+        detail.isNotEmpty &&
+        (status == .hashing || status == .matching)) {
+      return '${status.label} $detail';
+    }
+    return status.label;
+  }
+
   @override
   Widget build(BuildContext context) {
     final globalService = GetIt.I.get<GlobalService>();
@@ -36,7 +47,7 @@ class DanmakuInfoPanel extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Text('状态: ${danmakuService.status.value.label}'),
+                          Text('状态: ${_statusLabel(danmakuService)}'),
                           const SizedBox(width: 4),
                           if (danmakuService.status.value.level == 0)
                             const Icon(FLucideIcons.check, color: Colors.green),
@@ -46,6 +57,17 @@ class DanmakuInfoPanel extends StatelessWidget {
                             const Icon(Icons.error, color: Colors.red),
                         ],
                       ),
+                      if (danmakuService.status.value.level == 2 &&
+                          (danmakuService.statusDetail.value?.isNotEmpty ??
+                              false)) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          danmakuService.statusDetail.value!,
+                          style: context.theme.typography.body.sm.copyWith(
+                            color: context.theme.colors.error,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Text('来源: ${danmakuService.episode.value.url}'),
                       const SizedBox(height: 8),

@@ -10,6 +10,7 @@ import 'package:get_it/get_it.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 
 enum _DanmakuSearchState {
+  hashing('正在计算哈希...'),
   matching('正在匹配弹幕...'),
   downloading('正在下载弹幕...'),
   success(''),
@@ -61,31 +62,34 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
     super.dispose();
   }
 
+  void _setState(_DanmakuSearchState state) {
+    if (mounted) setState(() => _state = state);
+  }
+
   Future<void> _match() async {
     try {
       final info = await widget.getDanmakuMatchInfo();
       _searchController.text = info.fileName;
-      var result = await danmakuGetter.match(widget.uniqueKey, info);
+      _setState(.hashing);
+      final result = await danmakuGetter.match(
+        widget.uniqueKey,
+        info,
+        onHashCompleted: () => _setState(.matching),
+      );
       if (result == null) {
-        setState(() {
-          _state = _DanmakuSearchState.search;
-        });
+        _errorMessage = danmakuGetter.statusDetail.value;
+        _setState(.search);
         showToast(title: '未找到弹幕');
         return;
       }
-      setState(() {
-        _state = _DanmakuSearchState.saving;
-      });
+      _setState(.saving);
       await danmakuGetter.save(widget.uniqueKey, result);
-      setState(() {
-        _state = _DanmakuSearchState.success;
-        _successResult = result;
-      });
+      _successResult = result;
+      _setState(.success);
     } catch (e) {
-      showToast(title: '未找到弹幕', description: e.toString());
-      setState(() {
-        _state = .search;
-      });
+      _errorMessage = danmakuGetter.statusDetail.value ?? e.toString();
+      showToast(title: '匹配失败', description: _errorMessage);
+      _setState(.search);
     }
   }
 
@@ -98,22 +102,16 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
       showToast(title: '请选择服务器');
       return;
     }
-    setState(() {
-      _state = _DanmakuSearchState.searching;
-      _animes = null;
-      _errorMessage = null;
-    });
+    _animes = null;
+    _errorMessage = null;
+    _setState(.searching);
     try {
       final animes = await danmakuGetter.search(keyword, _selectedServer);
-      setState(() {
-        _animes = animes;
-        _state = _DanmakuSearchState.search;
-      });
+      _animes = animes;
+      _setState(.search);
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _state = _DanmakuSearchState.search;
-      });
+      _errorMessage = e.toString();
+      _setState(.search);
     }
   }
 
@@ -155,9 +153,7 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
         return [
           FButton(
             variant: .outline,
-            onPress: () => setState(() {
-              _state = _DanmakuSearchState.search;
-            }),
+            onPress: () => _setState(.search),
             child: const Text('手动搜索覆盖'),
           ),
           FButton(
@@ -173,17 +169,25 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
 
   Widget _buildBody() {
     switch (_state) {
+      case .hashing:
       case .matching:
       case .downloading:
       case .saving:
-        return Column(
-          mainAxisSize: .min,
-          children: [
-            SizedBox(height: 8),
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(_state.message, style: context.theme.typography.body.md),
-          ],
+        return SignalBuilder(
+          builder: (context) {
+            final detail = danmakuGetter.statusDetail.value;
+            return Column(
+              mainAxisSize: .min,
+              children: [
+                SizedBox(height: 8),
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(_state.message, style: context.theme.typography.body.md),
+                if (detail != null)
+                  Text(detail, style: context.theme.typography.body.md),
+              ],
+            );
+          },
         );
       case .success:
         if (_successResult == null) return SizedBox.shrink();
@@ -237,9 +241,8 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
           control: .lifted(
             value: _selectedServer,
             onChange: (v) {
-              setState(() {
-                _selectedServer = v ?? '';
-              });
+              _selectedServer = v ?? '';
+              _setState(_state);
             },
           ),
           items: {for (var server in serverList) server: server},
@@ -323,23 +326,26 @@ class _DanmakuMatchDialogState extends State<DanmakuMatchDialog> {
                 maxLines: 2,
               ),
               onPress: () async {
-                setState(() {
-                  _state = _DanmakuSearchState.saving;
-                });
-                final result = await danmakuGetter.save(
-                  widget.uniqueKey,
-                  episode,
-                );
-                if (result.isNotEmpty) {
-                  showToast(title: '弹幕保存成功');
-                  if (mounted) {
-                    Navigator.pop(this.context, result);
+                _setState(.saving);
+                try {
+                  final result = await danmakuGetter.save(
+                    widget.uniqueKey,
+                    episode,
+                  );
+                  if (result.isNotEmpty) {
+                    showToast(title: '弹幕保存成功');
+                    if (mounted) {
+                      Navigator.pop(this.context, result);
+                    }
+                  } else {
+                    showToast(title: '弹幕保存失败');
+                    _setState(.search);
                   }
-                } else {
-                  showToast(title: '弹幕保存失败');
-                  setState(() {
-                    _state = _DanmakuSearchState.search;
-                  });
+                } catch (e) {
+                  final reason =
+                      danmakuGetter.statusDetail.value ?? e.toString();
+                  showToast(title: '弹幕保存失败', description: reason);
+                  _setState(.search);
                 }
               },
             );
