@@ -67,11 +67,14 @@ class VideoInfo {
   }
 }
 
-class ExternalSubtitle(
-  final String url,
-  final String title,
-  final String? language,
-);
+class ExternalSubtitle {
+  final String url;
+  final String title;
+  final String? language;
+  final String? path;
+
+  const ExternalSubtitle(this.url, this.title, this.language, {this.path});
+}
 
 /// 轨道信息模型
 class TrackInfo {

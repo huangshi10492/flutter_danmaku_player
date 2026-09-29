@@ -2,12 +2,13 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:fldanplay/model/file_item.dart';
 import 'package:fldanplay/model/offline_cache.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/storage.dart';
-import 'package:fldanplay/service/stream_media_explorer.dart';
+import 'package:fldanplay/service/stream_media_explorer.dart' hide Filter;
 import 'package:fldanplay/utils/log.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
@@ -22,7 +23,7 @@ class OfflineCacheService {
   final _logger = Logger('OfflineCacheService');
   final Map<String, ({CancelToken cancelToken, void Function() dispose})>
   _downloadTasks = {};
-  late String _downloadPath;
+  late String cachePath;
   ValueListenable<Box<OfflineCache>> get listener => _cacheBox.listenable();
 
   static Future<OfflineCacheService> register(StorageService ss) async {
@@ -35,9 +36,9 @@ class OfflineCacheService {
 
   Future<void> init() async {
     _cacheBox = await Hive.openBox<OfflineCache>('offline_cache');
-    _downloadPath =
+    cachePath =
         '${(await getApplicationSupportDirectory()).path}/offline_cache';
-    final dir = await Directory(_downloadPath).create(recursive: true);
+    final dir = await Directory(cachePath).create(recursive: true);
     for (var cache in _cacheBox.values.toList()) {
       if (cache.status == DownloadStatus.downloading) {
         cache.status = DownloadStatus.failed;
@@ -109,7 +110,7 @@ class OfflineCacheService {
 
     try {
       bool success = false;
-      final localPath = '$_downloadPath/${videoInfo.uniqueKey}.temp';
+      final localPath = '$cachePath/${videoInfo.uniqueKey}.temp';
       if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
         final provider = await createStreamMediaExplorerProvider(storage!);
         if (provider == null) {
@@ -126,6 +127,9 @@ class OfflineCacheService {
             onProgress: throttledUpdateProgress,
             cancelToken: cancelToken,
           );
+        }
+        if (success) {
+          await _downloadStreamSubtitles(provider, videoInfo, cancelToken);
         }
       } else if (videoInfo.historiesType == HistoriesType.fileStorage) {
         final storageKey = videoInfo.storageKey!;
@@ -153,6 +157,14 @@ class OfflineCacheService {
             cancelToken: cancelToken,
           );
         }
+        if (success) {
+          await _downloadSubtitles(
+            provider,
+            storageKey,
+            videoInfo,
+            cancelToken,
+          );
+        }
       } else {
         throw AppException('不支持的媒体库类型', null);
       }
@@ -164,7 +176,7 @@ class OfflineCacheService {
       }
       final file = File(localPath);
       offlineCache.fileSize = await file.length();
-      await file.rename('$_downloadPath/${videoInfo.uniqueKey}');
+      await file.rename('$cachePath/${videoInfo.uniqueKey}');
       offlineCache.status = .finished;
       offlineCache.updateProgress(lastReportedReceived, lastReportedTotal);
       _logger.info('_executeDownload', '下载完成: ${videoInfo.uniqueKey}');
@@ -180,6 +192,152 @@ class OfflineCacheService {
       _downloadTasks[videoInfo.uniqueKey]?.dispose();
       _downloadTasks.remove(videoInfo.uniqueKey);
     }
+  }
+
+  Future<void> _downloadSubtitles(
+    FileExplorerProvider provider,
+    String storageKey,
+    VideoInfo videoInfo,
+    CancelToken cancelToken,
+  ) async {
+    List<String> subtitlePaths;
+    try {
+      subtitlePaths = await _resolveSubtitlePaths(
+        provider,
+        storageKey,
+        videoInfo,
+      );
+    } catch (e) {
+      _logger.warn('_downloadSubtitles', '获取字幕列表失败', error: e);
+      return;
+    }
+    if (subtitlePaths.isEmpty) return;
+    final subtitleDir = Directory(
+      '$cachePath/subtitles/${videoInfo.uniqueKey}',
+    );
+    try {
+      await subtitleDir.create(recursive: true);
+    } catch (e) {
+      _logger.warn('_downloadSubtitles', '创建字幕缓存目录失败');
+      return;
+    }
+    for (final subtitlePath in subtitlePaths) {
+      if (cancelToken.isCancelled) return;
+      final fileName = subtitlePath.split('/').last;
+      try {
+        await provider.downloadVideo(
+          subtitlePath,
+          '${subtitleDir.path}/$fileName',
+          cancelToken: cancelToken,
+        );
+        _logger.info('_downloadSubtitles', '字幕下载完成: $subtitlePath');
+      } catch (e) {
+        _logger.warn('_downloadSubtitles', '$subtitlePath下载失败', error: e);
+      }
+    }
+  }
+
+  Future<List<String>> _resolveSubtitlePaths(
+    FileExplorerProvider provider,
+    String storageKey,
+    VideoInfo videoInfo,
+  ) async {
+    final cachedPaths = videoInfo.externalSubtitles
+        .where((subtitle) => subtitle.path != null)
+        .map((subtitle) => subtitle.path!)
+        .toList();
+    if (cachedPaths.isNotEmpty) return cachedPaths;
+    final videoPath = filePathFromVirtualPath(
+      videoInfo.virtualVideoPath,
+      storageKey,
+    );
+    final parent = videoPath.contains('/')
+        ? videoPath.substring(0, videoPath.lastIndexOf('/'))
+        : '';
+    final rawList = await provider.listFiles(parent, storageKey, Filter());
+    final list = FileItem.resolveSubtitles(rawList);
+    for (final file in list) {
+      if (file.isVideo && file.path == videoPath) {
+        return file.subtitles;
+      }
+    }
+    return const [];
+  }
+
+  Future<void> _downloadStreamSubtitles(
+    StreamMediaExplorerProvider provider,
+    VideoInfo videoInfo,
+    CancelToken cancelToken,
+  ) async {
+    try {
+      final playbackInfo = await provider.getPlaybackInfo(
+        videoInfo.virtualVideoPath,
+      );
+      final subtitles = playbackInfo.subtitleStreams
+          .where((s) => s.isExternal && s.subtitleUrl != null)
+          .toList();
+      if (subtitles.isEmpty) return;
+      final subtitleDir = Directory(
+        '$cachePath/subtitles/${videoInfo.uniqueKey}',
+      );
+      await subtitleDir.create(recursive: true);
+      final usedNames = <String>{};
+      for (final subtitle in subtitles) {
+        if (cancelToken.isCancelled) return;
+        final subtitleUrl = subtitle.subtitleUrl!;
+        final ext = _subtitleExtension(subtitleUrl);
+        var fileName = subtitle.label.isEmpty
+            ? 'subtitle_${subtitle.index}.$ext'
+            : '${subtitle.label}.$ext';
+        var suffix = subtitle.index;
+        while (!usedNames.add(fileName)) {
+          fileName = subtitle.label.isEmpty
+              ? 'subtitle_${++suffix}.$ext'
+              : '${subtitle.label}.${++suffix}.$ext';
+        }
+        try {
+          final downloaded = await provider.downloadSubtitle(
+            subtitleUrl,
+            '${subtitleDir.path}/$fileName',
+            cancelToken: cancelToken,
+          );
+          if (downloaded) {
+            _logger.info('_downloadStreamSubtitles', '字幕下载完成: $fileName');
+          }
+        } catch (e) {
+          _logger.warn(
+            '_downloadStreamSubtitles',
+            '$subtitleUrl下载失败',
+            error: e,
+          );
+        }
+      }
+    } catch (e, t) {
+      _logger.error(
+        '_downloadStreamSubtitles',
+        '字幕下载失败',
+        error: e,
+        stackTrace: t,
+      );
+      return;
+    }
+  }
+
+  String _subtitleExtension(String url) {
+    final path = Uri.tryParse(url)?.path ?? '';
+    final name = path.substring(path.lastIndexOf('/') + 1);
+    final index = name.lastIndexOf('.');
+    if (index <= 0 || index == name.length - 1) return 'srt';
+    final codec = name.substring(index + 1).toLowerCase();
+    return switch (codec) {
+      'subrip' || 'srt' || 'mov_text' => 'srt',
+      'ass' => 'ass',
+      'ssa' => 'ssa',
+      'webvtt' || 'vtt' => 'vtt',
+      'pgssub' || 'pgs' => 'sup',
+      'dvdsub' || 'vobsub' => 'sub',
+      _ => 'srt',
+    };
   }
 
   Future<void> resumeDownload(String uniqueKey) async {
@@ -208,11 +366,15 @@ class OfflineCacheService {
     return lock.synchronized(() async {
       final cache = _cacheBox.get(uniqueKey);
       if (cache != null) {
-        final file = File('$_downloadPath/${cache.uniqueKey}');
+        final file = File('$cachePath/${cache.uniqueKey}');
         if (await file.exists()) {
           await file.delete();
         }
         await _cacheBox.delete(uniqueKey);
+        final subtitleDir = Directory('$cachePath/subtitles/$uniqueKey');
+        if (await subtitleDir.exists()) {
+          await subtitleDir.delete(recursive: true);
+        }
         _logger.info('deleteCache', '删除缓存: $uniqueKey');
       }
     });

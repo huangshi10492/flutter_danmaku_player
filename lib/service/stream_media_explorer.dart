@@ -46,6 +46,11 @@ abstract class StreamMediaExplorerProvider {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   });
+  Future<bool> downloadSubtitle(
+    String subtitleUrl,
+    String localPath, {
+    CancelToken? cancelToken,
+  });
   Future<void> reportPlaybackStart(
     String itemId,
     int position,
@@ -996,6 +1001,23 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
     } catch (e, t) {
       if (e is DioException && e.type == DioExceptionType.cancel) return false;
       _logger.error('downloadVideo', '下载失败', error: e, stackTrace: t);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> downloadSubtitle(
+    String subtitleUrl,
+    String localPath, {
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      await dio.download(subtitleUrl, localPath, cancelToken: cancelToken);
+      _logger.info('downloadSubtitle', '字幕下载完成: $subtitleUrl');
+      return true;
+    } catch (e, t) {
+      if (e is DioException && e.type == .cancel) return false;
+      _logger.error('downloadSubtitle', '字幕下载失败', error: e, stackTrace: t);
       rethrow;
     }
   }

@@ -259,6 +259,7 @@ class MediaStreamInfo {
   final String? language;
   final String? title;
   final bool isDefault;
+  final bool isExternal;
   final String? subtitleUrl;
 
   const MediaStreamInfo({
@@ -266,6 +267,7 @@ class MediaStreamInfo {
     this.language,
     this.title,
     this.isDefault = false,
+    this.isExternal = false,
     this.subtitleUrl,
   });
 
@@ -282,6 +284,7 @@ class MediaStreamInfo {
       language: map['Language']?.toString(),
       title: (map['DisplayTitle'] ?? map['Title'])?.toString(),
       isDefault: map['IsDefault'] == true,
+      isExternal: map['IsExternal'] == true,
       subtitleUrl: subtitleUrl,
     );
   }

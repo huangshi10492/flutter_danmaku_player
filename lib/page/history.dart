@@ -119,6 +119,7 @@ class _HistoryPageState extends State<HistoryPage> {
             showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
             return;
           }
+          await provider.init();
           _fileExplorerService.setProvider(provider, storage);
           videoInfo = await _fileExplorerService.getVideoInfoFromHistory(
             history,

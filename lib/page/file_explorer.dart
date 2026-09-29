@@ -141,8 +141,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     }
   }
 
-  void _playVideo(String path, int index) {
-    final videoInfo = _fileExplorerService.getVideoInfo(index, path);
+  void _playVideo(FileItem file) {
+    final videoInfo = _fileExplorerService.getVideoInfo(
+      file.videoIndex,
+      file.path,
+      subtitlePaths: file.subtitles,
+    );
     if (GetIt.I.get<ConfigureService>().offlineCacheFirst.value) {
       videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
     }
@@ -151,8 +155,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     context.push(location.toString(), extra: videoInfo);
   }
 
-  void _handleOfflineDownload(String path, int index) {
-    final videoInfo = _fileExplorerService.getVideoInfo(index, path);
+  void _handleOfflineDownload(FileItem file) {
+    final videoInfo = _fileExplorerService.getVideoInfo(
+      file.videoIndex,
+      file.path,
+      subtitlePaths: file.subtitles,
+    );
     _offlineCacheService.startDownload(videoInfo);
     showToast(title: '${videoInfo.name}已加入离线缓存');
   }
@@ -383,12 +391,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
           name: file.name,
           focusNode: focusNode,
           getDanmakuMatchInfo: () => Future.value(.fromVideoInfo(videoInfo)),
-          onPress: () => _playVideo(file.path, file.videoIndex),
+          onPress: () => _playVideo(file),
           items: [
             .new(
               icon: FLucideIcons.download,
               title: '离线保存',
-              onPress: () => _handleOfflineDownload(file.path, file.videoIndex),
+              onPress: () => _handleOfflineDownload(file),
             ),
             if (history != null)
               .new(

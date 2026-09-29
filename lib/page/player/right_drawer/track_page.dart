@@ -28,7 +28,7 @@ class TrackPage extends StatelessWidget {
     try {
       final result = await FilePicker.pickFile(
         type: .custom,
-        allowedExtensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'idx'],
+        allowedExtensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'sup'],
       );
       if (result != null && result.path != null) {
         final filePath = result.path!;

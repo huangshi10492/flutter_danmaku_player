@@ -4,12 +4,14 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:audio_session/audio_session.dart';
+import 'package:fldanplay/model/file_item.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/player.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/player/danmaku.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
@@ -79,6 +81,7 @@ class VideoPlayerService {
   final _historyService = GetIt.I<HistoryService>();
   final _globalService = GetIt.I<GlobalService>();
   final _configureService = GetIt.I<ConfigureService>();
+  final _cacheService = GetIt.I<OfflineCacheService>();
 
   final _log = Logger('player');
 
@@ -278,8 +281,7 @@ class VideoPlayerService {
     }
     Media? media;
     if (videoInfo.cached) {
-      final cachePath =
-          '${(await getApplicationSupportDirectory()).path}/offline_cache';
+      final cachePath = _cacheService.cachePath;
       media = Media(
         '$cachePath/${videoInfo.uniqueKey}',
         start: historyPosition,
@@ -302,7 +304,15 @@ class VideoPlayerService {
       (d) => d != Duration.zero,
     );
     danmakuService.computeTrend(duration.inSeconds);
-    await _loadExternalSubtitles(videoInfo.externalSubtitles);
+    var externalSubtitles = videoInfo.externalSubtitles;
+    if (videoInfo.cached) {
+      final cachedSubtitles = await _loadCachedSubtitles(
+        videoInfo.name,
+        videoInfo.uniqueKey,
+      );
+      if (cachedSubtitles.isNotEmpty) externalSubtitles = cachedSubtitles;
+    }
+    await _loadExternalSubtitles(externalSubtitles);
     if (videoInfo.chapters.isNotEmpty) {
       chapters.value = videoInfo.chapters;
     } else {
@@ -795,6 +805,35 @@ class VideoPlayerService {
     subtitleTracks = _buildSubtitleTracks(subtitles);
     final id = await _getSid();
     activeSubtitleTrack = subtitleTracks.indexWhere((track) => track.id == id);
+  }
+
+  Future<List<ExternalSubtitle>> _loadCachedSubtitles(
+    String videoName,
+    String uniqueKey,
+  ) async {
+    try {
+      final cachePath = _cacheService.cachePath;
+      final subtitleDir = Directory('$cachePath/subtitles/$uniqueKey');
+      if (!await subtitleDir.exists()) return const [];
+      final files = (await subtitleDir.list().toList())
+          .whereType<File>()
+          .toList();
+      files.sort((a, b) => a.path.compareTo(b.path));
+      return files.map((file) {
+        final subtitleName = file.uri.pathSegments.lastWhere(
+          (segment) => segment.isNotEmpty,
+        );
+        return ExternalSubtitle(
+          file.path,
+          FileItem.subtitleTitle(videoName, subtitleName),
+          'external',
+          path: file.path,
+        );
+      }).toList();
+    } catch (e, t) {
+      _log.warn('_loadCachedSubtitles', '加载缓存字幕失败', error: e, stackTrace: t);
+      return const [];
+    }
   }
 
   Future<void> _loadExternalSubtitles(List<ExternalSubtitle> subtitles) async {

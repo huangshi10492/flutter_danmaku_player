@@ -36,6 +36,15 @@ String filePathFromVirtualPath(String virtualPath, String storageKey) {
       : virtualPath;
 }
 
+FileItem addSubtitle(String path, String name) {
+  return FileItem(
+    name: name,
+    path: joinFilePath(path, name),
+    type: .subtitle,
+    uniqueKey: '',
+  );
+}
+
 abstract class FileExplorerProvider {
   Future<void> init();
   String getVideoUrl(String path);
@@ -128,6 +137,10 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
       final entries = await _client.listDirectory(path);
       var list = <FileItem>[];
       for (final entry in entries) {
+        if (!entry.isDirectory && FileItem.isSubtitleFileName(entry.name)) {
+          list.add(addSubtitle(path, entry.name));
+          continue;
+        }
         if (filter.searchTerm.isNotEmpty &&
             !entry.name.contains(filter.searchTerm)) {
           continue;
@@ -242,11 +255,12 @@ class FileExplorerService {
       return;
     }
     try {
-      final list = await provider.value!.listFiles(
+      final rawList = await provider.value!.listFiles(
         navigation.value.join('/'),
         _storage!.key,
         filter.value,
       );
+      final list = FileItem.resolveSubtitles(rawList);
       listLength = list.length;
       files.value = AsyncData(list);
     } catch (e, t) {
@@ -300,7 +314,11 @@ class FileExplorerService {
       for (var file in list) {
         if (!file.isVideo) continue;
         if (file.videoIndex == videoIndex) {
-          return getVideoInfo(file.videoIndex, file.path);
+          return getVideoInfo(
+            file.videoIndex,
+            file.path,
+            subtitlePaths: file.subtitles,
+          );
         }
       }
     }
@@ -308,7 +326,11 @@ class FileExplorerService {
     return null;
   }
 
-  VideoInfo getVideoInfo(int index, String path) {
+  VideoInfo getVideoInfo(
+    int index,
+    String path, {
+    List<String> subtitlePaths = const [],
+  }) {
     final videoPath = provider.value!.getVideoUrl(path);
     final headers = provider.value!.headers;
     return VideoInfo.fromFile(
@@ -320,7 +342,42 @@ class FileExplorerService {
       listLength: listLength,
       canSwitch: true,
       storageKey: _storage!.uniqueKey,
+      externalSubtitles: _buildExternalSubtitles(
+        path.split('/').last,
+        subtitlePaths,
+      ),
     );
+  }
+
+  List<ExternalSubtitle> _buildExternalSubtitles(
+    String videoName,
+    List<String> subtitlePaths,
+  ) {
+    if (subtitlePaths.isEmpty) return const [];
+    return subtitlePaths.map((path) {
+      final subtitleName = path.split('/').last;
+      return ExternalSubtitle(
+        provider.value!.getVideoUrl(path),
+        FileItem.subtitleTitle(videoName, subtitleName),
+        'external',
+        path: path,
+      );
+    }).toList();
+  }
+
+  Future<List<ExternalSubtitle>> _discoverSubtitles(String path) async {
+    final i = path.lastIndexOf('/');
+    final list = FileItem.resolveSubtitles(
+      await provider.value!.listFiles(
+        i > 0 ? path.substring(0, i) : '',
+        _storage!.key,
+        Filter(),
+      ),
+    );
+    return switch (list.where((f) => f.isVideo && f.path == path).firstOrNull) {
+      final v? => _buildExternalSubtitles(v.name, v.subtitles),
+      _ => const [],
+    };
   }
 
   Future<VideoInfo> getVideoInfoFromHistory(History history) async {
@@ -329,6 +386,7 @@ class FileExplorerService {
     final path = filePathFromVirtualPath(historyPath, storageKey);
     final videoPath = provider.value!.getVideoUrl(path);
     final headers = provider.value!.headers;
+    final externalSubtitles = await _discoverSubtitles(path);
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
       virtualVideoPath: history.url!,
@@ -336,6 +394,7 @@ class FileExplorerService {
       historiesType: HistoriesType.fileStorage,
       subtitle: history.subtitle,
       storageKey: _storage!.uniqueKey,
+      externalSubtitles: externalSubtitles,
     );
   }
 }
@@ -391,6 +450,10 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
       List<FileItem> list = [];
       var fileList = await client!.readDir(path);
       for (var file in fileList) {
+        if (!file.isDir && FileItem.isSubtitleFileName(file.name)) {
+          list.add(addSubtitle(path, file.name));
+          continue;
+        }
         if (filter.searchTerm.isNotEmpty &&
             !file.name.contains(filter.searchTerm)) {
           continue;
@@ -542,6 +605,10 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
       var list = <FileItem>[];
       for (final entry in entries) {
         if (entry.type != .dir && entry.type != .file) continue;
+        if (entry.type == .file && FileItem.isSubtitleFileName(entry.name)) {
+          list.add(addSubtitle(path, entry.name));
+          continue;
+        }
         if (filter.searchTerm.isNotEmpty &&
             !entry.name.contains(filter.searchTerm)) {
           continue;
@@ -668,6 +735,10 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
         final name = file.uri.pathSegments.lastWhere(
           (segment) => segment.isNotEmpty,
         );
+        if (file is File && FileItem.isSubtitleFileName(name)) {
+          list.add(addSubtitle(path, name));
+          continue;
+        }
         if (filter.searchTerm.isNotEmpty && !name.contains(filter.searchTerm)) {
           continue;
         }
@@ -723,6 +794,10 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     final fileList = await AndroidSaf.listDirectory(url, path);
     var list = <FileItem>[];
     for (final file in fileList) {
+      if (!file.isDir && FileItem.isSubtitleFileName(file.name)) {
+        list.add(addSubtitle(path, file.name));
+        continue;
+      }
       if (filter.searchTerm.isNotEmpty &&
           !file.name.contains(filter.searchTerm)) {
         continue;
