@@ -56,19 +56,14 @@ dependencies:
   volume_controller: ^3.6.1
   media_kit:
     git:
-      url: https://github.com/huangshi10492/media-kit.git
-      ref: 7eaff7b83638b140320f79155c92e9d4a9fbb024
+      url: https://github.com/Predidit/media-kit.git
+      ref: 803c4a27912091db6f839d48d1b984a0d9f588c7
       path: ./media_kit
   media_kit_video:
     git:
-      url: https://github.com/huangshi10492/media-kit.git
-      ref: 7eaff7b83638b140320f79155c92e9d4a9fbb024
-      path: ./media_kit_video
-  media_kit_libs_video:
-    git:
-      url: https://github.com/huangshi10492/media-kit.git
-      ref: 7eaff7b83638b140320f79155c92e9d4a9fbb024
-      path: ./libs/universal/media_kit_libs_video
+      url: https://github.com/Predidit/media-kit.git
+      ref: 803c4a27912091db6f839d48d1b984a0d9f588c7
+      path: ./media_kit_video  
   screen_brightness: ^2.1.11
 
   # UI 组件
@@ -126,6 +121,7 @@ dev_dependencies:
   build_runner: ^2.16.1
   flutter_launcher_icons: ^0.14.4
   forui_cli: ^0.26.1
+  patchwork: ^0.7.0
 
 flutter_launcher_icons:
   android: true

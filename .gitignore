@@ -46,3 +46,6 @@ dart_defines/*.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+.patchwork/
+pubspec_overrides.yaml

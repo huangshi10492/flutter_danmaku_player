@@ -84,7 +84,10 @@ jobs:
           fi
 
       - name: Build APKs
-        run: flutter build apk --release --split-per-abi $DANDANPLAY_DART_DEFINE_ARG
+        run: |
+          flutter pub get
+          dart run patchwork apply
+          flutter build apk --release --split-per-abi $DANDANPLAY_DART_DEFINE_ARG
 
       - name: Collect APK artifacts
         run: |
@@ -115,7 +118,10 @@ jobs:
         run: flutter config --enable-linux-desktop
 
       - name: Build Flutter for Linux
-        run: flutter build linux $DANDANPLAY_DART_DEFINE_ARG
+        run: |
+          flutter pub get
+          dart run patchwork apply
+          flutter build linux $DANDANPLAY_DART_DEFINE_ARG
 
       - name: Package linux build output
         run: bash .github/scripts/package-linux.sh
@@ -162,7 +168,9 @@ jobs:
 
       - name: Pub get
         shell: pwsh
-        run: flutter pub get
+        run: |
+          flutter pub get
+          dart run patchwork apply
 
       - name: Build Windows
         shell: pwsh
