@@ -220,7 +220,7 @@ class VideoProgressBar extends StatefulWidget {
 class _VideoProgressBarState extends State<VideoProgressBar> {
   final chapterHeight = 16.0;
   final trendHeight = 16.0;
-  final thumbRadius = 8.0;
+  final thumbRadius = 12.0;
   String? _cachedTotalTimeText;
   double? _cachedTimeLabelWidth;
 
@@ -241,7 +241,7 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
       children: [
         RepaintBoundary(
           child: SizedBox(
-            width: timeLabelWidth + thumbRadius + 5,
+            width: timeLabelWidth + thumbRadius,
             child: Text(
               Utils.formatDuration(widget.progress),
               style: context.theme.typography.body.sm,
@@ -278,22 +278,25 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
                     ),
                   ),
                 RepaintBoundary(
-                  child: ProgressBar(
-                    progress: widget.progress,
-                    total: widget.total,
-                    buffered: widget.buffered,
-                    onSeek: widget.onSeek,
-                    thumbRadius: 8,
-                    thumbGlowRadius: 18,
-                    onDragStart: widget.onDragStart,
-                    onDragUpdate: widget.onDragUpdate,
-                    onDragEnd: widget.onDragEnd,
-                    timeLabelLocation: .none,
-                    baseBarColor: primary.withValues(alpha: 0.24),
-                    progressBarColor: primary,
-                    bufferedBarColor: primary.withValues(alpha: 0.24),
-                    thumbColor: primary,
-                    thumbGlowColor: primary.withValues(alpha: 0.8),
+                  child: SizedBox(
+                    height: 20,
+                    child: ProgressBar(
+                      progress: widget.progress,
+                      total: widget.total,
+                      buffered: widget.buffered,
+                      onSeek: widget.onSeek,
+                      thumbRadius: 8,
+                      thumbGlowRadius: 18,
+                      onDragStart: widget.onDragStart,
+                      onDragUpdate: widget.onDragUpdate,
+                      onDragEnd: widget.onDragEnd,
+                      timeLabelLocation: .none,
+                      baseBarColor: primary.withValues(alpha: 0.24),
+                      progressBarColor: primary,
+                      bufferedBarColor: primary.withValues(alpha: 0.24),
+                      thumbColor: primary,
+                      thumbGlowColor: primary.withValues(alpha: 0.8),
+                    ),
                   ),
                 ),
               ],
@@ -302,7 +305,7 @@ class _VideoProgressBarState extends State<VideoProgressBar> {
         ),
         RepaintBoundary(
           child: Container(
-            margin: .only(left: thumbRadius + 5),
+            margin: .only(left: thumbRadius),
             width: timeLabelWidth,
             child: Text(
               Utils.formatDuration(widget.total),

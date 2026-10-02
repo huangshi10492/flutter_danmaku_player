@@ -39,10 +39,14 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       .get<OfflineCacheService>();
   final _historyService = GetIt.I.get<HistoryService>();
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _listScroll = ScrollController();
+  final Map<String, double> _scrollOffsets = {};
   final Map<String, int> _refreshMap = {};
   FocusNode? _focusNode;
   String? _pendingFocusKey;
+  String? _scrollScheduled;
   bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
+  String _directoryPath() => _fileExplorerService.navigation.value.join('/');
 
   @override
   void initState() {
@@ -54,6 +58,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _listScroll.dispose();
     _focusNode?.dispose();
     GetIt.I.get<GlobalService>().updateListener = null;
     _fileExplorerService.provider.value?.dispose();
@@ -75,15 +80,12 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _focusNode == null) return;
       _focusNode?.requestFocus();
-      Scrollable.ensureVisible(
-        _focusNode!.context!,
-        duration: const Duration(milliseconds: 200),
-        alignmentPolicy: .keepVisibleAtEnd,
-      );
     });
   }
 
   void _openFolder(FileItem file) {
+    if (!_listScroll.hasClients) return;
+    _scrollOffsets[_directoryPath()] = _listScroll.position.pixels;
     _pendingFocusKey = null;
     _fileExplorerService.enterDirectory(file.name);
     _scrollToRight();
@@ -95,8 +97,29 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   }
 
   void _navigateBack() {
+    _scrollOffsets.remove(_directoryPath());
     _pendingFocusKey = _fileExplorerService.back();
-    if (_pendingFocusKey == null) context.pop();
+    if (_pendingFocusKey == null) {
+      context.pop();
+      return;
+    }
+  }
+
+  void _restoreScrollPosition(String directoryKey) {
+    if (_scrollScheduled == directoryKey) return;
+    _scrollScheduled = directoryKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _scrollScheduled != directoryKey) return;
+      _scrollScheduled = null;
+      if (!_listScroll.hasClients) return;
+      final position = _listScroll.position;
+      final targetOffset = (_scrollOffsets[directoryKey] ?? 0.0)
+          .clamp(0.0, position.maxScrollExtent)
+          .toDouble();
+      if ((position.pixels - targetOffset).abs() > 0.5) {
+        _listScroll.jumpTo(targetOffset);
+      }
+    });
   }
 
   void refreshItem(String uniqueKey) {
@@ -293,7 +316,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
                     ),
                   );
                 }
+                _restoreScrollPosition(_directoryPath());
                 return CustomScrollView(
+                  controller: _listScroll,
                   slivers: [
                     SliverToBoxAdapter(
                       child: SafeArea(

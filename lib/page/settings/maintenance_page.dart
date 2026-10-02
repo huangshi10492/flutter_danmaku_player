@@ -12,6 +12,7 @@ import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
+import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
@@ -153,15 +154,22 @@ class _MaintenancePageState extends State<MaintenancePage> {
                   SettingsTile.simpleTile(
                     title: '清理老旧历史记录',
                     subtitle: '删除老旧历史及关联的弹幕和缩略图',
-                    onPress: () => showConfirmDialog(
-                      context,
-                      title: '清理老旧数据',
-                      content:
-                          '将清理$_cleanDaysAgo天前的历史记录及其关联的弹幕缓存和视频缩略图。此操作不可撤销。',
-                      onConfirm: _cleanOldData,
-                      confirmText: '清理',
-                      destructive: true,
-                    ),
+                    onPress: () {
+                      final cleanBeforeDate = DateTime.now().subtract(
+                        Duration(days: _cleanDaysAgo),
+                      );
+                      final cleanDateText = DateFormat('yyyy年MM月dd日')
+                          .format(cleanBeforeDate);
+                      showConfirmDialog(
+                        context,
+                        title: '清理老旧数据',
+                        content:
+                            '将清理 $cleanDateText 前的历史记录及其关联的弹幕缓存和视频缩略图。此操作不可撤销。',
+                        onConfirm: _cleanOldData,
+                        confirmText: '清理',
+                        destructive: true,
+                      );
+                    },
                   ),
                 ],
               ),

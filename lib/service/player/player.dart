@@ -332,6 +332,7 @@ class VideoPlayerService {
       _resetPlaybackState();
       danmakuService = DanmakuService(videoInfo)
         ..controller = danmakuController;
+      danmakuService.resetDanmakuPosition();
       await _createPlayer(videoInfo.unsafeUrl);
       await _setVideoInfo(videoInfo);
     } catch (e, stackTrace) {
