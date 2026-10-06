@@ -394,3 +394,49 @@ class DownloadStatusAdapter extends TypeAdapter<DownloadStatus> {
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }
+
+class StorageRecordAdapter extends TypeAdapter<StorageRecord> {
+  @override
+  final typeId = 9;
+
+  @override
+  StorageRecord read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return StorageRecord(
+      type: fields[1] as String,
+      name: fields[2] as String,
+      key: fields[0] as String,
+      createdAt: (fields[4] as num).toInt(),
+      data: fields[3] as String,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, StorageRecord obj) {
+    writer
+      ..writeByte(5)
+      ..writeByte(0)
+      ..write(obj.key)
+      ..writeByte(1)
+      ..write(obj.type)
+      ..writeByte(2)
+      ..write(obj.name)
+      ..writeByte(3)
+      ..write(obj.data)
+      ..writeByte(4)
+      ..write(obj.createdAt);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StorageRecordAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}

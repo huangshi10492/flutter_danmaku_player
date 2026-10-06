@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:fldanplay/model/file_item.dart';
-import 'package:fldanplay/model/storage.dart';
+import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/file_explorer.dart';
@@ -31,7 +31,7 @@ class FileExplorerPage extends StatefulWidget {
 }
 
 class _FileExplorerPageState extends State<FileExplorerPage> {
-  Storage? _storage;
+  Storage2? _storage;
   String? _initError;
   final FileExplorerService _fileExplorerService = GetIt.I
       .get<FileExplorerService>();

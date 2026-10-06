@@ -30,6 +30,27 @@ class RootPage extends StatefulWidget {
 class RootPageState extends State<RootPage> {
   final _storageService = GetIt.I.get<StorageService>();
   final _globalService = GetIt.I.get<GlobalService>();
+  bool uping = false;
+
+  @override
+  void initState() {
+    super.initState();
+    upgrade();
+  }
+
+  Future<void> upgrade() async {
+    int breakVersion = 1;
+    final cs = GetIt.I.get<ConfigureService>();
+    while (cs.breakVersion.value < breakVersion) {
+      setState(() => uping = true);
+      switch (cs.breakVersion.value) {
+        case 0:
+          await GetIt.I.get<StorageService>().migrateLibraries();
+          cs.breakVersion.value = 1;
+      }
+    }
+    setState(() => uping = false);
+  }
 
   void _showPlayVideoDialog() {
     showFDialog(
@@ -158,6 +179,20 @@ class RootPageState extends State<RootPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (uping) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisSize: .min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('正在更新'),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: SysAppBar(
         title: '主页',
@@ -244,7 +279,7 @@ class RootPageState extends State<RootPage> {
                         context,
                         title: '删除媒体库',
                         content: '是否删除媒体库"${storage.name}"？',
-                        onConfirm: () => storage.delete(),
+                        onConfirm: () => _storageService.delete(storage.key),
                         confirmText: '删除',
                         destructive: true,
                       ),
@@ -269,7 +304,7 @@ class RootPageState extends State<RootPage> {
                       child: (onPress) => FItem(
                         prefix: _buildPrefix(storage.storageType),
                         title: Text(storage.name),
-                        subtitle: Text(storage.url),
+                        subtitle: Text(storage.subtitle),
                         onPress: onPress,
                       ),
                     ),

@@ -210,6 +210,10 @@ class ConfigureService {
     key: 'checkUpdate',
     defaultValue: true,
   );
+  late final Signal<int> breakVersion = _config(
+    key: 'breakVersion',
+    defaultValue: 0,
+  );
 
   DanmakuSettings getDanmakuSettings() {
     final jsonString = _box.get('danmakuSettings');

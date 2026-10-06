@@ -12,6 +12,7 @@ extension HiveRegistrar on HiveInterface {
     registerAdapter(HistoryAdapter());
     registerAdapter(OfflineCacheAdapter());
     registerAdapter(StorageAdapter());
+    registerAdapter(StorageRecordAdapter());
     registerAdapter(StorageTypeAdapter());
     registerAdapter(VideoInfoAdapter());
   }
@@ -24,6 +25,7 @@ extension IsolatedHiveRegistrar on IsolatedHiveInterface {
     registerAdapter(HistoryAdapter());
     registerAdapter(OfflineCacheAdapter());
     registerAdapter(StorageAdapter());
+    registerAdapter(StorageRecordAdapter());
     registerAdapter(StorageTypeAdapter());
     registerAdapter(VideoInfoAdapter());
   }

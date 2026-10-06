@@ -95,6 +95,12 @@ class OfflineCacheService {
     final offlineCache = _cacheBox.get(uniqueKey)!;
     final videoInfo = offlineCache.videoInfo;
     final storage = storageService.get(videoInfo.storageKey!);
+    if (storage == null) {
+      offlineCache.content = '媒体库不存在';
+      offlineCache.status = .failed;
+      await offlineCache.save();
+      return;
+    }
     int lastReportedReceived = offlineCache.downloadedBytes;
     int lastReportedTotal = offlineCache.fileSize;
     Timer? throttleTimer;
@@ -112,7 +118,7 @@ class OfflineCacheService {
       bool success = false;
       final localPath = '$cachePath/${videoInfo.uniqueKey}.temp';
       if (videoInfo.historiesType == HistoriesType.streamMediaStorage) {
-        final provider = await createStreamMediaExplorerProvider(storage!);
+        final provider = await createStreamMediaExplorerProvider(storage);
         if (provider == null) {
           throw AppException('不支持的媒体库类型', null);
         }
@@ -135,7 +141,7 @@ class OfflineCacheService {
         final storageKey = videoInfo.storageKey!;
         final virtualPath = videoInfo.virtualVideoPath;
         final path = filePathFromVirtualPath(virtualPath, storageKey);
-        final provider = createFileExplorerProvider(storage!);
+        final provider = createFileExplorerProvider(storage);
         if (provider == null) {
           throw AppException('不支持的媒体库类型', null);
         }

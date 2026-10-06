@@ -1,4 +1,4 @@
-import 'package:fldanplay/model/storage.dart';
+import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/page/stream_media/filter_sheet.dart';
 import 'package:fldanplay/router.dart';
@@ -31,7 +31,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   final streamMediaExplorerService = GetIt.I.get<StreamMediaExplorerService>();
   final Signal<bool> _librariesExpanded = signal(false);
   final ScrollController _resumeScrollController = ScrollController();
-  Storage? storage;
+  Storage2? storage;
   String? _error;
   List<ResumeItem> _resumeItems = const [];
   final FocusNode _libraryFocusNode = FocusNode();
@@ -64,14 +64,13 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   Future<void> _initializePage() async {
     try {
       final currentStorage = storageService.get(widget.storageKey);
-      if (currentStorage == null) {
+      if (currentStorage == null || currentStorage is! StreamStorage) {
         setState(() {
           _error = '媒体库不存在';
         });
         return;
       }
-      if ((currentStorage.userId ?? '').isEmpty ||
-          (currentStorage.token ?? '').isEmpty) {
+      if (currentStorage.userId.isEmpty || currentStorage.token.isEmpty) {
         setState(() {
           _error = '请先编辑媒体库并登录';
         });

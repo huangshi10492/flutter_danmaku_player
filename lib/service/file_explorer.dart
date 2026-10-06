@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:dart_smb2/dart_smb2.dart';
 import 'package:fldanplay/model/file_item.dart';
 import 'package:fldanplay/model/history.dart';
-import 'package:fldanplay/model/storage.dart';
+import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/utils/android_saf.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
@@ -59,18 +59,18 @@ abstract class FileExplorerProvider {
   void dispose();
 }
 
-FileExplorerProvider? createFileExplorerProvider(Storage storage) {
+FileExplorerProvider? createFileExplorerProvider(Storage2 storage) {
   return switch (storage.storageType) {
-    .webdav => WebDAVFileExplorerProvider(storage),
-    .ftp => FTPFileExplorerProvider(storage),
-    .smb => SMBFileExplorerProvider(storage),
-    .local => LocalFileExplorerProvider(storage.url),
+    .webdav => WebDAVFileExplorerProvider(storage as WebDavStorage),
+    .ftp => FTPFileExplorerProvider(storage as FtpStorage),
+    .smb => SMBFileExplorerProvider(storage as SmbStorage),
+    .local => LocalFileExplorerProvider(storage as LocalStorage),
     _ => null,
   };
 }
 
 class SMBFileExplorerProvider implements FileExplorerProvider {
-  final Storage storage;
+  final SmbStorage storage;
   final _logger = Logger('SMBFileExplorerProvider');
   Smb2Pool? _pool;
 
@@ -87,19 +87,19 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
   @override
   Future<void> init() async {
     final share = storage.share;
-    if (storage.url.isEmpty || share == null || share.isEmpty) {
+    if (storage.host.isEmpty || share.isEmpty) {
       throw AppException('SMB配置不完整', null);
     }
     try {
       _pool = await Smb2Pool.connect(
-        host: storage.url,
+        host: storage.host,
         share: share,
         user: storage.account?.isEmpty == true ? null : storage.account,
         password: storage.password?.isEmpty == true ? null : storage.password,
         workers: 1,
         version: .any,
       );
-      _logger.info('init', 'SMB媒体库连接成功: ${storage.url}/$share');
+      _logger.info('init', 'SMB媒体库连接成功: ${storage.host}/$share');
     } catch (e, t) {
       _pool = null;
       _logger.error('init', 'SMB媒体库连接失败', error: e, stackTrace: t);
@@ -116,13 +116,13 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
         : null;
     final userInfo = user == null ? null : '$user:${password ?? ''}';
     final remotePath = [
-      storage.share!,
+      storage.share,
       path,
     ].where((value) => value.isNotEmpty).join('/');
     return Uri(
       scheme: 'smb2',
       userInfo: userInfo,
-      host: storage.url,
+      host: storage.host,
       path: '/$remotePath',
     ).toString();
   }
@@ -237,7 +237,7 @@ class FileExplorerService {
   final Signal<FileExplorerProvider?> provider = signal(null);
   final Signal<List<String>> navigation = signal(<String>[]);
   int listLength = 0;
-  Storage? _storage;
+  Storage2? _storage;
   final _logger = Logger('FileExplorerService');
   final Signal<Filter> filter = signal(Filter());
   final AsyncSignal<List<FileItem>> files = asyncSignal(AsyncLoading());
@@ -269,7 +269,7 @@ class FileExplorerService {
     }
   }
 
-  void setProvider(FileExplorerProvider newProvider, Storage storage) {
+  void setProvider(FileExplorerProvider newProvider, Storage2 storage) {
     batch(() {
       provider.value?.dispose();
       provider.value = newProvider;
@@ -402,32 +402,25 @@ class FileExplorerService {
 // WebDAV implementation (placeholder)
 class WebDAVFileExplorerProvider implements FileExplorerProvider {
   WebdavClient? client;
-  late final Map<String, String> _headers;
+  Map<String, String> _headers = {};
   final _logger = Logger('WebDAVFileExplorerProvider');
   late final String url;
 
   @override
   Map<String, String> get headers => _headers;
 
-  WebDAVFileExplorerProvider(Storage storage) {
-    if (storage.isAnonymous!) {
-      _headers = {"Authorization": "Basic ${base64Encode(utf8.encode(':'))}"};
-    } else {
+  WebDAVFileExplorerProvider(WebDavStorage storage) {
+    final account = storage.account ?? '';
+    final password = storage.password ?? '';
+    if (!storage.isAnonymous) {
       _headers = {
         "Authorization":
-            "Basic ${base64Encode(utf8.encode('${storage.account!}:${storage.password!}'))}",
+            "Basic ${base64Encode(utf8.encode('$account:$password'))}",
       };
     }
-    client = null;
-    if (storage.isAnonymous!) {
-      client = WebdavClient.noAuth(url: storage.url);
-    } else {
-      client = WebdavClient.basicAuth(
-        url: storage.url,
-        user: storage.account!,
-        pwd: storage.password!,
-      );
-    }
+    client = storage.isAnonymous
+        ? .noAuth(url: storage.url)
+        : .basicAuth(url: storage.url, user: account, pwd: password);
     url = storage.url;
     _logger.info('WebDAVFileExplorerProvider', '初始化WebDAV文件库提供者');
   }
@@ -544,7 +537,7 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
 }
 
 class FTPFileExplorerProvider implements FileExplorerProvider {
-  final Storage storage;
+  final FtpStorage storage;
   final _logger = Logger('FTPFileExplorerProvider');
   FTPConnect? _client;
 
@@ -561,11 +554,11 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
   @override
   Future<void> init() async {
     final client = FTPConnect(
-      storage.url,
-      port: storage.port ?? 21,
-      user: storage.account ?? '',
+      storage.host,
+      port: storage.port,
+      user: storage.account,
       pass: storage.password ?? '',
-      supportIPV6: storage.url.contains(':'),
+      supportIPV6: storage.host.contains(':'),
       transferMode: storage.ftpMode == 'active' ? .active : .passive,
     );
     _client = client;
@@ -574,7 +567,7 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
       if (!connected) {
         throw AppException('FTP连接失败', null);
       }
-      _logger.info('init', 'FTP媒体库连接成功: ${storage.url}');
+      _logger.info('init', 'FTP媒体库连接成功: ${storage.host}');
     } catch (e, t) {
       _client = null;
       _logger.error('init', 'FTP媒体库连接失败', error: e, stackTrace: t);
@@ -586,8 +579,8 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
   @override
   String getVideoUrl(String path) {
     return joinUrlPath(
-      'ftp://${storage.account ?? ''}:${storage.password ?? ''}@'
-      '${storage.url}:${storage.port ?? 21}',
+      'ftp://${storage.account}:${storage.password ?? ''}@'
+      '${storage.host}:${storage.port}',
       path,
     );
   }
@@ -705,20 +698,21 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
 }
 
 class LocalFileExplorerProvider implements FileExplorerProvider {
-  final String url;
+  final LocalStorage storage;
   final _logger = Logger('LocalFileExplorerProvider');
   final bool _useSaf;
 
   @override
   Map<String, String> get headers => {};
-  LocalFileExplorerProvider(this.url) : _useSaf = AndroidSaf.isTreeUri(url);
+  LocalFileExplorerProvider(this.storage)
+    : _useSaf = AndroidSaf.isTreeUri(storage.url);
 
   @override
   String getVideoUrl(String path) {
     if (_useSaf) {
-      return '$url${Uri.encodeComponent(path.isEmpty ? '/' : '/$path')}';
+      return '${storage.url}${Uri.encodeComponent(path.isEmpty ? '/' : '/$path')}';
     }
-    return joinUrlPath(url, path);
+    return joinUrlPath(storage.url, path);
   }
 
   @override
@@ -730,7 +724,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     try {
       if (_useSaf) return await _listSafFiles(path, rootPath, filter);
       var list = <FileItem>[];
-      final fileList = Directory(joinUrlPath(url, path)).list();
+      final fileList = Directory(joinUrlPath(storage.url, path)).list();
       await for (var file in fileList) {
         final name = file.uri.pathSegments.lastWhere(
           (segment) => segment.isNotEmpty,
@@ -791,7 +785,7 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
     String rootPath,
     Filter filter,
   ) async {
-    final fileList = await AndroidSaf.listDirectory(url, path);
+    final fileList = await AndroidSaf.listDirectory(storage.url, path);
     var list = <FileItem>[];
     for (final file in fileList) {
       if (!file.isDir && FileItem.isSubtitleFileName(file.name)) {

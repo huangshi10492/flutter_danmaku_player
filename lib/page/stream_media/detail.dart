@@ -45,7 +45,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   final FocusNode _actionFocusNode = FocusNode();
   final Signal<bool> _isPlaying = signal(false);
   bool get _showContinueSection =>
-      _service.storage?.useRemoteHistory == true && _continueItem != null;
+      _service.useRemoteHistory && _continueItem != null;
   bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override

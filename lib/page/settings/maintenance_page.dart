@@ -217,6 +217,11 @@ class MaintenanceUtils {
       final bytes = await storageFile.readAsBytes();
       archive.addFile(ArchiveFile('storage.hive', bytes.length, bytes));
     }
+    final storage2File = File('${hiveDir.path}/storage2.hive');
+    if (await storage2File.exists()) {
+      final bytes = await storage2File.readAsBytes();
+      archive.addFile(ArchiveFile('storage2.hive', bytes.length, bytes));
+    }
     final zipData = ZipEncoder().encode(archive);
     final exportFile = File(
       '${dir.path}/fldanplay_config_${DateTime.now().millisecondsSinceEpoch}.zip',

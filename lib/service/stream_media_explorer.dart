@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:fldanplay/model/history.dart';
+import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/model/storage.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/model/video_info.dart';
@@ -9,6 +10,7 @@ import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
 import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/offline_cache.dart';
+import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:get_it/get_it.dart';
@@ -71,16 +73,18 @@ abstract class StreamMediaExplorerProvider {
 }
 
 Future<StreamMediaExplorerProvider?> createStreamMediaExplorerProvider(
-  Storage storage, {
+  Storage2 storage, {
   bool validateCredentials = true,
 }) async {
   final StreamMediaExplorerProvider? provider;
   switch (storage.storageType) {
     case StorageType.jellyfin:
-      provider = JellyfinStreamMediaExplorerProvider(storage);
+      provider = JellyfinStreamMediaExplorerProvider(
+        storage as JellyfinMediaStorage,
+      );
       break;
     case StorageType.emby:
-      provider = EmbyStreamMediaExplorerProvider(storage);
+      provider = EmbyStreamMediaExplorerProvider(storage as EmbyMediaStorage);
       break;
     default:
       return null;
@@ -121,7 +125,7 @@ class StreamMediaExplorerService {
   final AsyncSignal<List<CollectionItem>> libraries = asyncSignal(
     AsyncLoading(),
   );
-  Storage? storage;
+  StreamStorage? storage;
   void Function()? _reportEffect;
   String? _seasonId;
   List<MediaStreamInfo> audioStreams = const [];
@@ -159,7 +163,10 @@ class StreamMediaExplorerService {
     }
   }
 
-  void setProvider(StreamMediaExplorerProvider newProvider, Storage storage) {
+  void setProvider(
+    StreamMediaExplorerProvider newProvider,
+    StreamStorage storage,
+  ) {
     batch(() {
       filter.value = Filter();
       libraries.value = AsyncLoading();
@@ -183,7 +190,6 @@ class StreamMediaExplorerService {
     }
     libraries.value = AsyncLoading();
     try {
-      final bool useRemoteHistory = storage?.useRemoteHistory ?? false;
       final providerViews = await provider.value!.getUserViews();
       final list = useRemoteHistory
           ? [CollectionItem(id: '', name: '收藏'), ...providerViews]
@@ -218,9 +224,7 @@ class StreamMediaExplorerService {
     String? parentId,
     int limit = 12,
   }) async {
-    if (provider.value == null || storage?.useRemoteHistory != true) {
-      return [];
-    }
+    if (provider.value == null || useRemoteHistory != true) return [];
     return provider.value!.getResumeItems(parentId: parentId, limit: limit);
   }
 
@@ -262,16 +266,10 @@ class StreamMediaExplorerService {
 
   Future<void> _syncLibraryId() async {
     final newId = libraryId.value;
-    if (storage == null) return;
-    if (storage!.mediaLibraryId == newId && newId.isEmpty) {
-      return;
-    }
+    if (storage == null || newId.isEmpty) return;
+    if (storage!.mediaLibraryId == newId) return;
     storage!.mediaLibraryId = newId;
-    try {
-      await storage!.save();
-    } catch (e, t) {
-      _logger.error('libraryId', '同步媒体库ID失败', error: e, stackTrace: t);
-    }
+    await GetIt.I<StorageService>().update(storage!);
   }
 
   List<EpisodeInfo> get playbackEpisodes {
@@ -453,7 +451,7 @@ class StreamMediaExplorerService {
 
   History? getHistory(EpisodeInfo episode) {
     final localHistory = historyService.getHistoryByPath(episode.id);
-    if (storage!.useRemoteHistory != true) return localHistory;
+    if (!useRemoteHistory) return localHistory;
     final userData = episode.userData;
     final lastPlayedDate = userData?.lastPlayedDate;
     if (userData == null || lastPlayedDate == null) return localHistory;
@@ -482,8 +480,7 @@ class StreamMediaExplorerService {
   }
 
   Future<void> startPlayback(String itemId, String playbackUrl) async {
-    if (provider.value == null) return;
-    if (storage?.useRemoteHistory != true) return;
+    if (provider.value == null || !useRemoteHistory) return;
     try {
       _reportEffect?.call();
       final sessionId = playSessionIdFromUrl(playbackUrl);
@@ -508,8 +505,7 @@ class StreamMediaExplorerService {
   }
 
   Future<void> stopPlayback(String itemId, String playbackUrl) async {
-    if (provider.value == null) return;
-    if (storage?.useRemoteHistory != true) return;
+    if (provider.value == null || !useRemoteHistory) return;
     final sessionId = playSessionIdFromUrl(playbackUrl);
     if (sessionId == null) return;
     final positionTicks = globalService.position.value;
@@ -527,30 +523,28 @@ class StreamMediaExplorerService {
   }
 }
 
-class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
-  final Storage storage;
+abstract class _EmbyStreamMediaExplorerProvider<T extends StreamStorage>
+    implements StreamMediaExplorerProvider {
+  final T storage;
   late UserInfo _userInfo;
   late Dio dio;
   late final Logger _logger = Logger(loggerName);
   final _configure = GetIt.I.get<ConfigureService>();
 
-  EmbyStreamMediaExplorerProvider(this.storage) {
-    _userInfo = UserInfo(
-      userId: storage.userId ?? '',
-      token: storage.token ?? '',
-    );
+  _EmbyStreamMediaExplorerProvider(this.storage) {
+    _userInfo = UserInfo(userId: storage.userId, token: storage.token);
   }
 
   String get authPrefix => 'Emby';
   String get authHeaderKey => 'Authorization';
   String get loggerName => 'EmbyStreamMediaExplorerProvider';
-  bool get _useRemoteHistory => storage.useRemoteHistory == true;
+  bool get _useRemoteHistory => storage.useRemoteHistory;
   String get url => storage.url;
 
-  Future<T> _request<T>(
+  Future<R> _request<R>(
     String method,
     String action,
-    Future<T> Function() callback,
+    Future<R> Function() callback,
   ) async {
     try {
       return await callback();
@@ -592,8 +586,8 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   }
 
   Future<void> _loginWithSavedPassword(Dio dio) async {
-    final username = storage.account?.trim() ?? '';
-    final password = storage.password?.trim() ?? '';
+    final username = storage.account.trim();
+    final password = storage.password.trim();
     if (username.isEmpty || password.isEmpty) {
       throw AppException('登录信息无效，请重新编辑媒体库并登录', null);
     }
@@ -603,7 +597,7 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
       storage
         ..token = newUserInfo.token
         ..userId = newUserInfo.userId;
-      await storage.save();
+      await GetIt.I<StorageService>().update(storage);
       _logger.info('refreshCredentials', '登录凭证已刷新');
     });
   }
@@ -1115,8 +1109,13 @@ class EmbyStreamMediaExplorerProvider implements StreamMediaExplorerProvider {
   void dispose() {}
 }
 
+class EmbyStreamMediaExplorerProvider
+    extends _EmbyStreamMediaExplorerProvider<EmbyMediaStorage> {
+  EmbyStreamMediaExplorerProvider(super.storage);
+}
+
 class JellyfinStreamMediaExplorerProvider
-    extends EmbyStreamMediaExplorerProvider {
+    extends _EmbyStreamMediaExplorerProvider<JellyfinMediaStorage> {
   JellyfinStreamMediaExplorerProvider(super.storage);
 
   @override

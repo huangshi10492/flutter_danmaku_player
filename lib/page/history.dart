@@ -1,4 +1,5 @@
 import 'package:fldanplay/model/history.dart';
+import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -134,6 +135,10 @@ class _HistoryPageState extends State<HistoryPage> {
           final storage = _storageService.get(storageKey);
           if (storage == null) {
             showToast(level: 3, title: '播放失败', description: '找不到对应的媒体库');
+            return;
+          }
+          if (storage is! StreamStorage) {
+            showToast(level: 3, title: '播放失败', description: '不支持的媒体库类型');
             return;
           }
           final provider = await createStreamMediaExplorerProvider(storage);
