@@ -41,7 +41,7 @@ class PlayerSessionController {
     VideoInfo? nextVideo;
     final historyService = GetIt.I.get<HistoryService>();
     if (index == -1) {
-      final history = historyService.getHistoryByPath(current.virtualVideoPath);
+      final history = historyService.getHistory(current.uniqueKey);
       if (history == null) return;
       if (current.historiesType == .streamMediaStorage) {
         final explorer = GetIt.I.get<StreamMediaExplorerService>();

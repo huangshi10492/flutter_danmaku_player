@@ -335,7 +335,7 @@ class FileExplorerService {
     final headers = provider.value!.headers;
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
-      virtualVideoPath: '${_storage!.key}/$path',
+      virtualVideoPath: path,
       headers: headers.map((key, value) => MapEntry(key, value.toString())),
       historiesType: HistoriesType.fileStorage,
       videoIndex: index,
@@ -389,7 +389,7 @@ class FileExplorerService {
     final externalSubtitles = await _discoverSubtitles(path);
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
-      virtualVideoPath: history.url!,
+      virtualVideoPath: filePathFromVirtualPath(history.url!, storageKey),
       headers: headers.map((key, value) => MapEntry(key, value.toString())),
       historiesType: HistoriesType.fileStorage,
       subtitle: history.subtitle,

@@ -5,7 +5,7 @@ import 'package:fldanplay/utils/utils.dart';
 class VideoInfo {
   // 视频文件的真实地址
   String currentVideoPath;
-  // 虚拟路径(1/video.mp4)
+  // 媒体库内的虚拟路径
   String virtualVideoPath;
   Map<String, String> headers;
   HistoriesType historiesType;
@@ -36,7 +36,10 @@ class VideoInfo {
   }) {
     name = virtualVideoPath.split('/').last;
     videoName = Utils.removeExtension(name);
-    uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
+    uniqueKey = CryptoUtils.generateVideoUniqueKey(
+      virtualVideoPath,
+      storageKey: storageKey,
+    );
     this.externalSubtitles = externalSubtitles ?? const [];
     this.chapters = chapters ?? const {};
   }
@@ -56,7 +59,10 @@ class VideoInfo {
     List<ExternalSubtitle>? externalSubtitles,
     Map<int, String>? chapters,
   }) {
-    uniqueKey = CryptoUtils.generateVideoUniqueKey(virtualVideoPath);
+    uniqueKey = CryptoUtils.generateVideoUniqueKey(
+      virtualVideoPath,
+      storageKey: storageKey,
+    );
     this.externalSubtitles = externalSubtitles ?? const [];
     this.chapters = chapters ?? const {};
   }

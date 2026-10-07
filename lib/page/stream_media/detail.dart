@@ -392,7 +392,10 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     if (_isLoading) return const SizedBox.shrink();
     final item = _continueItem;
     if (item == null) return const SizedBox.shrink();
-    final uniqueKey = CryptoUtils.generateVideoUniqueKey(item.id);
+    final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+      item.id,
+      storageKey: _service.storage?.uniqueKey,
+    );
     final positionMs = (item.playbackPositionTicks / 10000).round();
     final durationMs = ((item.runTimeTicks ?? 0) / 10000).round();
     _refreshMap[uniqueKey] ??= 0;
@@ -467,7 +470,10 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     SeasonInfo season,
     EpisodeInfo episode,
   ) {
-    final uniqueKey = CryptoUtils.generateVideoUniqueKey(episode.id);
+    final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+      episode.id,
+      storageKey: _service.storage?.uniqueKey,
+    );
     _refreshMap[uniqueKey] ??= 0;
     final refreshKey = _refreshMap[uniqueKey]!;
     final history = _service.getHistory(episode);

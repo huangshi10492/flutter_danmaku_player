@@ -11,7 +11,13 @@ typedef HashProgressCallback = void Function(int received, int total);
 class CryptoUtils {
   static const int _dandanplayHashBytes = 16 * 1024 * 1024;
 
-  static String generateVideoUniqueKey(String input) {
+  static String generateVideoUniqueKey(
+    String virtualVideoPath, {
+    String? storageKey,
+  }) {
+    final input = storageKey == null || storageKey.isEmpty
+        ? virtualVideoPath
+        : '$storageKey/$virtualVideoPath';
     final bytes = utf8.encode(input);
     final digest = md5.convert(bytes);
     return digest.toString();

@@ -10,6 +10,7 @@ import 'package:fldanplay/service/file_explorer.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart' hide Filter;
 import 'package:fldanplay/utils/log.dart';
+import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -53,6 +54,85 @@ class OfflineCacheService {
       await file.delete();
     }
     _logger.info('init', '离线缓存服务初始化完成');
+  }
+
+  Future<void> migrateUniqueKeys() async {
+    await lock.synchronized(() async {
+      final entries = _cacheBox.toMap().entries.map((entry) {
+        final cache = entry.value;
+        final videoInfo = cache.videoInfo;
+        if (videoInfo.historiesType == .fileStorage &&
+            videoInfo.storageKey != null &&
+            videoInfo.storageKey!.isNotEmpty &&
+            videoInfo.virtualVideoPath.startsWith(
+              '${videoInfo.storageKey!}/',
+            )) {
+          videoInfo.virtualVideoPath = videoInfo.virtualVideoPath.substring(
+            videoInfo.storageKey!.length + 1,
+          );
+        }
+        final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+          videoInfo.virtualVideoPath,
+          storageKey: videoInfo.storageKey,
+        );
+        return (oldKey: cache.uniqueKey, cache: cache, uniqueKey: uniqueKey);
+      }).toList();
+      final winners =
+          <String, ({dynamic oldKey, OfflineCache cache, String uniqueKey})>{};
+      for (final entry in entries) {
+        final current = winners[entry.uniqueKey];
+        if (current == null ||
+            (entry.oldKey.toString() == entry.uniqueKey &&
+                current.oldKey.toString() != current.uniqueKey) ||
+            (entry.oldKey.toString() != entry.uniqueKey &&
+                current.oldKey.toString() != current.uniqueKey &&
+                entry.cache.cacheTime > current.cache.cacheTime)) {
+          winners[entry.uniqueKey] = entry;
+        }
+      }
+      for (final entry in entries) {
+        final winner = winners[entry.uniqueKey];
+        if (winner == null || !identical(winner.cache, entry.cache)) {
+          await _cacheBox.delete(entry.oldKey);
+          if (!winners.values.any(
+            (candidate) => candidate.oldKey == entry.oldKey,
+          )) {
+            await _deleteCacheFiles(entry.oldKey);
+          }
+        }
+      }
+      for (final entry in winners.values) {
+        entry.cache.uniqueKey = entry.uniqueKey;
+        entry.cache.videoInfo.uniqueKey = entry.uniqueKey;
+        await _cacheBox.delete(entry.oldKey);
+        await _cacheBox.put(entry.uniqueKey, entry.cache);
+        if (entry.oldKey != entry.uniqueKey) {
+          await _moveCacheFile(entry.oldKey, entry.uniqueKey);
+        }
+      }
+    });
+    _logger.info('migrateUniqueKeys', '离线缓存迁移完成');
+  }
+
+  Future<void> _moveCacheFile(String oldKey, String newKey) async {
+    final oldFile = File('$cachePath/$oldKey');
+    final newFile = File('$cachePath/$newKey');
+    if (await oldFile.exists() && !await newFile.exists()) {
+      await oldFile.rename(newFile.path);
+    }
+    final oldDir = Directory('$cachePath/subtitles/$oldKey');
+    final newDir = Directory('$cachePath/subtitles/$newKey');
+    if (await oldDir.exists() && !await newDir.exists()) {
+      await newDir.parent.create(recursive: true);
+      await oldDir.rename(newDir.path);
+    }
+  }
+
+  Future<void> _deleteCacheFiles(String key) async {
+    final file = File('$cachePath/$key');
+    if (await file.exists()) await file.delete();
+    final dir = Directory('$cachePath/subtitles/$key');
+    if (await dir.exists()) await dir.delete(recursive: true);
   }
 
   bool isCached(String uniqueKey) {

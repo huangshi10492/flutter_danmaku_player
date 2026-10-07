@@ -10,6 +10,13 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:synchronized/synchronized.dart';
 
+typedef HistoryMigrationEntry = ({
+  String oldKey,
+  History history,
+  String url,
+  String uniqueKey,
+});
+
 class HistoryService {
   late Box<History> _historyBox;
   final lock = Lock();
@@ -57,7 +64,10 @@ class HistoryService {
   }) async {
     return await lock.synchronized(() async {
       _logger.info('startHistory', '开始记录播放历史: $url');
-      final uniqueKey = CryptoUtils.generateVideoUniqueKey(url);
+      final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+        url,
+        storageKey: storageKey,
+      );
       final existing = getHistory(uniqueKey);
       if (existing != null) {
         existing.updateTime = DateTime.now().millisecondsSinceEpoch;
@@ -94,9 +104,102 @@ class HistoryService {
     });
   }
 
-  History? getHistoryByPath(String videoPath) {
-    final uniqueKey = CryptoUtils.generateVideoUniqueKey(videoPath);
+  History? getHistoryByPath(String videoPath, {String? storageKey}) {
+    final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+      videoPath,
+      storageKey: storageKey,
+    );
     return getHistory(uniqueKey);
+  }
+
+  Future<void> migrateUniqueKeys() async {
+    await lock.synchronized(() async {
+      final entries = _historyBox.toMap().entries.map((entry) {
+        final history = entry.value;
+        final url = history.type == HistoriesType.fileStorage
+            ? _normalizeUrl(history.url ?? '', history.storageKey)
+            : history.url ?? '';
+        final uniqueKey = CryptoUtils.generateVideoUniqueKey(
+          url,
+          storageKey: history.storageKey,
+        );
+        return (
+          oldKey: history.uniqueKey,
+          history: history,
+          url: url,
+          uniqueKey: uniqueKey,
+        );
+      }).toList();
+      final winners =
+          <
+            String,
+            ({dynamic oldKey, History history, String url, String uniqueKey})
+          >{};
+      for (final entry in entries) {
+        final current = winners[entry.uniqueKey];
+        if (current == null ||
+            (entry.oldKey.toString() == entry.uniqueKey &&
+                current.oldKey.toString() != current.uniqueKey) ||
+            (entry.oldKey.toString() != entry.uniqueKey &&
+                current.oldKey.toString() != current.uniqueKey &&
+                entry.history.updateTime > current.history.updateTime)) {
+          winners[entry.uniqueKey] = entry;
+        }
+      }
+      final documentsDir = await getApplicationSupportDirectory();
+      for (final entry in entries) {
+        final winner = winners[entry.uniqueKey];
+        if (winner == null || !identical(winner.history, entry.history)) {
+          await _historyBox.delete(entry.oldKey);
+          if (!winners.values.any(
+            (candidate) => candidate.oldKey == entry.oldKey,
+          )) {
+            await _deleteFiles(documentsDir.path, entry.oldKey);
+          }
+          continue;
+        }
+        entry.history.url = entry.url;
+        entry.history.uniqueKey = entry.uniqueKey;
+        await _historyBox.delete(entry.oldKey);
+      }
+      for (final entry in winners.values) {
+        final oldKey = entry.oldKey;
+        await _historyBox.put(entry.uniqueKey, entry.history);
+        if (oldKey != entry.uniqueKey) {
+          await _moveFile(
+            '${documentsDir.path}/screenshots/$oldKey',
+            '${documentsDir.path}/screenshots/${entry.uniqueKey}',
+          );
+          await _moveFile(
+            '${documentsDir.path}/danmaku/$oldKey.json',
+            '${documentsDir.path}/danmaku/${entry.uniqueKey}.json',
+          );
+        }
+      }
+    });
+    _logger.info('migrateUniqueKeys', '历史记录迁移完成');
+  }
+
+  String _normalizeUrl(String url, String? storageKey) {
+    if (storageKey == null || storageKey.isEmpty) return url;
+    final prefix = '$storageKey/';
+    if (url == storageKey) return '';
+    return url.startsWith(prefix) ? url.substring(prefix.length) : url;
+  }
+
+  Future<void> _moveFile(String oldPath, String newPath) async {
+    final oldFile = File(oldPath);
+    final newFile = File(newPath);
+    if (!await oldFile.exists() || await newFile.exists()) return;
+    await newFile.parent.create(recursive: true);
+    await oldFile.rename(newPath);
+  }
+
+  Future<void> _deleteFiles(String root, String key) async {
+    for (final path in ['$root/screenshots/$key', '$root/danmaku/$key.json']) {
+      final file = File(path);
+      if (await file.exists()) await file.delete();
+    }
   }
 
   Future<void> merge(File remoteFile, int lastSyncTime) async {

@@ -9,6 +9,8 @@ import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/configure.dart';
+import 'package:fldanplay/service/history.dart';
+import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -39,7 +41,7 @@ class RootPageState extends State<RootPage> {
   }
 
   Future<void> upgrade() async {
-    int breakVersion = 1;
+    int breakVersion = 2;
     final cs = GetIt.I.get<ConfigureService>();
     while (cs.breakVersion.value < breakVersion) {
       setState(() => uping = true);
@@ -47,6 +49,10 @@ class RootPageState extends State<RootPage> {
         case 0:
           await GetIt.I.get<StorageService>().migrateLibraries();
           cs.breakVersion.value = 1;
+        case 1:
+          await GetIt.I.get<HistoryService>().migrateUniqueKeys();
+          await GetIt.I.get<OfflineCacheService>().migrateUniqueKeys();
+          cs.breakVersion.value = 2;
       }
     }
     setState(() => uping = false);
@@ -187,7 +193,7 @@ class RootPageState extends State<RootPage> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('正在更新'),
+              Text('正在迁移数据，请保持当前界面'),
             ],
           ),
         ),

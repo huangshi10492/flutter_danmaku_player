@@ -62,7 +62,10 @@ class _EpisodeListPanelState extends State<EpisodeListPanel> {
           child: FItemGroup(
             children: episodes.asMap().entries.map<FItem>((e) {
               final episode = e.value;
-              final history = historyService.getHistoryByPath(episode.id);
+              final history = historyService.getHistoryByPath(
+                episode.id,
+                storageKey: widget.videoInfo.storageKey,
+              );
               final titleText = episode.indexNumber != null
                   ? '${episode.indexNumber}. ${episode.name}'
                   : episode.name;

@@ -450,7 +450,10 @@ class StreamMediaExplorerService {
   }
 
   History? getHistory(EpisodeInfo episode) {
-    final localHistory = historyService.getHistoryByPath(episode.id);
+    final localHistory = historyService.getHistoryByPath(
+      episode.id,
+      storageKey: storage?.uniqueKey,
+    );
     if (!useRemoteHistory) return localHistory;
     final userData = episode.userData;
     final lastPlayedDate = userData?.lastPlayedDate;
@@ -460,7 +463,10 @@ class StreamMediaExplorerService {
       return localHistory;
     }
     return History(
-      uniqueKey: CryptoUtils.generateVideoUniqueKey(episode.id),
+      uniqueKey: CryptoUtils.generateVideoUniqueKey(
+        episode.id,
+        storageKey: storage?.uniqueKey,
+      ),
       duration: ((episode.runTimeTicks ?? 0) / 10000).round(),
       position: ((userData.playbackPositionTicks ?? 0) / 10000).round(),
       type: HistoriesType.streamMediaStorage,
@@ -474,7 +480,10 @@ class StreamMediaExplorerService {
   }
 
   Future<void> removeHistory(String itemId) async {
-    final history = historyService.getHistoryByPath(itemId);
+    final history = historyService.getHistoryByPath(
+      itemId,
+      storageKey: storage?.uniqueKey,
+    );
     if (history != null) historyService.delete(history: history);
     setPlayed(itemId, false);
   }
