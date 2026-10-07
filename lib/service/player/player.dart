@@ -602,15 +602,23 @@ class VideoPlayerService {
         _log.warn('saveSnapshot', 'Cannot get video unique key');
         return;
       }
-      final rawSnapshot = await _player.screenshot(format: 'image/jpeg');
-      if (rawSnapshot == null) {
+      final rawSnapshot = await _player.screenshot(format: null);
+      if (rawSnapshot == null || rawSnapshot.isEmpty) {
         _log.warn('saveSnapshot', 'Failed to take snapshot');
         return;
       }
-      final image = img.decodeJpg(rawSnapshot);
-      if (image == null) {
+      final width = _player.state.videoParams.w;
+      final height = _player.state.videoParams.h;
+      if (width == null || height == null || width <= 0 || height <= 0) {
+        _log.warn('saveSnapshot', 'Invalid video size: $width x $height');
         return;
       }
+      final image = img.Image.fromBytes(
+        width: width,
+        height: height,
+        bytes: rawSnapshot.buffer,
+        order: .bgra,
+      );
       final thumbnail = img.copyResize(image, width: 300);
       final documentsDir = await getApplicationSupportDirectory();
       final dir = Directory('${documentsDir.path}/screenshots');
