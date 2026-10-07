@@ -266,8 +266,7 @@ class StreamMediaExplorerService {
 
   Future<void> _syncLibraryId() async {
     final newId = libraryId.value;
-    if (storage == null || newId.isEmpty) return;
-    if (storage!.mediaLibraryId == newId) return;
+    if (storage == null || storage!.mediaLibraryId == newId) return;
     storage!.mediaLibraryId = newId;
     await GetIt.I<StorageService>().update(storage!);
   }
