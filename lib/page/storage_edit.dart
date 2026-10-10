@@ -234,12 +234,11 @@ class _StorageEditPageState extends State<StorageEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: SettingsScaffold(
-        title: widget.storageType.label,
-        scrollView: false,
-        child: ListView(
+    return SettingsScaffold(
+      title: widget.storageType.label,
+      child: Form(
+        key: _formKey,
+        child: Column(
           children: [
             _padding(
               FTextFormField(

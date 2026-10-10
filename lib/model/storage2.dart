@@ -361,7 +361,7 @@ final class FtpStorage extends Storage2 {
         key: meta.key,
         createdAt: meta.createdAt,
         host: json['host'] as String? ?? '',
-        port: (json['port'] as num?)?.toInt() ?? 21,
+        port: (json['port'] as int?) ?? 21,
         account: json['account'] as String? ?? '',
         password: json['password'] as String?,
         ftpMode: json['ftpMode'] as String? ?? 'passive',
@@ -389,7 +389,7 @@ final class FtpStorage extends Storage2 {
       number: true,
       required: true,
       validator: _validatePort,
-      read: () => port.toString(),
+      read: () => port,
       write: (v) => port = int.tryParse(v.trim()) ?? 21,
     ),
     .text(
