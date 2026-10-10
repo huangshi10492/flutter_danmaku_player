@@ -453,8 +453,8 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                 child: NetworkImageWidget(
                   url: _service.getImageUrl(widget.mediaItem.id),
                   headers: _service.headers,
-                  maxWidth: boxConstraints.maxWidth,
-                  maxHeight: boxConstraints.maxHeight,
+                  width: boxConstraints.maxWidth,
+                  height: boxConstraints.maxHeight,
                   radius: 0,
                 ),
               ),

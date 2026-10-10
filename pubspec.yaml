@@ -68,7 +68,11 @@ dependencies:
 
   # UI 组件
   audio_video_progress_bar: ^2.0.3
-  cached_network_image: ^4.0.4
+  cached_network_image_ce:
+    git:
+      url: https://github.com/bggRGjQaUbCoE/flutter_cached_network_image_ce.git
+      path: cached_network_image
+      ref: develop
   cupertino_icons: ^2.0.0
   fl_chart: ^1.2.0
   forui: ^0.27.3

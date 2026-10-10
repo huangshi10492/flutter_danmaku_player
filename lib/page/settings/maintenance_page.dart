@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/service/configure.dart';
@@ -9,6 +10,7 @@ import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/utils/dialog.dart';
 import 'package:fldanplay/utils/log.dart';
 import 'package:fldanplay/utils/toast.dart';
+import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/settings/settings_scaffold.dart';
 import 'package:fldanplay/widget/settings/settings_section.dart';
 import 'package:fldanplay/widget/settings/settings_tile.dart';
@@ -25,15 +27,18 @@ class MaintenancePage extends StatefulWidget {
 }
 
 class _MaintenancePageState extends State<MaintenancePage> {
+  final _cacheManager = DefaultCacheManager.instance!;
   final _maintenanceUtils = MaintenanceUtils();
   bool _isLoading = false;
   int _historyCount = 0;
   int _cleanDaysAgo = 90;
+  int _cacheSize = 0;
 
   @override
   void initState() {
     super.initState();
     _loadStats();
+    _loadCacheSize();
   }
 
   Future<void> _loadStats() async {
@@ -43,6 +48,11 @@ class _MaintenancePageState extends State<MaintenancePage> {
         _historyCount = historyCount;
       });
     }
+  }
+
+  void _loadCacheSize() {
+    final size = _cacheManager.getTotalLength();
+    setState(() => _cacheSize = size);
   }
 
   Future<void> _backupConfigAndStorage() async {
@@ -139,6 +149,15 @@ class _MaintenancePageState extends State<MaintenancePage> {
               SettingsSection(
                 title: '数据清理',
                 children: [
+                  SettingsTile.simpleTile(
+                    title: '清理图片缓存',
+                    subtitle: '当前缓存: ${Utils.formatFileSize(_cacheSize)}',
+                    onPress: () async {
+                      await _cacheManager.emptyCache();
+                      _loadCacheSize();
+                      showToast(level: 1, title: '清理图片缓存完成');
+                    },
+                  ),
                   SettingsTile.sliderTile(
                     title: '清理天数阈值',
                     subtitle: '清理多少天前的老旧数据',

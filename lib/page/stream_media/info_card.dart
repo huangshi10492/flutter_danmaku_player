@@ -72,8 +72,8 @@ class StreamMediaInfoCard extends StatelessWidget {
                                 child: NetworkImageWidget(
                                   url: imageUrl,
                                   headers: headers,
-                                  maxWidth: boxConstraints.maxWidth,
-                                  maxHeight: boxConstraints.maxHeight,
+                                  width: boxConstraints.maxWidth,
+                                  height: boxConstraints.maxHeight,
                                   errorWidget: _buildEmptyPrefix(),
                                 ),
                               ),

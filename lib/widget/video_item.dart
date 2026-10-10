@@ -221,8 +221,8 @@ class _VideoItemState extends State<VideoItem> {
           child: NetworkImageWidget(
             url: widget.imageUrl!,
             headers: widget.headers,
-            maxWidth: maxWidth,
-            maxHeight: maxHeight,
+            width: maxWidth,
+            height: maxHeight,
             radius: 4,
             errorWidget: _buildEmtpyPrefix(),
           ),

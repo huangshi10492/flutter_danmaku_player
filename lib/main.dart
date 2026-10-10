@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:catcher_2/catcher_2.dart';
 import 'package:dpad/dpad.dart';
 import 'package:fldanplay/service/global.dart';
@@ -58,6 +59,7 @@ Future<void> init() async {
     '${(await getApplicationSupportDirectory()).path}/hive',
   );
   Hive.registerAdapters();
+  await DefaultCacheManager.init(cacheDirectoryProvider: getCachedDirectory);
   final cs = await ServiceLocator.initialize();
   ScaledWidgetsFlutterBinding.instance.scaleFactor = cs.uiScale.value;
   MediaKit.ensureInitialized();
@@ -73,6 +75,15 @@ Future<void> init() async {
     );
   }
   SuperResolutionUtils.initFile();
+}
+
+Future<Directory> getCachedDirectory() async {
+  final dir = await getTemporaryDirectory();
+  final supportDir = Directory('${dir.path}/fldanplay');
+  if (!await supportDir.exists()) {
+    await supportDir.create();
+  }
+  return supportDir;
 }
 
 void upgrade() {

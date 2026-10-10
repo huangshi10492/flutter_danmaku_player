@@ -63,15 +63,6 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
     }
   }
 
-  String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '${bytes}B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
-  }
-
   String _formatWatchHistory(History? history) {
     if (history == null || history.position <= 0) return '未观看';
     final percent = history.duration > 0
@@ -144,7 +135,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                       children: [
                         if (cache.videoInfo.subtitle != null)
                           Text(cache.videoInfo.subtitle!),
-                        Text(_formatFileSize(cache.fileSize)),
+                        Text(Utils.formatFileSize(cache.fileSize)),
                         Text(historyText),
                       ],
                     ),
@@ -192,7 +183,7 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                         ),
                       if (cache.status == DownloadStatus.downloading)
                         Text(
-                          '下载中... ${_formatFileSize(cache.downloadedBytes)} / ${_formatFileSize(cache.totalBytes)}',
+                          '下载中... ${Utils.formatFileSize(cache.downloadedBytes)} / ${Utils.formatFileSize(cache.totalBytes)}',
                         ),
                       const SizedBox(height: 4),
                       FDeterminateProgress(
