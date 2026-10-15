@@ -178,7 +178,7 @@ class StreamMediaExplorerService {
       episodeMap.clear();
       this.storage = storage;
       provider.value = newProvider;
-      libraryId.value = storage.mediaLibraryId!;
+      libraryId.value = storage.mediaLibraryId ?? '';
     });
     _logger.info('setProvider', '设置新的媒体库提供者');
   }
