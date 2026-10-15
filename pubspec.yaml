@@ -78,7 +78,7 @@ dependencies:
   forui: ^0.27.3
   material_ui: ^1.5.0
   skeletonizer: ^3.0.0
-  dpad: ^3.0.0
+  dpad: ^3.1.1
   flutter_markdown_plus: ^1.0.12
 
   # 平台与设备

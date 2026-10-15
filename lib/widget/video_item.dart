@@ -2,14 +2,13 @@ import 'dart:io';
 
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
-import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/utils/icon.dart';
 import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/widget/danmaku_match_dialog.dart';
+import 'package:fldanplay/widget/context_menu.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:forui/forui.dart';
-import 'package:get_it/get_it.dart';
 import 'package:path_provider/path_provider.dart';
 
 class FileImageEx extends FileImage {
@@ -29,19 +28,6 @@ class FileImageEx extends FileImage {
 
   @override
   int get hashCode => fileSize.hashCode;
-}
-
-class ContextMenuItem {
-  final IconData icon;
-  final FItemVariant variant;
-  final String title;
-  final Function() onPress;
-  const ContextMenuItem({
-    required this.icon,
-    this.variant = .primary,
-    required this.title,
-    required this.onPress,
-  });
 }
 
 class VideoItem extends StatefulWidget with FItemMixin {
@@ -253,7 +239,8 @@ class _VideoItemState extends State<VideoItem> {
     final subtitleStyle =
         context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final subtitle = widget.subtitle ?? widget.history?.subtitle;
-    return _ContextMenu(
+    return ContextMenu(
+      openTitle: '播放',
       items: [
         if (widget.getDanmakuMatchInfo != null)
           .new(
@@ -274,9 +261,10 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ...widget.items,
       ],
-      childOnPress: widget.onPress,
-      child: (onPress) => FItem(
-        focusNode: widget.focusNode,
+      onOpen: widget.onPress,
+      focusNode: widget.focusNode,
+      child: (onPress, focusNode) => FItem(
+        focusNode: focusNode,
         prefix: SizedBox(
           width: widget.coutinue ? 144 : 100,
           height: widget.coutinue ? 81 : 65,
@@ -380,75 +368,6 @@ class _VideoItemState extends State<VideoItem> {
           ),
         ),
         onPress: onPress,
-      ),
-    );
-  }
-}
-
-class _ContextMenu extends StatefulWidget with FItemMixin {
-  final List<ContextMenuItem> items;
-  final VoidCallback childOnPress;
-  final FItem Function(VoidCallback onPress) child;
-  const _ContextMenu({
-    required this.items,
-    required this.child,
-    required this.childOnPress,
-  });
-  @override
-  _ContextMenuState createState() => _ContextMenuState();
-}
-
-class _ContextMenuState extends State<_ContextMenu>
-    with TickerProviderStateMixin {
-  late final FPopoverController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = FPopoverController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dpadEnabled = GetIt.I.get<ConfigureService>().dpadEnable.value;
-    return FContextMenu.tiles(
-      control: .managed(controller: _controller),
-      menu: [
-        .group(
-          divider: .full,
-          children: [
-            if (dpadEnabled)
-              .tile(
-                prefix: const Icon(FLucideIcons.play),
-                title: Text('播放'),
-                autofocus: true,
-                onPress: () {
-                  _controller.toggle();
-                  widget.childOnPress();
-                },
-              ),
-            ...widget.items.map(
-              (item) => .tile(
-                prefix: Icon(item.icon),
-                variant: item.variant,
-                title: Text(item.title),
-                onPress: () async {
-                  await _controller.toggle();
-                  item.onPress();
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-      child: widget.child(
-        dpadEnabled ? () => _controller.show() : widget.childOnPress,
       ),
     );
   }

@@ -174,8 +174,11 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
     }
     _pendingFocusKey = videoInfo.uniqueKey;
+    _scrollOffsets[_directoryPath()] = _listScroll.position.pixels;
     final location = Uri(path: videoPlayerPath);
-    context.push(location.toString(), extra: videoInfo);
+    context.push(location.toString(), extra: videoInfo).then((_) {
+      _restoreScrollPosition(_directoryPath());
+    });
   }
 
   void _handleOfflineDownload(FileItem file) {

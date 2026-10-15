@@ -11,6 +11,7 @@ import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/offline_cache.dart';
+import 'package:fldanplay/widget/context_menu.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -275,21 +276,31 @@ class RootPageState extends State<RootPage> {
                     onPress: () => _showPlayVideoDialog(),
                   ),
                   ...storages.map(
-                    (storage) => _ContextMenu(
-                      edit: () {
-                        context.push(
-                          '$storageEditPath?storage_key=${storage.key}&storage_type=${storage.storageType.name}',
-                        );
-                      },
-                      delete: () => showConfirmDialog(
-                        context,
-                        title: '删除媒体库',
-                        content: '是否删除媒体库"${storage.name}"？',
-                        onConfirm: () => _storageService.delete(storage.key),
-                        confirmText: '删除',
-                        destructive: true,
-                      ),
-                      childOnPress: () {
+                    (storage) => ContextMenu(
+                      items: [
+                        .new(
+                          icon: FLucideIcons.pencil,
+                          title: '编辑',
+                          onPress: () => context.push(
+                            '$storageEditPath?storage_key=${storage.key}&storage_type=${storage.storageType.name}',
+                          ),
+                        ),
+                        .new(
+                          icon: FLucideIcons.trash,
+                          title: '删除',
+                          variant: .destructive,
+                          onPress: () => showConfirmDialog(
+                            context,
+                            title: '删除媒体库',
+                            content: '是否删除媒体库"${storage.name}"？',
+                            onConfirm: () =>
+                                _storageService.delete(storage.key),
+                            confirmText: '删除',
+                            destructive: true,
+                          ),
+                        ),
+                      ],
+                      onOpen: () {
                         switch (storage.storageType) {
                           case StorageType.webdav:
                           case StorageType.ftp:
@@ -307,10 +318,11 @@ class RootPageState extends State<RootPage> {
                             break;
                         }
                       },
-                      child: (onPress) => FItem(
+                      child: (onPress, focusNode) => FItem(
                         prefix: _buildPrefix(storage.storageType),
                         title: Text(storage.name),
                         subtitle: Text(storage.subtitle),
+                        focusNode: focusNode,
                         onPress: onPress,
                       ),
                     ),
@@ -368,80 +380,6 @@ class SelectStorageTypeSheet extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ContextMenu extends StatefulWidget with FItemMixin {
-  final VoidCallback edit;
-  final VoidCallback delete;
-  final VoidCallback childOnPress;
-  final FItem Function(VoidCallback onPress) child;
-  const _ContextMenu({
-    required this.edit,
-    required this.delete,
-    required this.childOnPress,
-    required this.child,
-  });
-  @override
-  _ContextMenuState createState() => _ContextMenuState();
-}
-
-class _ContextMenuState extends State<_ContextMenu>
-    with TickerProviderStateMixin {
-  late final FPopoverController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = FPopoverController(vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _closeAndRun(VoidCallback action) async {
-    await _controller.hide();
-    if (mounted) action();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final dpadEnabled = GetIt.I.get<ConfigureService>().dpadEnable.value;
-    return FContextMenu.tiles(
-      control: .managed(controller: _controller),
-      menu: [
-        .group(
-          divider: .full,
-          children: [
-            if (dpadEnabled)
-              .tile(
-                prefix: const Icon(FLucideIcons.play),
-                title: Text('打开'),
-                autofocus: true,
-                onPress: () => _closeAndRun(widget.childOnPress),
-              ),
-            .tile(
-              prefix: const Icon(FLucideIcons.pencil),
-              title: Text('编辑'),
-              autofocus: !dpadEnabled,
-              onPress: () => _closeAndRun(widget.edit),
-            ),
-            .tile(
-              variant: .destructive,
-              prefix: Icon(FLucideIcons.trash),
-              title: Text('删除'),
-              onPress: () => _closeAndRun(widget.delete),
-            ),
-          ],
-        ),
-      ],
-      child: widget.child(
-        dpadEnabled ? () => _controller.show() : widget.childOnPress,
       ),
     );
   }

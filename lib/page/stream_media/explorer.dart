@@ -1,3 +1,4 @@
+import 'package:dpad/dpad.dart';
 import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/page/stream_media/filter_sheet.dart';
@@ -5,6 +6,7 @@ import 'package:fldanplay/router.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/storage.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
+import 'package:fldanplay/utils/focus_state.dart';
 import 'package:fldanplay/utils/toast.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/sys_app_bar.dart';
@@ -26,7 +28,8 @@ class StreamMediaExplorerPage extends StatefulWidget {
       _StreamMediaExplorerPageState();
 }
 
-class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
+class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage>
+    with WidgetsBindingObserver {
   final storageService = GetIt.I.get<StorageService>();
   final streamMediaExplorerService = GetIt.I.get<StreamMediaExplorerService>();
   final Signal<bool> _librariesExpanded = signal(false);
@@ -34,30 +37,38 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   Storage2? storage;
   String? _error;
   List<ResumeItem> _resumeItems = const [];
-  final FocusNode _libraryFocusNode = FocusNode();
-  bool _libraryFocusRequested = false;
+  final Map<String, FocusNode> _libraryFocusNodes = {};
+  String? _lastFocusedLibraryId;
+  late FocusState _focusState;
   bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override
   void initState() {
-    _initializePage();
     super.initState();
+    _focusState = FocusState(context);
+    WidgetsBinding.instance.addObserver(this);
+    FocusManager.instance.addListener(_focusState.handleFocusChanged);
+    _initializePage();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _focusState.didChangeAppLifecycleState(state);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    FocusManager.instance.removeListener(_focusState.handleFocusChanged);
     _resumeScrollController.dispose();
-    _libraryFocusNode.dispose();
+    _libraryFocusNodes.forEach((key, node) => node.dispose());
     super.dispose();
   }
 
-  void _requestLibraryFocus() {
-    if (!_dpadEnabled || _libraryFocusRequested) return;
-    _libraryFocusRequested = true;
+  void _requestLibraryFocus(FocusNode focusNode) {
+    if (!_dpadEnabled) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _libraryFocusNode.context != null) {
-        _libraryFocusNode.requestFocus();
-      }
+      if (mounted && focusNode.context != null) focusNode.requestFocus();
     });
   }
 
@@ -150,7 +161,14 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildLibraryItem(CollectionItem library, bool selected) {
-    if (selected) _requestLibraryFocus();
+    final focusNode = _libraryFocusNodes.putIfAbsent(
+      library.id,
+      () => FocusNode(debugLabel: 'library-${library.id}'),
+    );
+    if (selected && _lastFocusedLibraryId != library.id) {
+      _lastFocusedLibraryId = library.id;
+      _requestLibraryFocus(focusNode);
+    }
     final shape = RoundedRectangleBorder(
       side: BorderSide(
         color: selected
@@ -161,7 +179,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
       borderRadius: context.theme.style.borderRadius.md,
     );
     return FButton.icon(
-      focusNode: selected && _dpadEnabled ? _libraryFocusNode : null,
+      focusNode: focusNode,
       style: .delta(decoration: .delta([.all(.shapeDelta(shape: shape))])),
       onPress: () => streamMediaExplorerService.libraryId.value = library.id,
       child: ConstrainedBox(
@@ -194,10 +212,12 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
   }
 
   Widget _buildAnimatedLibraryItem({
+    Key? key,
     required Widget child,
     required bool visible,
   }) {
     return TweenAnimationBuilder<double>(
+      key: key,
       tween: Tween(end: visible ? 1 : 0),
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOut,
@@ -238,6 +258,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
                   ...libraries.map((library) {
                     final selected = activeLibraryId == library.id;
                     return _buildAnimatedLibraryItem(
+                      key: ValueKey('library-${library.id}'),
                       visible:
                           selected ||
                           _librariesExpanded.value ||
@@ -303,6 +324,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         ? '99+'
         : '$unplayedItemCount';
     return Tappable(
+      key: ValueKey('media-${mediaItem.id}'),
       onPress: () {
         context.push(streamMediaDetailPath, extra: mediaItem);
       },
@@ -429,6 +451,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
         ? null
         : (positionMs / durationMs).clamp(0.0, 1.0).toDouble();
     return Tappable(
+      key: ValueKey('resume-${item.id}'),
       width: width,
       onPress: () => _openResumeDetail(item),
       child: Column(
@@ -633,7 +656,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage> {
           ),
         ],
       ),
-      body: _buildBody(),
+      body: DpadRegion(horizontalEdge: .stop, child: _buildBody()),
     );
   }
 }

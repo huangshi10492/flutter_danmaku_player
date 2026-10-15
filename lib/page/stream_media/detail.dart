@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:dpad/dpad.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/stream_media.dart';
 import 'package:fldanplay/page/stream_media/info_card.dart';
@@ -10,7 +11,9 @@ import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/dialog.dart';
+import 'package:fldanplay/utils/focus_state.dart';
 import 'package:fldanplay/utils/toast.dart';
+import 'package:fldanplay/widget/context_menu.dart';
 import 'package:fldanplay/widget/error_refresh.dart';
 import 'package:fldanplay/widget/network_image.dart';
 import 'package:fldanplay/widget/video_item.dart';
@@ -29,7 +32,7 @@ class StreamMediaDetailPage extends StatefulWidget {
 }
 
 class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final StreamMediaExplorerService _service = GetIt.I
       .get<StreamMediaExplorerService>();
   final OfflineCacheService _offlineCacheService = GetIt.I
@@ -43,6 +46,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
   final Map<String, int> _refreshMap = {};
   final FocusNode _continueFocusNode = FocusNode();
   final FocusNode _actionFocusNode = FocusNode();
+  late FocusState _focusState;
   final Signal<bool> _isPlaying = signal(false);
   bool get _showContinueSection =>
       _service.useRemoteHistory && _continueItem != null;
@@ -54,10 +58,20 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
     _tabController = TabController(length: 0, vsync: this);
     _initialize();
     GetIt.I.get<GlobalService>().updateListener = refreshItem;
+    WidgetsBinding.instance.addObserver(this);
+    _focusState = FocusState(context);
+    FocusManager.instance.addListener(_focusState.handleFocusChanged);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _focusState.didChangeAppLifecycleState(state);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    FocusManager.instance.removeListener(_focusState.handleFocusChanged);
     _tabController.removeListener(_handleTabChanged);
     _tabController.dispose();
     _continueFocusNode.dispose();
@@ -360,14 +374,16 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                         hasScrollBody: false,
                         child: Center(child: Text('暂无集数')),
                       )
-                    : SliverList.builder(
-                        itemCount: episodes.length,
-                        itemBuilder: (context, index) =>
-                            _buildSeasonViewBuilder(
-                              index,
-                              season,
-                              episodes[index],
-                            ),
+                    : DpadRegion(
+                        child: SliverList.builder(
+                          itemCount: episodes.length,
+                          itemBuilder: (context, index) =>
+                              _buildSeasonViewBuilder(
+                                index,
+                                season,
+                                episodes[index],
+                              ),
+                        ),
                       ),
                 error: (error) => SliverFillRemaining(
                   hasScrollBody: false,
