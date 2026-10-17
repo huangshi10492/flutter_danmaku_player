@@ -271,7 +271,7 @@ class OfflineCacheService {
           ? '下载已取消'
           : (e is AppException ? e.message : e.toString());
       offlineCache.status = .failed;
-      await offlineCache.save();
+      if (offlineCache.isInBox) await offlineCache.save();
       _logger.error('_executeDownload', '下载失败: $e', stackTrace: t);
     } finally {
       throttleTimer?.cancel();

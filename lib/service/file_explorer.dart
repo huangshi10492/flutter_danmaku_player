@@ -192,21 +192,27 @@ class SMBFileExplorerProvider implements FileExplorerProvider {
     CancelToken? cancelToken,
   }) async {
     if (cancelToken?.isCancelled == true) return false;
+    final smb2Token = Smb2CancelToken();
+    var finished = false;
+    cancelToken?.whenCancel.then((_) {
+      if (!finished) smb2Token.cancel();
+    });
     try {
-      final targetFile = File(localPath);
-      await targetFile.parent.create(recursive: true);
       await _client.downloadToFile(
         path,
-        targetFile,
+        localPath,
         onProgress: onProgress,
-        isCanceled: () => cancelToken?.isCancelled == true,
+        cancelToken: smb2Token,
       );
-      return cancelToken?.isCancelled != true;
+      return true;
     } catch (e, t) {
       if (cancelToken?.isCancelled == true) return false;
+      if (e is Smb2Exception && e.isCancelled) return false;
       _logger.error('downloadVideo', 'SMB下载失败', error: e, stackTrace: t);
       if (e is AppException) rethrow;
       throw AppException('SMB下载失败', e);
+    } finally {
+      finished = true;
     }
   }
 
