@@ -16,9 +16,6 @@ import 'package:signals_flutter/signals_flutter.dart';
 import 'package:string_util_xx/StringUtilxx.dart';
 import 'package:webdav_client_plus/webdav_client_plus.dart';
 
-String joinFilePath(String parent, String name) =>
-    parent.isEmpty ? name : '$parent/$name';
-
 String joinUrlPath(String base, String path) {
   if (path.isEmpty) return base;
   final normalizedBase = base.endsWith('/')
@@ -36,194 +33,129 @@ String filePathFromVirtualPath(String virtualPath, String storageKey) {
       : virtualPath;
 }
 
-FileItem addSubtitle(String path, String name) {
-  return FileItem(
-    name: name,
-    path: joinFilePath(path, name),
-    type: .subtitle,
-    uniqueKey: '',
-  );
-}
+typedef FileExplorerEntry = ({String name, bool isDir, int? size});
 
-abstract class FileExplorerProvider {
-  Future<void> init();
+sealed class FileExplorerProvider {
+  FileExplorerProvider(this._displayName);
+  final String _displayName;
+  late final Logger _logger = Logger(runtimeType.toString());
+  Map<String, String> get headers => const {};
+  Future<void> init() async {}
+  void dispose() {}
   String getVideoUrl(String path);
-  Future<List<FileItem>> listFiles(String path, String rootPath, Filter filter);
-  Map<String, String> get headers;
-  Future<bool> downloadVideo(
+  Future<List<FileExplorerEntry>> readEntries(String path);
+  Future<bool> saveToFile(
     String path,
     String localPath, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   });
-  void dispose();
-}
-
-FileExplorerProvider? createFileExplorerProvider(Storage2 storage) {
-  return switch (storage.storageType) {
-    .webdav => WebDAVFileExplorerProvider(storage as WebDavStorage),
-    .ftp => FTPFileExplorerProvider(storage as FtpStorage),
-    .smb => SMBFileExplorerProvider(storage as SmbStorage),
-    .local => LocalFileExplorerProvider(storage as LocalStorage),
-    _ => null,
-  };
-}
-
-class SMBFileExplorerProvider implements FileExplorerProvider {
-  final SmbStorage storage;
-  final _logger = Logger('SMBFileExplorerProvider');
-  Smb2Pool? _pool;
-
-  SMBFileExplorerProvider(this.storage);
-
-  Smb2Pool get _client {
-    if (_pool == null) throw AppException('SMB客户端未连接', null);
-    return _pool!;
-  }
-
-  @override
-  Map<String, String> get headers => {};
-
-  @override
-  Future<void> init() async {
-    final share = storage.share;
-    if (storage.host.isEmpty || share.isEmpty) {
-      throw AppException('SMB配置不完整', null);
-    }
-    try {
-      _pool = await Smb2Pool.connect(
-        host: storage.host,
-        share: share,
-        user: storage.account?.isEmpty == true ? null : storage.account,
-        password: storage.password?.isEmpty == true ? null : storage.password,
-        workers: 1,
-        version: .any,
-      );
-      _logger.info('init', 'SMB媒体库连接成功: ${storage.host}/$share');
-    } catch (e, t) {
-      _pool = null;
-      _logger.error('init', 'SMB媒体库连接失败', error: e, stackTrace: t);
-      if (e is AppException) rethrow;
-      throw AppException('SMB连接失败', e);
-    }
-  }
-
-  @override
-  String getVideoUrl(String path) {
-    final user = storage.account?.isNotEmpty == true ? storage.account : null;
-    final password = storage.password?.isNotEmpty == true
-        ? storage.password
-        : null;
-    final userInfo = user == null ? null : '$user:${password ?? ''}';
-    final remotePath = [
-      storage.share,
-      path,
-    ].where((value) => value.isNotEmpty).join('/');
-    return Uri(
-      scheme: 'smb2',
-      userInfo: userInfo,
-      host: storage.host,
-      path: '/$remotePath',
-    ).toString();
-  }
-
-  @override
   Future<List<FileItem>> listFiles(
     String path,
     String rootPath,
     Filter filter,
   ) async {
     try {
-      final entries = await _client.listDirectory(path);
-      var list = <FileItem>[];
-      for (final entry in entries) {
-        if (!entry.isDirectory && FileItem.isSubtitleFileName(entry.name)) {
-          list.add(addSubtitle(path, entry.name));
-          continue;
-        }
-        if (filter.searchTerm.isNotEmpty &&
-            !entry.name.contains(filter.searchTerm)) {
-          continue;
-        }
-        final filePath = joinFilePath(path, entry.name);
-        if (entry.isDirectory) {
-          if (filter.displayMode == 2) continue;
-          list.add(
-            FileItem(
-              name: entry.name,
-              path: filePath,
-              type: .folder,
-              uniqueKey: CryptoUtils.generateVideoUniqueKey(filePath),
-            ),
-          );
-          continue;
-        }
-        if (filter.displayMode == 1 ||
-            FileItem.getFileType(entry.name) != .video) {
-          continue;
-        }
-        list.add(
-          FileItem(
-            name: entry.name,
-            path: filePath,
-            type: .video,
-            size: entry.size,
-            uniqueKey: CryptoUtils.generateVideoUniqueKey(
-              '$rootPath/$filePath',
-            ),
-          ),
-        );
-      }
-      list.sort(_compare);
-      if (!filter.sortOrder) list = list.reversed.toList();
-      return setVideoIndex(list);
+      return _buildItems(await readEntries(path), path, rootPath, filter);
     } catch (e, t) {
-      _logger.error('listFiles', '获取SMB文件列表失败', error: e, stackTrace: t);
-      if (e is AppException) rethrow;
-      throw AppException('获取SMB文件列表失败', e);
+      _fail('获取$_displayName文件列表', e, t);
     }
   }
 
-  @override
   Future<bool> downloadVideo(
     String path,
     String localPath, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    if (cancelToken?.isCancelled == true) return false;
-    final smb2Token = Smb2CancelToken();
-    var finished = false;
-    cancelToken?.whenCancel.then((_) {
-      if (!finished) smb2Token.cancel();
-    });
     try {
-      await _client.downloadToFile(
+      if (cancelToken?.isCancelled == true) return false;
+      await File(localPath).parent.create(recursive: true);
+      return await saveToFile(
         path,
         localPath,
         onProgress: onProgress,
-        cancelToken: smb2Token,
+        cancelToken: cancelToken,
       );
-      return true;
     } catch (e, t) {
-      if (cancelToken?.isCancelled == true) return false;
-      if (e is Smb2Exception && e.isCancelled) return false;
-      _logger.error('downloadVideo', 'SMB下载失败', error: e, stackTrace: t);
-      if (e is AppException) rethrow;
-      throw AppException('SMB下载失败', e);
-    } finally {
-      finished = true;
+      if (cancelToken?.isCancelled == true || _isCancelError(e)) return false;
+      _fail('$_displayName下载', e, t);
     }
   }
 
-  @override
-  void dispose() {
-    final pool = _pool;
-    _pool = null;
-    pool?.disconnect().catchError((e, t) {
-      _logger.warn('dispose', '关闭SMB连接失败', error: e, stackTrace: t);
-    });
+  List<FileItem> _buildItems(
+    List<FileExplorerEntry> entries,
+    String path,
+    String rootPath,
+    Filter filter,
+  ) {
+    final list = <FileItem>[];
+    for (final entry in entries) {
+      final filePath = path.isEmpty ? entry.name : '$path/${entry.name}';
+      if (!entry.isDir && FileItem.isSubtitleFileName(entry.name)) {
+        list.add(
+          FileItem(
+            name: entry.name,
+            path: filePath,
+            type: .subtitle,
+            uniqueKey: '',
+          ),
+        );
+        continue;
+      }
+      if (filter.searchTerm.isNotEmpty &&
+          !entry.name.contains(filter.searchTerm)) {
+        continue;
+      }
+      if (entry.isDir) {
+        if (filter.displayMode == 2) continue;
+        list.add(
+          FileItem(
+            name: entry.name,
+            path: filePath,
+            type: .folder,
+            uniqueKey: CryptoUtils.generateVideoUniqueKey(filePath),
+          ),
+        );
+        continue;
+      }
+      if (filter.displayMode == 1) continue;
+      if (FileItem.getFileType(entry.name) != .video) continue;
+      list.add(
+        FileItem(
+          name: entry.name,
+          path: filePath,
+          type: .video,
+          size: entry.size,
+          uniqueKey: CryptoUtils.generateVideoUniqueKey('$rootPath/$filePath'),
+        ),
+      );
+    }
+    list.sort(_compare);
+    final ordered = filter.sortOrder ? list : list.reversed.toList();
+    return _setVideoIndex(ordered);
   }
+
+  bool _isCancelError(Object e) =>
+      (e is DioException && e.type == DioExceptionType.cancel) ||
+      (e is Smb2Exception && e.isCancelled);
+
+  Never _fail(String action, Object e, StackTrace t) {
+    if (e is DioException) _logger.dio(action, e, t, action: action);
+    if (e is WebdavException) _logger.webdav(action, e, t, action: action);
+    _logger.error(action, '$action失败', error: e, stackTrace: t);
+    throw e is AppException ? e : AppException('$action失败', e);
+  }
+}
+
+FileExplorerProvider? createFileExplorerProvider(Storage2 storage) {
+  return switch (storage) {
+    final WebDavStorage s => WebDAVFileExplorerProvider(s),
+    final FtpStorage s => FTPFileExplorerProvider(s),
+    final SmbStorage s => SMBFileExplorerProvider(s),
+    final LocalStorage s => LocalFileExplorerProvider(s),
+    _ => null,
+  };
 }
 
 class Filter {
@@ -395,7 +327,7 @@ class FileExplorerService {
     final externalSubtitles = await _discoverSubtitles(path);
     return VideoInfo.fromFile(
       currentVideoPath: videoPath,
-      virtualVideoPath: filePathFromVirtualPath(history.url!, storageKey),
+      virtualVideoPath: path,
       headers: headers.map((key, value) => MapEntry(key, value.toString())),
       historiesType: HistoriesType.fileStorage,
       subtitle: history.subtitle,
@@ -405,17 +337,110 @@ class FileExplorerService {
   }
 }
 
-// WebDAV implementation (placeholder)
-class WebDAVFileExplorerProvider implements FileExplorerProvider {
-  WebdavClient? client;
-  Map<String, String> _headers = {};
-  final _logger = Logger('WebDAVFileExplorerProvider');
-  late final String url;
+final class SMBFileExplorerProvider extends FileExplorerProvider {
+  final SmbStorage storage;
+  Smb2Pool? _pool;
+
+  SMBFileExplorerProvider(this.storage) : super('SMB');
+
+  Smb2Pool get _client {
+    if (_pool == null) throw AppException('SMB客户端未连接', null);
+    return _pool!;
+  }
 
   @override
-  Map<String, String> get headers => _headers;
+  Future<void> init() async {
+    final share = storage.share;
+    if (storage.host.isEmpty || share.isEmpty) {
+      throw AppException('SMB配置不完整', null);
+    }
+    try {
+      _pool = await Smb2Pool.connect(
+        host: storage.host,
+        share: share,
+        user: storage.account?.isEmpty == true ? null : storage.account,
+        password: storage.password?.isEmpty == true ? null : storage.password,
+        workers: 1,
+        version: .any,
+      );
+      _logger.info('init', 'SMB媒体库连接成功: ${storage.host}/$share');
+    } catch (e, t) {
+      _pool = null;
+      _logger.error('init', 'SMB媒体库连接失败', error: e, stackTrace: t);
+      if (e is AppException) rethrow;
+      throw AppException('SMB连接失败', e);
+    }
+  }
 
-  WebDAVFileExplorerProvider(WebDavStorage storage) {
+  @override
+  String getVideoUrl(String path) {
+    final user = storage.account?.isNotEmpty == true ? storage.account : null;
+    final password = storage.password?.isNotEmpty == true
+        ? storage.password
+        : null;
+    final userInfo = user == null ? null : '$user:${password ?? ''}';
+    final remotePath = [
+      storage.share,
+      path,
+    ].where((value) => value.isNotEmpty).join('/');
+    return Uri(
+      scheme: 'smb2',
+      userInfo: userInfo,
+      host: storage.host,
+      path: '/$remotePath',
+    ).toString();
+  }
+
+  @override
+  Future<List<FileExplorerEntry>> readEntries(String path) async {
+    final entries = await _client.listDirectory(path);
+    return [
+      for (final entry in entries)
+        (name: entry.name, isDir: entry.isDirectory, size: entry.size),
+    ];
+  }
+
+  @override
+  Future<bool> saveToFile(
+    String path,
+    String localPath, {
+    void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final smb2Token = Smb2CancelToken();
+    var finished = false;
+    cancelToken?.whenCancel.then((_) {
+      if (!finished) smb2Token.cancel();
+    });
+    try {
+      await _client.downloadToFile(
+        path,
+        localPath,
+        onProgress: onProgress,
+        cancelToken: smb2Token,
+      );
+      return true;
+    } finally {
+      finished = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    final pool = _pool;
+    _pool = null;
+    pool?.disconnect().catchError((e, t) {
+      _logger.warn('dispose', '关闭SMB连接失败', error: e, stackTrace: t);
+    });
+  }
+}
+
+final class WebDAVFileExplorerProvider extends FileExplorerProvider {
+  WebdavClient? client;
+  Map<String, String> _headers = {};
+  late final String url;
+
+  WebDAVFileExplorerProvider(WebDavStorage storage) : super('WebDAV') {
     final account = storage.account ?? '';
     final password = storage.password ?? '';
     if (!storage.isAnonymous) {
@@ -432,125 +457,49 @@ class WebDAVFileExplorerProvider implements FileExplorerProvider {
   }
 
   @override
+  Map<String, String> get headers => _headers;
+
+  @override
   String getVideoUrl(String path) {
     return joinUrlPath(url, path);
   }
 
   @override
-  Future<List<FileItem>> listFiles(
-    String path,
-    String rootPath,
-    Filter filter,
-  ) async {
-    try {
-      if (client == null) {
-        return [];
-      }
-      List<FileItem> list = [];
-      var fileList = await client!.readDir(path);
-      for (var file in fileList) {
-        if (!file.isDir && FileItem.isSubtitleFileName(file.name)) {
-          list.add(addSubtitle(path, file.name));
-          continue;
-        }
-        if (filter.searchTerm.isNotEmpty &&
-            !file.name.contains(filter.searchTerm)) {
-          continue;
-        }
-        final filePath = joinFilePath(path, file.name);
-        if (FileItem.getFileType(file.name) != FileType.video && !file.isDir) {
-          continue;
-        }
-        if (file.isDir) {
-          if (filter.displayMode == 2) continue;
-          final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
-          list.add(
-            FileItem(
-              name: file.name,
-              path: filePath,
-              type: .folder,
-              uniqueKey: uniqueKey,
-            ),
-          );
-          continue;
-        }
-        if (filter.displayMode == 1) continue;
-        var uniqueKey = CryptoUtils.generateVideoUniqueKey(
-          '$rootPath/$filePath',
-        );
-        list.add(
-          FileItem(
-            name: file.name,
-            path: filePath,
-            type: FileItem.getFileType(file.name),
-            size: file.size,
-            uniqueKey: uniqueKey,
-          ),
-        );
-      }
-      list.sort(_compare);
-      if (!filter.sortOrder) {
-        list = list.reversed.toList();
-      }
-      list = setVideoIndex(list);
-      return list;
-    } on DioException catch (e, t) {
-      _logger.dio('listFiles', e, t, action: '获取文件列表');
-    } on WebdavException catch (e, t) {
-      _logger.webdav('listFiles', e, t, action: '获取文件列表');
-    } catch (e, t) {
-      _logger.error('listFiles', '获取文件列表失败', error: e, stackTrace: t);
-      throw AppException('获取文件列表失败', e);
-    }
+  Future<List<FileExplorerEntry>> readEntries(String path) async {
+    final client = this.client;
+    if (client == null) return const [];
+    final fileList = await client.readDir(path);
+    return [
+      for (final file in fileList)
+        (name: file.name, isDir: file.isDir, size: file.size),
+    ];
   }
 
   @override
-  Future<bool> downloadVideo(
+  Future<bool> saveToFile(
     String path,
     String localPath, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    try {
-      if (client == null) {
-        throw AppException('WebDAV客户端未初始化', null);
-      }
-      final targetFile = File(localPath);
-      await targetFile.parent.create(recursive: true);
-      await client!.readFile(
-        path,
-        localPath,
-        onProgress: onProgress,
-        cancelToken: cancelToken,
-      );
-      _logger.info('downloadVideo', 'WebDAV下载完成: $path -> $localPath');
-      return true;
-    } on DioException catch (e, t) {
-      if (e.type == DioExceptionType.cancel) return false;
-      _logger.error('downloadVideo', 'WebDAV下载失败', error: e, stackTrace: t);
-      rethrow;
-    } catch (e, t) {
-      _logger.error('downloadVideo', 'WebDAV下载失败', error: e, stackTrace: t);
-      rethrow;
-    }
+    final client = this.client;
+    if (client == null) throw AppException('WebDAV客户端未初始化', null);
+    await client.readFile(
+      path,
+      localPath,
+      onProgress: onProgress,
+      cancelToken: cancelToken,
+    );
+    _logger.info('downloadVideo', 'WebDAV下载完成: $path -> $localPath');
+    return true;
   }
-
-  @override
-  Future<void> init() async {}
-
-  @override
-  void dispose() {}
 }
 
-class FTPFileExplorerProvider implements FileExplorerProvider {
+final class FTPFileExplorerProvider extends FileExplorerProvider {
   final FtpStorage storage;
-  final _logger = Logger('FTPFileExplorerProvider');
   FTPConnect? _client;
 
-  FTPFileExplorerProvider(this.storage);
-
-  @override
-  Map<String, String> get headers => {};
+  FTPFileExplorerProvider(this.storage) : super('FTP');
 
   FTPConnect get _getClient {
     if (_client == null) throw AppException('FTP客户端未连接', null);
@@ -592,99 +541,42 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
   }
 
   @override
-  Future<List<FileItem>> listFiles(
-    String path,
-    String rootPath,
-    Filter filter,
-  ) async {
-    try {
-      final entries = await _getClient.listDirectoryContent(
-        path.isEmpty ? '/' : '/$path',
-      );
-      var list = <FileItem>[];
-      for (final entry in entries) {
-        if (entry.type != .dir && entry.type != .file) continue;
-        if (entry.type == .file && FileItem.isSubtitleFileName(entry.name)) {
-          list.add(addSubtitle(path, entry.name));
-          continue;
-        }
-        if (filter.searchTerm.isNotEmpty &&
-            !entry.name.contains(filter.searchTerm)) {
-          continue;
-        }
-        final filePath = joinFilePath(path, entry.name);
-        if (entry.type == .dir) {
-          if (filter.displayMode == 2) continue;
-          list.add(
-            FileItem(
-              name: entry.name,
-              path: filePath,
-              type: .folder,
-              uniqueKey: CryptoUtils.generateVideoUniqueKey(filePath),
-            ),
-          );
-          continue;
-        }
-        if (filter.displayMode == 1 ||
-            FileItem.getFileType(entry.name) != .video) {
-          continue;
-        }
-        list.add(
-          FileItem(
-            name: entry.name,
-            path: filePath,
-            type: .video,
-            size: entry.size,
-            uniqueKey: CryptoUtils.generateVideoUniqueKey(
-              '$rootPath/$filePath',
-            ),
-          ),
-        );
-      }
-      list.sort(_compare);
-      if (!filter.sortOrder) list = list.reversed.toList();
-      return setVideoIndex(list);
-    } catch (e, t) {
-      _logger.error('listFiles', '获取FTP文件列表失败', error: e, stackTrace: t);
-      if (e is AppException) rethrow;
-      throw AppException('获取FTP文件列表失败', e);
-    }
+  Future<List<FileExplorerEntry>> readEntries(String path) async {
+    final entries = await _getClient.listDirectoryContent(
+      path.isEmpty ? '/' : '/$path',
+    );
+    return [
+      for (final entry in entries)
+        if (entry.type == .dir || entry.type == .file)
+          (name: entry.name, isDir: entry.type == .dir, size: entry.size),
+    ];
   }
 
   @override
-  Future<bool> downloadVideo(
+  Future<bool> saveToFile(
     String path,
     String localPath, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    if (cancelToken?.isCancelled == true) return false;
-    try {
-      final client = _getClient;
-      final targetFile = File(localPath);
-      await targetFile.parent.create(recursive: true);
-      var cancelled = false;
-      if (cancelToken != null) {
-        cancelToken.whenCancel.then((_) async {
-          cancelled = true;
-          if (_client == client) await _disconnect(client);
-        });
-      }
-      final result = await client.downloadFile(
-        '/$path',
-        targetFile,
-        onProgress: (_, received, total) {
-          if (!cancelled) onProgress?.call(received, total);
-        },
-      );
-      if (cancelled) return false;
-      _logger.info('downloadVideo', 'FTP下载完成: $path -> $localPath');
-      return result;
-    } catch (e, t) {
-      if (cancelToken?.isCancelled == true) return false;
-      _logger.error('downloadVideo', 'FTP下载失败', error: e, stackTrace: t);
-      rethrow;
+    final client = _getClient;
+    var cancelled = false;
+    if (cancelToken != null) {
+      cancelToken.whenCancel.then((_) async {
+        cancelled = true;
+        if (_client == client) await _disconnect(client);
+      });
     }
+    final result = await client.downloadFile(
+      '/$path',
+      File(localPath),
+      onProgress: (_, received, total) {
+        if (!cancelled) onProgress?.call(received, total);
+      },
+    );
+    if (cancelled) return false;
+    _logger.info('downloadVideo', 'FTP下载完成: $path -> $localPath');
+    return result;
   }
 
   @override
@@ -703,15 +595,13 @@ class FTPFileExplorerProvider implements FileExplorerProvider {
   }
 }
 
-class LocalFileExplorerProvider implements FileExplorerProvider {
+final class LocalFileExplorerProvider extends FileExplorerProvider {
   final LocalStorage storage;
-  final _logger = Logger('LocalFileExplorerProvider');
   final bool _useSaf;
 
-  @override
-  Map<String, String> get headers => {};
   LocalFileExplorerProvider(this.storage)
-    : _useSaf = AndroidSaf.isTreeUri(storage.url);
+    : _useSaf = AndroidSaf.isTreeUri(storage.url),
+      super('本地');
 
   @override
   String getVideoUrl(String path) {
@@ -722,122 +612,35 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
   }
 
   @override
-  Future<List<FileItem>> listFiles(
-    String path,
-    String rootPath,
-    Filter filter,
-  ) async {
-    try {
-      if (_useSaf) return await _listSafFiles(path, rootPath, filter);
-      var list = <FileItem>[];
-      final fileList = Directory(joinUrlPath(storage.url, path)).list();
-      await for (var file in fileList) {
-        final name = file.uri.pathSegments.lastWhere(
-          (segment) => segment.isNotEmpty,
-        );
-        if (file is File && FileItem.isSubtitleFileName(name)) {
-          list.add(addSubtitle(path, name));
-          continue;
-        }
-        if (filter.searchTerm.isNotEmpty && !name.contains(filter.searchTerm)) {
-          continue;
-        }
-        if (file is! File) {
-          if (filter.displayMode == 2) continue;
-          final filePath = joinFilePath(path, name);
-          final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
-          list.add(
-            FileItem(
-              name: name,
-              path: filePath,
-              type: FileType.folder,
-              uniqueKey: uniqueKey,
-            ),
-          );
-          continue;
-        }
-        if (filter.displayMode == 1) continue;
-        final filePath = joinFilePath(path, name);
-        if (FileItem.getFileType(name) != FileType.video) {
-          continue;
-        }
-        var uniqueKey = CryptoUtils.generateVideoUniqueKey(
-          '$rootPath/$filePath',
-        );
-        list.add(
-          FileItem(
-            name: name,
-            path: filePath,
-            type: FileItem.getFileType(name),
-            size: file.lengthSync(),
-            uniqueKey: uniqueKey,
-          ),
-        );
-      }
-      list.sort(_compare);
-      if (!filter.sortOrder) {
-        list = list.reversed.toList();
-      }
-      list = setVideoIndex(list);
-      return list;
-    } catch (e, t) {
-      _logger.error('listFiles', '获取文件列表失败', error: e, stackTrace: t);
-      throw AppException('获取文件列表失败', e);
-    }
-  }
-
-  Future<List<FileItem>> _listSafFiles(
-    String path,
-    String rootPath,
-    Filter filter,
-  ) async {
-    final fileList = await AndroidSaf.listDirectory(storage.url, path);
-    var list = <FileItem>[];
-    for (final file in fileList) {
-      if (!file.isDir && FileItem.isSubtitleFileName(file.name)) {
-        list.add(addSubtitle(path, file.name));
-        continue;
-      }
-      if (filter.searchTerm.isNotEmpty &&
-          !file.name.contains(filter.searchTerm)) {
-        continue;
-      }
-      final filePath = joinFilePath(path, file.name);
-      if (file.isDir) {
-        if (filter.displayMode == 2) continue;
-        final uniqueKey = CryptoUtils.generateVideoUniqueKey(filePath);
-        list.add(
-          FileItem(
+  Future<List<FileExplorerEntry>> readEntries(String path) async {
+    if (_useSaf) {
+      final files = await AndroidSaf.listDirectory(storage.url, path);
+      return [
+        for (final file in files)
+          (
             name: file.name,
-            path: filePath,
-            type: .folder,
-            uniqueKey: uniqueKey,
+            isDir: file.isDir,
+            size: file.length < 0 ? null : file.length,
           ),
-        );
-        continue;
-      }
-      if (filter.displayMode == 1) continue;
-      if (FileItem.getFileType(file.name) != FileType.video) continue;
-      final uniqueKey = CryptoUtils.generateVideoUniqueKey(
-        '$rootPath/$filePath',
-      );
-      list.add(
-        FileItem(
-          name: file.name,
-          path: filePath,
-          type: FileType.video,
-          size: file.length < 0 ? null : file.length,
-          uniqueKey: uniqueKey,
-        ),
-      );
+      ];
     }
-    list.sort(_compare);
-    if (!filter.sortOrder) list = list.reversed.toList();
-    return setVideoIndex(list);
+    final entries = <FileExplorerEntry>[];
+    final fileList = Directory(joinUrlPath(storage.url, path)).list();
+    await for (final file in fileList) {
+      final name = file.uri.pathSegments.lastWhere(
+        (segment) => segment.isNotEmpty,
+      );
+      entries.add((
+        name: name,
+        isDir: file is! File,
+        size: file is File ? file.lengthSync() : null,
+      ));
+    }
+    return entries;
   }
 
   @override
-  Future<bool> downloadVideo(
+  Future<bool> saveToFile(
     String path,
     String localPath, {
     void Function(int received, int total)? onProgress,
@@ -845,12 +648,6 @@ class LocalFileExplorerProvider implements FileExplorerProvider {
   }) async {
     throw AppException('本地视频不支持缓存视频', null);
   }
-
-  @override
-  Future<void> init() async {}
-
-  @override
-  void dispose() {}
 }
 
 int _compare(FileItem a, FileItem b) {
@@ -863,7 +660,7 @@ int _compare(FileItem a, FileItem b) {
   return StringUtilxx_c.compareExtend(a.name, b.name);
 }
 
-List<FileItem> setVideoIndex(List<FileItem> list) {
+List<FileItem> _setVideoIndex(List<FileItem> list) {
   int videoIndex = 0;
   for (var i = 0; i < list.length; i++) {
     if (!list[i].isVideo) {
