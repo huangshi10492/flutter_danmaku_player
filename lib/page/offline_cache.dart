@@ -1,6 +1,8 @@
+import 'package:dpad/dpad.dart';
 import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/offline_cache.dart';
 import 'package:fldanplay/router.dart';
+import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/history.dart';
 import 'package:fldanplay/service/offline_cache.dart';
 import 'package:fldanplay/utils/dialog.dart';
@@ -23,6 +25,11 @@ class OfflineCachePage extends StatefulWidget {
 class _OfflineCachePageState extends State<OfflineCachePage> {
   late final OfflineCacheService _cacheService;
   late final HistoryService _historyService;
+  final Map<String, FocusNode> _actionFocusNodes = {};
+  String? _firstKey;
+  String? _pendingFocusKey;
+  bool _focusPending = true;
+  bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
 
   @override
   void initState() {
@@ -31,12 +38,44 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
     _historyService = GetIt.I.get<HistoryService>();
   }
 
+  @override
+  void dispose() {
+    _actionFocusNodes.forEach((_, node) => node.dispose());
+    _actionFocusNodes.clear();
+    super.dispose();
+  }
+
+  FocusNode? _actionFocusNode(String key) {
+    if (!_dpadEnabled) return null;
+    return _actionFocusNodes.putIfAbsent(
+      key,
+      () => FocusNode(debugLabel: 'offline-cache-$key'),
+    );
+  }
+
+  void _requestFocus() {
+    if (!_dpadEnabled || !_focusPending) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+      final key = _pendingFocusKey ?? _firstKey;
+      final node = key == null ? null : _actionFocusNodes[key];
+      if (node == null || node.context == null) return;
+      _focusPending = false;
+      node.requestFocus();
+      DpadScroll.ensureVisible(node);
+    });
+  }
+
   void _playCache(OfflineCache cache) {
     try {
       final videoInfo = cache.videoInfo;
       videoInfo.cached = true;
+      _pendingFocusKey = cache.uniqueKey;
+      _focusPending = true;
       final location = Uri(path: videoPlayerPath);
-      context.push(location.toString(), extra: videoInfo);
+      context
+          .push(location.toString(), extra: videoInfo)
+          .whenComplete(_requestFocus);
     } catch (e) {
       showToast(level: 3, title: '播放失败', description: e.toString());
     }
@@ -57,7 +96,10 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
     try {
       await _cacheService.cancelDownload(cache.uniqueKey);
       await _cacheService.deleteCache(cache.uniqueKey);
+      _pendingFocusKey = null;
+      _focusPending = true;
       showToast(title: '缓存已删除');
+      _requestFocus();
     } catch (e) {
       showToast(level: 3, title: '删除失败', description: e.toString());
     }
@@ -75,6 +117,11 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
   Widget build(BuildContext context) {
     final subtitleStyle =
         context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
+    final FItemStyleDelta itemStyle = .delta(
+      contentStyle: .delta(
+        subtitleTextStyle: .delta([.base(.value(subtitleStyle))]),
+      ),
+    );
     return Scaffold(
       appBar: SysAppBar(title: '离线缓存'),
       body: ValueListenableBuilder<Box<History>>(
@@ -104,6 +151,8 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                 ),
               );
             }
+            _firstKey = caches.first.uniqueKey;
+            _requestFocus();
             return ListView.builder(
               itemCount: caches.length,
               itemBuilder: (context, index) {
@@ -113,21 +162,32 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                 );
                 if (cache.status == DownloadStatus.finished) {
                   return FItem(
-                    style: .delta(
-                      contentStyle: .delta(
-                        subtitleTextStyle: .delta([
-                          .base(.value(subtitleStyle)),
-                        ]),
-                      ),
-                    ),
+                    key: ValueKey(cache.uniqueKey),
+                    style: itemStyle,
                     title: Text(cache.videoInfo.name),
-                    onPress: () => _playCache(cache),
-                    suffix: FButton.icon(
-                      onPress: () => _showDeleteConfirmDialog(cache),
-                      variant: .ghost,
-                      child: Icon(
-                        FLucideIcons.trash,
-                        color: context.theme.colors.destructive,
+                    suffix: DpadRegion(
+                      horizontalEdge: .wrap,
+                      enter: .nearest,
+                      child: Row(
+                        mainAxisSize: .min,
+                        children: [
+                          FButton.icon(
+                            onPress: () => _playCache(cache),
+                            variant: .ghost,
+                            focusNode: _actionFocusNode(cache.uniqueKey),
+                            semanticsLabel: '播放',
+                            child: const Icon(FLucideIcons.play),
+                          ),
+                          FButton.icon(
+                            onPress: () => _showDeleteConfirmDialog(cache),
+                            variant: .ghost,
+                            semanticsLabel: '删除缓存',
+                            child: Icon(
+                              FLucideIcons.trash,
+                              color: context.theme.colors.destructive,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     subtitle: Column(
@@ -142,31 +202,36 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                   );
                 }
                 return FItem(
-                  style: .delta(
-                    contentStyle: .delta(
-                      subtitleTextStyle: .delta([.base(.value(subtitleStyle))]),
-                    ),
-                  ),
+                  key: ValueKey(cache.uniqueKey),
+                  style: itemStyle,
                   title: Text(cache.videoInfo.name),
-                  suffix: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (cache.status == DownloadStatus.failed)
+                  suffix: DpadRegion(
+                    horizontalEdge: .wrap,
+                    enter: .nearest,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (cache.status == DownloadStatus.failed)
+                          FButton.icon(
+                            onPress: () =>
+                                _cacheService.resumeDownload(cache.uniqueKey),
+                            variant: .ghost,
+                            focusNode: _actionFocusNode(cache.uniqueKey),
+                            child: const Icon(FLucideIcons.rotateCw, size: 20),
+                          ),
                         FButton.icon(
-                          onPress: () =>
-                              _cacheService.resumeDownload(cache.uniqueKey),
+                          onPress: () => _showDeleteConfirmDialog(cache),
                           variant: .ghost,
-                          child: const Icon(FLucideIcons.rotateCw, size: 20),
+                          focusNode: cache.status == .downloading
+                              ? _actionFocusNode(cache.uniqueKey)
+                              : null,
+                          child: Icon(
+                            FLucideIcons.x,
+                            color: context.theme.colors.destructive,
+                          ),
                         ),
-                      FButton.icon(
-                        onPress: () => _showDeleteConfirmDialog(cache),
-                        variant: .ghost,
-                        child: Icon(
-                          FLucideIcons.x,
-                          color: context.theme.colors.destructive,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,7 +248,8 @@ class _OfflineCachePageState extends State<OfflineCachePage> {
                         ),
                       if (cache.status == DownloadStatus.downloading)
                         Text(
-                          '下载中... ${Utils.formatFileSize(cache.downloadedBytes)} / ${Utils.formatFileSize(cache.totalBytes)}',
+                          '下载中... ${Utils.formatFileSize(cache.downloadedBytes)} '
+                          '/ ${Utils.formatFileSize(cache.totalBytes)}',
                         ),
                       const SizedBox(height: 4),
                       FDeterminateProgress(

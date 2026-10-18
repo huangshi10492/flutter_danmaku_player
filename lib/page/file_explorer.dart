@@ -42,8 +42,10 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   final ScrollController _listScroll = ScrollController();
   final Map<String, double> _scrollOffsets = {};
   final Map<String, int> _refreshMap = {};
-  FocusNode? _focusNode;
+  final Map<String, FocusNode> _focusNodes = {};
+  String? _firstFocusKey;
   String? _pendingFocusKey;
+  bool _focusPending = true;
   String? _scrollScheduled;
   bool get _dpadEnabled => GetIt.I.get<ConfigureService>().dpadEnable.value;
   String _directoryPath() => _fileExplorerService.navigation.value.join('/');
@@ -59,27 +61,30 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
   void dispose() {
     _scrollController.dispose();
     _listScroll.dispose();
-    _focusNode?.dispose();
+    _focusNodes.forEach((_, node) => node.dispose());
+    _focusNodes.clear();
     GetIt.I.get<GlobalService>().updateListener = null;
     _fileExplorerService.provider.value?.dispose();
     super.dispose();
   }
 
-  FocusNode? _getFocusNode(String key, int index) {
+  FocusNode? _focusNodeFor(String key) {
     if (!_dpadEnabled) return null;
-    if (_pendingFocusKey != key) {
-      if (_pendingFocusKey != null || index != 0) return null;
-    }
-    _focusNode?.dispose();
-    _focusNode = FocusNode(debugLabel: 'file-explorer-$key-$index');
-    return _focusNode;
+    return _focusNodes.putIfAbsent(
+      key,
+      () => FocusNode(debugLabel: 'file-explorer-$key'),
+    );
   }
 
   void _requestFocus() {
-    if (!_dpadEnabled) return;
+    if (!_dpadEnabled || !_focusPending) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _focusNode == null) return;
-      _focusNode?.requestFocus();
+      if (!mounted || ModalRoute.of(context)?.isCurrent != true) return;
+      final key = _pendingFocusKey ?? _firstFocusKey;
+      final node = key == null ? null : _focusNodes[key];
+      if (node == null || node.context == null) return;
+      _focusPending = false;
+      node.requestFocus();
     });
   }
 
@@ -87,18 +92,21 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     if (!_listScroll.hasClients) return;
     _scrollOffsets[_directoryPath()] = _listScroll.position.pixels;
     _pendingFocusKey = null;
+    _focusPending = true;
     _fileExplorerService.enterDirectory(file.name);
     _scrollToRight();
   }
 
   void _navigateToBreadcrumb(int depth) {
     _pendingFocusKey = null;
+    _focusPending = true;
     _fileExplorerService.jumpToIndex(depth);
   }
 
   void _navigateBack() {
     _scrollOffsets.remove(_directoryPath());
     _pendingFocusKey = _fileExplorerService.back();
+    _focusPending = true;
     if (_pendingFocusKey == null) {
       context.pop();
       return;
@@ -174,10 +182,13 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       videoInfo.cached = _offlineCacheService.isCached(videoInfo.uniqueKey);
     }
     _pendingFocusKey = videoInfo.uniqueKey;
+    _focusPending = true;
     _scrollOffsets[_directoryPath()] = _listScroll.position.pixels;
     final location = Uri(path: videoPlayerPath);
     context.push(location.toString(), extra: videoInfo).then((_) {
+      if (!mounted) return;
       _restoreScrollPosition(_directoryPath());
+      _requestFocus();
     });
   }
 
@@ -392,8 +403,9 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
     final widgetList = <FItemMixin>[];
     for (var i = 0; i < files.length; i++) {
       final file = files[i];
+      if (i == 0) _firstFocusKey = file.isFolder ? file.name : file.uniqueKey;
       if (file.isFolder) {
-        final focusNode = _getFocusNode(file.name, i);
+        final focusNode = _focusNodeFor(file.name);
         widgetList.add(
           FItem(
             key: ValueKey(file.name),
@@ -409,7 +421,7 @@ class _FileExplorerPageState extends State<FileExplorerPage> {
       final refreshKey = _refreshMap[file.uniqueKey] ?? 0;
       final history = _historyService.getHistory(file.uniqueKey);
       final videoInfo = _fileExplorerService.getVideoInfo(i, file.path);
-      final focusNode = _getFocusNode(file.uniqueKey, i);
+      final focusNode = _focusNodeFor(file.uniqueKey);
       widgetList.add(
         VideoItem(
           key: ValueKey(file.uniqueKey),

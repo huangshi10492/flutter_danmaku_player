@@ -60,6 +60,16 @@ class _ContextMenuState extends State<ContextMenu>
   }
 
   @override
+  void didUpdateWidget(ContextMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.focusNode != oldWidget.focusNode) {
+      if (_ownsChildFocus) _childFocus.dispose();
+      _ownsChildFocus = widget.focusNode == null;
+      _childFocus = widget.focusNode ?? FocusNode(debugLabel: 'context-menu');
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     if (_ownsChildFocus) _childFocus.dispose();
