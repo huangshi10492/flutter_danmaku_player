@@ -1,14 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-tar -zcvf "fldanplay-${TAG}-linux-amd64.tar.gz" -C build/linux/x64/release/bundle .
+# package-linux.sh [x64|arm64]
+flutter_arch="${1:-x64}"
 
-pkg_dir="fldanplay-${TAG}-linux-amd64"
+case "$flutter_arch" in
+  x64)
+    artifact_arch="amd64"
+    deb_arch="amd64"
+    ;;
+  arm64)
+    artifact_arch="arm64"
+    deb_arch="arm64"
+    ;;
+  *)
+    echo "不支持的架构: $flutter_arch（仅支持 x64 / arm64）" >&2
+    exit 1
+    ;;
+esac
+
+bundle_dir="build/linux/${flutter_arch}/release/bundle"
+if [ ! -d "$bundle_dir" ]; then
+  echo "未找到 ${bundle_dir}，请先执行 flutter build linux --release --target-platform linux-${flutter_arch}" >&2
+  exit 1
+fi
+
+tar -zcvf "fldanplay-${TAG}-linux-${artifact_arch}.tar.gz" -C "$bundle_dir" .
+
+pkg_dir="fldanplay-${TAG}-linux-${artifact_arch}"
+rm -rf "$pkg_dir"
 mkdir "$pkg_dir"
 cd "$pkg_dir"
 
 mkdir -p opt/fldanplay usr/share/applications usr/share/icons/hicolor/512x512/apps
-cp -r ../build/linux/x64/release/bundle/* opt/fldanplay
+cp -r "../${bundle_dir}"/* opt/fldanplay
 cp -r ../assets/linux/DEBIAN .
 chmod 0755 DEBIAN/postinst DEBIAN/postrm
 
@@ -23,7 +48,7 @@ Package: fldanplay
 Version: ${version}
 Section: x11
 Priority: optional
-Architecture: amd64
+Architecture: ${deb_arch}
 Essential: no
 Installed-Size: ${size_kb}
 Description: fldanplay
