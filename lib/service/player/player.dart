@@ -613,6 +613,11 @@ class VideoPlayerService {
         _log.warn('saveSnapshot', 'Invalid video size: $width x $height');
         return;
       }
+      if (Platform.isWindows) {
+        for (int i = 3; i < rawSnapshot.length; i += 4) {
+          rawSnapshot[i] = 255;
+        }
+      }
       final image = img.Image.fromBytes(
         width: width,
         height: height,
