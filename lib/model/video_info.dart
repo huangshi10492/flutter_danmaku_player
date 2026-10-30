@@ -5,6 +5,8 @@ import 'package:fldanplay/utils/utils.dart';
 class VideoInfo {
   // 视频文件的真实地址
   String currentVideoPath;
+  // 原始文件直链（非转码流）
+  String? directVideoPath;
   // 媒体库内的虚拟路径
   String virtualVideoPath;
   Map<String, String> headers;
@@ -17,12 +19,14 @@ class VideoInfo {
   late String videoName; // 用于弹幕匹配
   late String name; // 显示在播放器顶部
   String? subtitle;
+  String? sessionId;
   bool cached = false;
   List<ExternalSubtitle> externalSubtitles = const [];
   Map<int, String> chapters = const {};
 
   VideoInfo.fromFile({
     required this.currentVideoPath,
+    this.directVideoPath,
     required this.virtualVideoPath,
     this.headers = const {},
     required this.historiesType,
@@ -46,6 +50,7 @@ class VideoInfo {
 
   VideoInfo({
     required this.currentVideoPath,
+    this.directVideoPath,
     required this.virtualVideoPath,
     this.headers = const {},
     required this.historiesType,
@@ -56,6 +61,7 @@ class VideoInfo {
     required this.videoName,
     required this.name,
     this.subtitle,
+    this.sessionId,
     List<ExternalSubtitle>? externalSubtitles,
     Map<int, String>? chapters,
   }) {
@@ -127,7 +133,7 @@ class DanmakuMatchInfo {
   factory DanmakuMatchInfo.fromVideoInfo(VideoInfo videoInfo) {
     return DanmakuMatchInfo(
       fileName: videoInfo.videoName,
-      currentVideoPath: videoInfo.currentVideoPath,
+      currentVideoPath: videoInfo.directVideoPath ?? videoInfo.currentVideoPath,
       headers: videoInfo.headers,
     );
   }

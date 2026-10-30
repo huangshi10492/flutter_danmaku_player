@@ -8,7 +8,6 @@ import 'package:fldanplay/model/history.dart';
 import 'package:fldanplay/model/video_info.dart';
 import 'package:fldanplay/service/configure.dart';
 import 'package:fldanplay/service/global.dart';
-import 'package:fldanplay/service/stream_media_explorer.dart';
 import 'package:fldanplay/utils/crypto_utils.dart';
 import 'package:fldanplay/utils/danmaku_api_utils.dart';
 import 'package:fldanplay/utils/log.dart';
@@ -39,7 +38,6 @@ class DanmakuService {
 
   ConfigureService configureService = GetIt.I.get<ConfigureService>();
   GlobalService globalService = GetIt.I.get<GlobalService>();
-  final streamMediaExplorerService = GetIt.I.get<StreamMediaExplorerService>();
   final DanmakuGetter danmakuGetter = DanmakuGetter();
 
   final _log = Logger('DanmakuService');
@@ -242,14 +240,7 @@ class DanmakuService {
       }
       statusDetail.value = null;
       status.value = .matching;
-      final DanmakuMatchInfo info;
-      if (videoInfo.historiesType == .streamMediaStorage && !videoInfo.cached) {
-        info = await streamMediaExplorerService.getDanmakuMatchInfo(
-          videoInfo.virtualVideoPath,
-        );
-      } else {
-        info = .fromVideoInfo(videoInfo);
-      }
+      final info = DanmakuMatchInfo.fromVideoInfo(videoInfo);
       if (videoInfo.cached) {
         final documentsDir = await getApplicationSupportDirectory();
         info.currentVideoPath =

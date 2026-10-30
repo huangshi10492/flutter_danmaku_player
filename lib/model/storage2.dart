@@ -529,7 +529,7 @@ abstract class StreamStorage extends Storage2 {
     required this.password,
     this.mediaLibraryId,
     required this.token,
-    required this.userId,
+    this.userId = '',
     this.useRemoteHistory = false,
   });
 

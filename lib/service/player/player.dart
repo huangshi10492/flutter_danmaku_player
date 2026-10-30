@@ -267,7 +267,7 @@ class VideoPlayerService {
       _globalService.isPlaying.value = true;
       GetIt.I.get<StreamMediaExplorerService>().startPlayback(
         videoInfo.virtualVideoPath,
-        videoInfo.currentVideoPath,
+        videoInfo.sessionId ?? '',
       );
     }
     late Duration historyPosition;
@@ -697,7 +697,7 @@ class VideoPlayerService {
       if (_videoInfo.historiesType == .streamMediaStorage) {
         GetIt.I.get<StreamMediaExplorerService>().stopPlayback(
           _videoInfo.virtualVideoPath,
-          _videoInfo.currentVideoPath,
+          _videoInfo.sessionId ?? '',
         );
       }
       final player = _player;
@@ -882,9 +882,6 @@ class VideoPlayerService {
 
   Future<void> addServerSubtitle(MediaStreamInfo? stream) async {
     if (stream == null) return;
-    final service = GetIt.I.get<StreamMediaExplorerService>();
-    final embed = GetIt.I.get<ConfigureService>().transEmbedSub.value;
-    if (service.tranOpt.isOriginal || embed) return;
     final subtitleUrl = stream.subtitleUrl;
     if (subtitleUrl == null) return;
     await _addSubtitle(

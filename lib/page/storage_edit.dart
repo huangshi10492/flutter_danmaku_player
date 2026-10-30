@@ -110,7 +110,7 @@ class _StorageEditPageState extends State<StorageEditPage> {
       ..name = _nameController.text.trim()
       ..key = _keyController.text.trim();
     try {
-      if (_storage.storageType == .jellyfin || _storage.storageType == .emby) {
+      if (_storage is StreamStorage) {
         await _loginToMediaServer();
       }
       await _storageService.update(_storage);

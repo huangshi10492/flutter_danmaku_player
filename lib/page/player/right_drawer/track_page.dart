@@ -42,16 +42,16 @@ class TrackPage extends StatelessWidget {
   }
 
   Widget _buildServerStreamSection(BuildContext context) {
-    if (_explorer.tranOpt.isOriginal) return SizedBox.shrink();
     final streams = isAudio
         ? _explorer.audioStreams
         : _explorer.subtitleStreams;
     if (streams.isEmpty) return const SizedBox.shrink();
-    final active =
-        (isAudio
-            ? _explorer.tranOpt.audioStreamIndex
-            : _explorer.tranOpt.subtitleStreamIndex) ??
-        -1;
+    final active = _explorer.tranOpt.isOriginal
+        ? -1
+        : (isAudio
+                  ? _explorer.tranOpt.audioStreamIndex
+                  : _explorer.tranOpt.subtitleStreamIndex) ??
+              -1;
     return Column(
       crossAxisAlignment: .stretch,
       children: [
@@ -68,7 +68,8 @@ class TrackPage extends StatelessWidget {
               }
               _explorer.tranOpt.subtitleStreamIndex = value.first;
               if (context.mounted) context.pop();
-              if (_configure.transEmbedSub.value) {
+              if (!_explorer.tranOpt.isOriginal &&
+                  _configure.transEmbedSub.value) {
                 onStreamReload();
                 return;
               }

@@ -81,7 +81,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage>
         });
         return;
       }
-      if (currentStorage.userId.isEmpty || currentStorage.token.isEmpty) {
+      if (currentStorage.token.isEmpty) {
         setState(() {
           _error = '请先编辑媒体库并登录';
         });
@@ -342,11 +342,10 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage>
                     Positioned.fill(
                       child: Hero(
                         transitionOnUserGestures: true,
+                        flightShuttleBuilder: heroFlightShuttleBuilder,
                         tag: mediaItem.id,
                         child: NetworkImageWidget(
-                          url: streamMediaExplorerService.getImageUrl(
-                            mediaItem.id,
-                          ),
+                          url: mediaItem.imageUrl ?? '',
                           headers: streamMediaExplorerService.headers,
                           width: maxWidth,
                           height: maxHeight,
@@ -429,6 +428,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage>
       id: item.seriesId!,
       name: item.seriesName ?? item.name,
       type: item.seriesName?.isNotEmpty == true ? MediaType.series : item.type,
+      imageUrl: item.fallbackImageUrl,
     );
     context.push(streamMediaDetailPath, extra: detailItem).then((_) {
       streamMediaExplorerService.refresh();
@@ -441,10 +441,7 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage>
         context.theme.tileStyles.base.contentStyle.subtitleTextStyle.base;
     final title = item.name;
     final subtitle = item.subtitle;
-    final imageId = item.mainImage ?? item.fallbackImage;
-    final imageUrl = imageId == null || imageId.isEmpty
-        ? null
-        : streamMediaExplorerService.getImageUrl(imageId);
+    final imageUrl = item.imageUrl ?? item.fallbackImageUrl;
     final positionMs = (item.playbackPositionTicks / 10000).round();
     final durationMs = ((item.runTimeTicks ?? 0) / 10000).round();
     final progressValue = durationMs <= 0

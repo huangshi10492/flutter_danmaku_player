@@ -273,9 +273,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                                 child: StreamMediaInfoCard(
                                   title: widget.mediaItem.name,
                                   mediaId: widget.mediaItem.id,
-                                  imageUrl: _service.getImageUrl(
-                                    widget.mediaItem.id,
-                                  ),
+                                  imageUrl: widget.mediaItem.imageUrl ?? '',
                                   headers: _service.headers,
                                   isLoading: _isLoading,
                                   showFavoriteAction: _service.useRemoteHistory,
@@ -437,9 +435,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
         focusNode: _dpadEnabled ? _continueFocusNode : null,
         onPress: _playContinueItem,
         refreshKey: refreshKey,
-        imageUrl: item.mainImage == null
-            ? null
-            : _service.getImageUrl(item.mainImage!),
+        imageUrl: item.imageUrl,
         headers: _service.headers,
         items: [
           playedItem(item.id, false, _loadContinueItem),
@@ -467,7 +463,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                   ).createShader(bounds);
                 },
                 child: NetworkImageWidget(
-                  url: _service.getImageUrl(widget.mediaItem.id),
+                  url: widget.mediaItem.imageUrl ?? '',
                   headers: _service.headers,
                   width: boxConstraints.maxWidth,
                   height: boxConstraints.maxHeight,
@@ -498,7 +494,7 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
       history: history,
       uniqueKey: uniqueKey,
       refreshKey: refreshKey,
-      imageUrl: _service.getImageUrl(episode.id),
+      imageUrl: episode.imageUrl,
       headers: _service.headers,
       name: episode.name,
       getDanmakuMatchInfo: () => _service.getDanmakuMatchInfo(episode.id),

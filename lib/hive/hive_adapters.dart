@@ -15,12 +15,14 @@ part 'hive_adapters.g.dart';
   AdapterSpec<OfflineCache>(),
   AdapterSpec<VideoInfo>(
     ignoredFields: {
+      'sessionId',
       'videoIndex',
       'listLength',
       'canSwitch',
       'cached',
       'externalSubtitles',
       'chapters',
+      'directVideoPath',
     },
   ),
   AdapterSpec<DownloadStatus>(),

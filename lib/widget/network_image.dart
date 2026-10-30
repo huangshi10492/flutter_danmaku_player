@@ -2,6 +2,23 @@ import 'package:cached_network_image_ce/cached_network_image.dart';
 import 'package:forui/forui.dart';
 import 'package:material_ui/material_ui.dart';
 
+// from Kazumi
+Widget heroFlightShuttleBuilder(
+  BuildContext flightContext,
+  Animation<double> animation,
+  HeroFlightDirection flightDirection,
+  BuildContext from,
+  BuildContext to,
+) {
+  final fromHero = from.widget as Hero;
+  final toHero = to.widget as Hero;
+  final hero = flightDirection == .push ? fromHero : toHero;
+  return InheritedTheme.captureAll(
+    flightDirection == .push ? from : to,
+    Material(type: .transparency, child: hero.child),
+  );
+}
+
 class NetworkImageWidget extends StatelessWidget {
   final String url;
   final Map<String, String>? headers;

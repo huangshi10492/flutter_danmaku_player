@@ -1,4 +1,3 @@
-import 'package:fldanplay/utils/utils.dart';
 import 'package:fldanplay/utils/video_player_utils.dart';
 
 enum MediaType {
@@ -10,24 +9,31 @@ enum MediaType {
   const MediaType(this.name);
 }
 
-class UserInfo {
-  final String userId;
-  final String token;
-  UserInfo({required this.userId, required this.token});
-  factory UserInfo.fromJson(Map<String, dynamic> json) {
-    return UserInfo(userId: json['User']['Id'], token: json['AccessToken']);
-  }
-}
+typedef UserInfo = ({String userId, String token});
+typedef CollectionItem = ({String id, String name});
+typedef ExternalUrl = ({String name, String url});
+typedef PlaybackTarget = ({String seasonId, String episodeId, MediaType type});
 
-class CollectionItem {
-  final String name;
-  final String id;
-  CollectionItem({required this.name, required this.id});
+class MediaItem({
+  required final String name,
+  required final String id,
+  final MediaType type = MediaType.none,
+  final UserData? userData,
+  final String? imageUrl,
+});
 
-  factory CollectionItem.fromJson(Map<String, dynamic> json) {
-    return CollectionItem(name: json['Name'], id: json['Id']);
-  }
-}
+class SeasonInfo({
+  required final String id,
+  required final String name,
+  final int? indexNumber,
+});
+
+class UserData({
+  final int? unplayedItemCount,
+  final int? playbackPositionTicks,
+  final DateTime? lastPlayedDate,
+  var bool played = false,
+});
 
 class ResumeItem {
   final String id;
@@ -40,8 +46,8 @@ class ResumeItem {
   final int? runTimeTicks;
   final DateTime? lastPlayedDate;
   final String? seriesId;
-  final String? mainImage;
-  final String? fallbackImage;
+  final String? imageUrl;
+  final String? fallbackImageUrl;
 
   const ResumeItem({
     required this.id,
@@ -54,53 +60,39 @@ class ResumeItem {
     this.runTimeTicks,
     this.lastPlayedDate,
     this.seriesId,
-    this.mainImage,
-    this.fallbackImage,
+    this.imageUrl,
+    this.fallbackImageUrl,
   });
 
-  String get subtitle {
-    if (seriesName != null && seriesName!.isNotEmpty) {
-      final buffer = StringBuffer(seriesName!);
-      if (parentIndexNumber != null) {
-        buffer.write(' S$parentIndexNumber');
-      }
-      if (indexNumber != null) {
-        buffer.write('E$indexNumber');
-      }
-      return buffer.toString();
-    }
-    return name;
-  }
+  String get subtitle => (seriesName == null || seriesName!.isEmpty)
+      ? name
+      : formatSeriesSubtitle(
+          seriesName: seriesName,
+          seasonNumber: parentIndexNumber,
+          episodeNumber: indexNumber,
+          fallback: name,
+        );
 }
 
-class MediaItem {
-  final String name;
-  final String id;
-  final MediaType type;
-  final UserData? userData;
-  MediaItem({
-    required this.name,
-    required this.id,
-    this.type = MediaType.none,
-    this.userData,
-  });
-
-  factory MediaItem.fromJson(
-    Map<String, dynamic> json, {
-    bool includeUserData = false,
-  }) {
-    return MediaItem(
-      name: json['Name'],
-      id: json['Id'],
-      type: MediaType.values.firstWhere(
-        (e) => e.name == json['Type'],
-        orElse: () => MediaType.none,
-      ),
-      userData: includeUserData && json['UserData'] != null
-          ? UserData.fromJson(json['UserData'])
-          : null,
-    );
+String formatSeriesSubtitle({
+  String? seriesName,
+  int? seasonNumber,
+  int? episodeNumber,
+  String? fallback,
+}) {
+  final buffer = StringBuffer();
+  final hasSeries = seriesName != null && seriesName.isNotEmpty;
+  if (hasSeries) buffer.write(seriesName);
+  if (seasonNumber != null) {
+    if (buffer.isNotEmpty) buffer.write(' ');
+    buffer.write('S$seasonNumber');
   }
+  if (episodeNumber != null) {
+    if (seasonNumber == null && buffer.isNotEmpty) buffer.write(' ');
+    buffer.write('E$episodeNumber');
+  }
+  if (buffer.isEmpty) return fallback ?? '';
+  return buffer.toString();
 }
 
 class MediaDetail {
@@ -115,6 +107,7 @@ class MediaDetail {
   final bool isFavorite;
   final List<ExternalUrl> externalUrls;
   final List<String> tags;
+  final String? imageUrl;
   List<SeasonInfo> seasons = [];
 
   MediaDetail({
@@ -129,38 +122,8 @@ class MediaDetail {
     this.isFavorite = false,
     this.externalUrls = const [],
     this.tags = const [],
+    this.imageUrl,
   });
-
-  factory MediaDetail.fromJson(
-    Map<String, dynamic> json, {
-    bool includeUserData = false,
-  }) {
-    double priceAsDouble(dynamic value) {
-      if (value is int) {
-        return (value).toDouble();
-      }
-      return value as double;
-    }
-
-    return MediaDetail(
-      id: json['Id'] ?? '',
-      name: json['Name'] ?? '',
-      overview: json['Overview'],
-      genres: (json['Genres'] as List?)?.cast<String>() ?? [],
-      productionYear: json['ProductionYear'],
-      runTimeTicks: json['RunTimeTicks'],
-      type: MediaType.values.firstWhere(
-        (e) => e.name == json['Type'],
-        orElse: () => MediaType.none,
-      ),
-      rating: priceAsDouble(json['CommunityRating'] ?? 0.0),
-      isFavorite: includeUserData && json['UserData']?['IsFavorite'] == true,
-      externalUrls: List<ExternalUrl>.from(
-        json['ExternalUrls'].map((x) => ExternalUrl.fromJson(x)),
-      ),
-      tags: List<String>.from(json["Tags"]?.map((x) => x as String) ?? []),
-    );
-  }
 
   MediaDetail copyWith({
     String? id,
@@ -174,6 +137,7 @@ class MediaDetail {
     bool? isFavorite,
     List<ExternalUrl>? externalUrls,
     List<String>? tags,
+    String? imageUrl,
     List<SeasonInfo>? seasons,
   }) {
     final detail = MediaDetail(
@@ -188,71 +152,76 @@ class MediaDetail {
       isFavorite: isFavorite ?? this.isFavorite,
       externalUrls: externalUrls ?? this.externalUrls,
       tags: tags ?? this.tags,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
     detail.seasons = seasons ?? this.seasons;
     return detail;
   }
-
-  String? get formattedRuntime {
-    if (runTimeTicks == null) return null;
-    final minutes = (runTimeTicks! / 10000000 / 60).round();
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    if (hours > 0) {
-      return '$hours小时$remainingMinutes分钟';
-    }
-    return '$remainingMinutes分钟';
-  }
 }
 
-class ExternalUrl {
-  String name;
-  String url;
-
-  ExternalUrl({required this.name, required this.url});
-
-  factory ExternalUrl.fromJson(Map<String, dynamic> json) =>
-      ExternalUrl(name: json["Name"], url: json["Url"]);
-}
-
-class SeasonInfo {
+class EpisodeInfo {
   final String id;
   final String name;
   final int? indexNumber;
+  final int? parentIndexNumber;
+  final String? seriesName;
+  final int? runTimeTicks;
+  UserData? userData;
+  String fileName;
+  Map<int, String> chapters;
+  String? imageUrl;
 
-  SeasonInfo({required this.id, required this.name, this.indexNumber});
+  EpisodeInfo({
+    required this.id,
+    required this.name,
+    this.indexNumber,
+    this.parentIndexNumber,
+    this.seriesName,
+    this.runTimeTicks,
+    this.userData,
+    required this.fileName,
+    this.chapters = const {},
+    this.imageUrl,
+  });
 
-  factory SeasonInfo.fromJson(Map<String, dynamic> json) {
-    return SeasonInfo(
-      id: json['Id'] ?? '',
-      name: json['Name'] ?? '',
-      indexNumber: json['IndexNumber'],
-    );
-  }
+  String get subtitle => formatSeriesSubtitle(
+    seriesName: seriesName,
+    seasonNumber: parentIndexNumber,
+    episodeNumber: indexNumber,
+  );
 }
 
-class PlaybackTarget {
-  final String seasonId;
-  final String episodeId;
-  final MediaType type;
+class PlaybackInfo {
+  final String itemId;
+  final String mediaSourceId;
+  final String playSessionId;
+  final bool supportsTranscoding;
+  final int bitrate;
+  final List<MediaStreamInfo> audioStreams;
+  final List<MediaStreamInfo> subtitleStreams;
+  final int? defaultAudio;
+  final int? defaultSubtitle;
+  final String fileName;
+  final Map<int, String> chapters;
+  final String? videoUrl;
+  final Map<String, String> headers;
 
-  const PlaybackTarget({
-    required this.seasonId,
-    required this.episodeId,
-    required this.type,
+  const PlaybackInfo({
+    required this.itemId,
+    required this.mediaSourceId,
+    required this.playSessionId,
+    required this.supportsTranscoding,
+    required this.bitrate,
+    this.audioStreams = const [],
+    this.subtitleStreams = const [],
+    this.defaultAudio,
+    this.defaultSubtitle,
+    this.fileName = '',
+    this.chapters = const {},
+    this.videoUrl,
+    this.headers = const {},
   });
 }
-
-class PlayBackInfo(
-  final String mediaSourceId,
-  final String playSessionId,
-  final bool supportsTranscoding,
-  final int bitrate,
-  final List<MediaStreamInfo> audioStreams,
-  final List<MediaStreamInfo> subtitleStreams,
-  final int? defaultAudio,
-  final int? defaultSubtitle,
-);
 
 class MediaStreamInfo {
   final int index;
@@ -270,24 +239,6 @@ class MediaStreamInfo {
     this.isExternal = false,
     this.subtitleUrl,
   });
-
-  factory MediaStreamInfo.fromJson(
-    Map<dynamic, dynamic> json, {
-    String? subtitleUrl,
-  }) {
-    final map = Map<String, dynamic>.from(json);
-    final rawIndex = map['Index'];
-    return MediaStreamInfo(
-      index: rawIndex is int
-          ? rawIndex
-          : int.tryParse(rawIndex?.toString() ?? '') ?? -1,
-      language: map['Language']?.toString(),
-      title: (map['DisplayTitle'] ?? map['Title'])?.toString(),
-      isDefault: map['IsDefault'] == true,
-      isExternal: map['IsExternal'] == true,
-      subtitleUrl: subtitleUrl,
-    );
-  }
 
   String get label {
     if (title != null && title!.isNotEmpty) return title!;
@@ -316,8 +267,8 @@ class TranscodeOptions {
 
   bool get isOriginal => bitrate == 0;
 
-  factory fromPlayBackInfo(String itemId, PlayBackInfo info) =>
-      TranscodeOptions(itemId)
+  factory fromMediaPlaybackInfo(PlaybackInfo info) =>
+      TranscodeOptions(info.itemId)
         ..audioStreamIndex = info.defaultAudio
         ..subtitleStreamIndex = info.defaultSubtitle
         ..maxBitrate = info.bitrate;
@@ -339,133 +290,5 @@ class TranscodeOptions {
       }
     });
     return resultMap;
-  }
-}
-
-Map<int, String> parseChapters(dynamic json) {
-  if (json is! List) return const {};
-  final entries = <(int, String)>[];
-  for (final item in json) {
-    if (item is! Map) continue;
-    final rawTicks = item['StartPositionTicks'];
-    final ticks = rawTicks is num
-        ? rawTicks.toInt()
-        : int.tryParse(rawTicks?.toString() ?? '');
-    if (ticks == null) continue;
-    final seconds = ticks ~/ 10000000;
-    final name = item['Name']?.toString() ?? '';
-    entries.add((
-      seconds,
-      name.isNotEmpty ? name : Utils.formatDuration(Duration(seconds: seconds)),
-    ));
-  }
-  entries.sort((a, b) => a.$1.compareTo(b.$1));
-  return {for (final entry in entries) entry.$1: entry.$2};
-}
-
-class EpisodeInfo {
-  final String id;
-  final String name;
-  final int? indexNumber;
-  final int? parentIndexNumber;
-  final String? seriesName;
-  final int? runTimeTicks;
-  UserData? userData;
-  String fileName;
-  Map<int, String> chapters;
-
-  EpisodeInfo({
-    required this.id,
-    required this.name,
-    this.indexNumber,
-    this.parentIndexNumber,
-    this.seriesName,
-    this.runTimeTicks,
-    this.userData,
-    required this.fileName,
-    this.chapters = const {},
-  });
-
-  factory EpisodeInfo.fromJson(
-    Map<String, dynamic> json, {
-    bool includeUserData = false,
-  }) {
-    final List<dynamic>? mediaSources = json['MediaSources'];
-    if (mediaSources == null || mediaSources.isEmpty) {
-      throw Exception('MediaSources is null');
-    }
-    return EpisodeInfo(
-      id: json['Id'] ?? '',
-      name: json['Name'] ?? '',
-      indexNumber: json['IndexNumber'],
-      parentIndexNumber: json['ParentIndexNumber'],
-      seriesName: json['SeriesName'] ?? json['Name'],
-      runTimeTicks: json['RunTimeTicks'],
-      fileName: mediaSources.first['Name'] ?? '',
-      chapters: parseChapters(json['Chapters']),
-      userData: includeUserData && json['UserData'] != null
-          ? UserData.fromJson(json['UserData'])
-          : null,
-    );
-  }
-
-  String? get formattedRuntime {
-    if (runTimeTicks == null) return null;
-    final minutes = (runTimeTicks! / 10000000 / 60).round();
-    return '$minutes分钟';
-  }
-
-  String get subtitle {
-    String buffer = seriesName ?? '';
-    if (parentIndexNumber != null && indexNumber != null) {
-      buffer += ' S${parentIndexNumber}E$indexNumber';
-    }
-    return buffer;
-  }
-}
-
-class ItemInfo {
-  final String fileName;
-  final Map<int, String> chapters;
-
-  ItemInfo(this.fileName, {this.chapters = const {}});
-
-  factory ItemInfo.fromJson(Map<String, dynamic> json) {
-    final List<dynamic>? mediaSources = json['MediaSources'];
-    if (mediaSources == null || mediaSources.isEmpty) {
-      throw Exception('MediaSources is null');
-    }
-    return ItemInfo(
-      mediaSources.first['Name'] ?? '',
-      chapters: parseChapters(json['Chapters']),
-    );
-  }
-}
-
-class UserData {
-  final int? unplayedItemCount;
-  final int? playbackPositionTicks;
-  final DateTime? lastPlayedDate;
-  final bool isFavorite;
-  bool played;
-
-  UserData({
-    this.unplayedItemCount,
-    this.playbackPositionTicks,
-    this.lastPlayedDate,
-    this.isFavorite = false,
-    this.played = false,
-  });
-
-  factory UserData.fromJson(Map<String, dynamic> json) {
-    return UserData(
-      unplayedItemCount: json['UnplayedItemCount'],
-      playbackPositionTicks: json['PlaybackPositionTicks'],
-      lastPlayedDate: json['LastPlayedDate'] != null
-          ? DateTime.parse(json['LastPlayedDate']).toUtc()
-          : null,
-      isFavorite: json['IsFavorite'] == true,
-      played: json['Played'] == true,
-    );
   }
 }

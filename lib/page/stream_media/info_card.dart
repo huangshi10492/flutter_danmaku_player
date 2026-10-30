@@ -68,6 +68,7 @@ class StreamMediaInfoCard extends StatelessWidget {
                             child: LayoutBuilder(
                               builder: (context, boxConstraints) => Hero(
                                 transitionOnUserGestures: true,
+                                flightShuttleBuilder: heroFlightShuttleBuilder,
                                 tag: mediaId,
                                 child: NetworkImageWidget(
                                   url: imageUrl,
