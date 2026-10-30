@@ -171,6 +171,7 @@ sealed class Storage2 {
     .local => LocalStorage(name: '', key: '', url: ''),
     .jellyfin => JellyfinMediaStorage.empty(),
     .emby => EmbyMediaStorage.empty(),
+    .fnys => FnysMediaStorage.empty(),
   };
 
   static Storage2 fromRecord(StorageRecord record) {
@@ -190,6 +191,7 @@ sealed class Storage2 {
       .local => LocalStorage.fromJson(json, meta),
       .jellyfin => JellyfinMediaStorage.fromJson(json, meta),
       .emby => EmbyMediaStorage.fromJson(json, meta),
+      .fnys => FnysMediaStorage.fromJson(json, meta),
     };
   }
 
@@ -251,6 +253,17 @@ sealed class Storage2 {
           mediaLibraryId: s.mediaLibraryId,
           token: s.token ?? '',
           userId: s.userId ?? '',
+          useRemoteHistory: s.useRemoteHistory ?? false,
+        ),
+        .fnys => FnysMediaStorage(
+          name: s.name,
+          key: s.uniqueKey,
+          createdAt: createdAt,
+          url: s.url,
+          account: s.account ?? '',
+          password: s.password ?? '',
+          mediaLibraryId: s.mediaLibraryId,
+          token: s.token ?? '',
           useRemoteHistory: s.useRemoteHistory ?? false,
         ),
       };
@@ -667,4 +680,49 @@ final class JellyfinMediaStorage extends EmbyMediaStorage {
 
   @override
   StorageType get storageType => .jellyfin;
+}
+
+final class FnysMediaStorage extends StreamStorage {
+  FnysMediaStorage({
+    required super.name,
+    required super.key,
+    super.createdAt,
+    required super.url,
+    required super.account,
+    required super.password,
+    super.mediaLibraryId,
+    required super.token,
+    super.useRemoteHistory,
+  });
+
+  factory FnysMediaStorage.empty() => FnysMediaStorage(
+    name: '',
+    key: '',
+    url: '',
+    account: '',
+    password: '',
+    token: '',
+  );
+
+  FnysMediaStorage.fromJson(Map json, Meta meta)
+    : this(
+        name: meta.name,
+        key: meta.key,
+        createdAt: meta.createdAt,
+        url: json['url'] as String? ?? '',
+        account: json['account'] as String? ?? '',
+        password: json['password'] as String? ?? '',
+        mediaLibraryId: json['mediaLibraryId'] as String?,
+        token: json['token'] as String? ?? '',
+        useRemoteHistory: json['useRemoteHistory'] as bool? ?? false,
+      );
+
+  @override
+  StorageType get storageType => .fnys;
+
+  @override
+  List<StorageFieldConfig> get fields => [
+    for (final field in super.fields)
+      if (field.key != 'userId') field,
+  ];
 }

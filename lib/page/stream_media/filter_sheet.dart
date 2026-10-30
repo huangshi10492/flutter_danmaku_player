@@ -19,8 +19,8 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
   late String status;
   late String sortBy;
   late bool sortOrder;
-
   final statusOptions = {'全部': '', '连载中': 'Continuing', '已完结': 'Ended'};
+  bool get isFnys => service.provider.value is FnysStreamMediaExplorerProvider;
 
   final sortOptions = {
     '名称': 'SortName',
@@ -84,6 +84,13 @@ class _StreamMediaFilterSheetState extends State<StreamMediaFilterSheet> {
           ],
         ),
         const SizedBox(height: 12),
+        if (isFnys) ...[
+          const FAlert(
+            title: Text('飞牛影视筛选限制'),
+            subtitle: Text('“关键词搜索”和其他筛选无法同时生效；“连载状态”当前无效。'),
+          ),
+          const SizedBox(height: 12),
+        ],
         FTextField(
           control: .managed(controller: searchController),
           label: Text('搜索'),

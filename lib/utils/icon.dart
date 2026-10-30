@@ -8,6 +8,7 @@
 // .icon-danmaku:before { content: "\e907"; }
 // .icon-danmaku-off:before { content: "\e908"; }
 // .icon-danmaku-settings:before { content: "\e909"; }
+// .icon-fnys:before { content: "\e90a"; }
 
 import 'package:material_ui/material_ui.dart';
 
@@ -24,4 +25,5 @@ class MyIcon {
   static const IconData danmaku = IconData(0xe907, fontFamily: _family);
   static const IconData danmakuOff = IconData(0xe908, fontFamily: _family);
   static const IconData danmakuSettings = IconData(0xe909, fontFamily: _family);
+  static const IconData fnys = IconData(0xe90a, fontFamily: _family);
 }

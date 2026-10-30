@@ -103,6 +103,8 @@ class RootPageState extends State<RootPage> {
         return const Icon(MyIcon.jellyfin);
       case StorageType.emby:
         return const Icon(MyIcon.emby);
+      case StorageType.fnys:
+        return const Icon(MyIcon.fnys);
     }
   }
 
@@ -312,6 +314,7 @@ class RootPageState extends State<RootPage> {
                             break;
                           case StorageType.jellyfin:
                           case StorageType.emby:
+                          case StorageType.fnys:
                             context.push(
                               '$streamMediaExplorerPath?key=${storage.key}',
                             );

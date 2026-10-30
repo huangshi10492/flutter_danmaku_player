@@ -9,7 +9,8 @@ enum StorageType {
   smb('SMB', MyIcon.smb),
   local('本地', FLucideIcons.folder),
   jellyfin('Jellyfin', MyIcon.jellyfin),
-  emby('Emby', MyIcon.emby);
+  emby('Emby', MyIcon.emby),
+  fnys('飞牛影视', MyIcon.fnys);
 
   final String label;
   final IconData icon;

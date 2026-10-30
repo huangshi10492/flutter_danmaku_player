@@ -204,6 +204,8 @@ class StorageTypeAdapter extends TypeAdapter<StorageType> {
         return StorageType.jellyfin;
       case 5:
         return StorageType.emby;
+      case 6:
+        return StorageType.fnys;
       default:
         return StorageType.webdav;
     }
@@ -224,6 +226,8 @@ class StorageTypeAdapter extends TypeAdapter<StorageType> {
         writer.writeByte(4);
       case StorageType.emby:
         writer.writeByte(5);
+      case StorageType.fnys:
+        writer.writeByte(6);
     }
   }
 

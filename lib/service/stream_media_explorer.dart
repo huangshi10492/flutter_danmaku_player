@@ -2,9 +2,11 @@ library;
 
 import 'package:fldanplay/model/storage2.dart';
 import 'package:fldanplay/service/stream_media_explorer/emby.dart';
+import 'package:fldanplay/service/stream_media_explorer/fnys.dart';
 import 'package:fldanplay/service/stream_media_explorer/service.dart';
 
 export 'stream_media_explorer/emby.dart';
+export 'stream_media_explorer/fnys.dart';
 export 'stream_media_explorer/service.dart';
 
 Future<StreamMediaExplorerProvider?> createStreamMediaExplorerProvider(
@@ -16,6 +18,7 @@ Future<StreamMediaExplorerProvider?> createStreamMediaExplorerProvider(
     .jellyfin => JellyfinStreamMediaExplorerProvider(
       storage as JellyfinMediaStorage,
     ),
+    .fnys => FnysStreamMediaExplorerProvider(storage as FnysMediaStorage),
     _ => null,
   };
   if (provider == null) return null;

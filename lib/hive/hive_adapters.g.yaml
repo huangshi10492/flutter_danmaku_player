@@ -73,7 +73,7 @@ types:
         index: 14
   StorageType:
     typeId: 5
-    nextIndex: 6
+    nextIndex: 7
     fields:
       webdav:
         index: 0
@@ -87,6 +87,8 @@ types:
         index: 4
       emby:
         index: 5
+      fnys:
+        index: 6
   OfflineCache:
     typeId: 6
     nextIndex: 8
