@@ -25,7 +25,13 @@ import 'package:signals_flutter/signals_flutter.dart';
 
 class StreamMediaDetailPage extends StatefulWidget {
   final MediaItem mediaItem;
-  const StreamMediaDetailPage({super.key, required this.mediaItem});
+  final bool enableHero;
+
+  const StreamMediaDetailPage({
+    super.key,
+    required this.mediaItem,
+    this.enableHero = true,
+  });
 
   @override
   State<StreamMediaDetailPage> createState() => _StreamMediaDetailPageState();
@@ -270,17 +276,22 @@ class _StreamMediaDetailPageState extends State<StreamMediaDetailPage>
                               ),
                               SafeArea(
                                 bottom: false,
-                                child: StreamMediaInfoCard(
-                                  title: widget.mediaItem.name,
-                                  mediaId: widget.mediaItem.id,
-                                  imageUrl: widget.mediaItem.imageUrl ?? '',
-                                  headers: _service.headers,
-                                  isLoading: _isLoading,
-                                  showFavoriteAction: _service.useRemoteHistory,
-                                  isFavorite: _mediaDetail?.isFavorite ?? false,
-                                  mediaDetail: _mediaDetail,
-                                  actionFocusNode: _actionFocusNode,
-                                  onToggleFavorite: _toggleFavorite,
+                                child: HeroMode(
+                                  enabled: widget.enableHero,
+                                  child: StreamMediaInfoCard(
+                                    title: widget.mediaItem.name,
+                                    mediaId: widget.mediaItem.id,
+                                    imageUrl: widget.mediaItem.imageUrl ?? '',
+                                    headers: _service.headers,
+                                    isLoading: _isLoading,
+                                    showFavoriteAction:
+                                        _service.useRemoteHistory,
+                                    isFavorite:
+                                        _mediaDetail?.isFavorite ?? false,
+                                    mediaDetail: _mediaDetail,
+                                    actionFocusNode: _actionFocusNode,
+                                    onToggleFavorite: _toggleFavorite,
+                                  ),
                                 ),
                               ),
                             ],

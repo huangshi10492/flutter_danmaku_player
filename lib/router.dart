@@ -202,7 +202,10 @@ final router = GoRouter(
       path: streamMediaDetailPath,
       pageBuilder: (context, state) => SlideAndExitTransitionPage(
         key: state.pageKey,
-        child: StreamMediaDetailPage(mediaItem: state.extra as MediaItem),
+        child: StreamMediaDetailPage(
+          mediaItem: state.extra as MediaItem,
+          enableHero: !(state.uri.queryParameters['enableHero'] == 'false'),
+        ),
       ),
     ),
     GoRoute(

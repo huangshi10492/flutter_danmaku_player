@@ -430,7 +430,11 @@ class _StreamMediaExplorerPageState extends State<StreamMediaExplorerPage>
       type: item.seriesName?.isNotEmpty == true ? MediaType.series : item.type,
       imageUrl: item.fallbackImageUrl,
     );
-    context.push(streamMediaDetailPath, extra: detailItem).then((_) {
+    final location = Uri(
+      path: streamMediaDetailPath,
+      queryParameters: const {'enableHero': 'false'},
+    );
+    context.push(location.toString(), extra: detailItem).then((_) {
       streamMediaExplorerService.refresh();
       _loadResumeItems();
     });
