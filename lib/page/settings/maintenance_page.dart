@@ -62,7 +62,6 @@ class _MaintenancePageState extends State<MaintenancePage> {
       final path = await FilePicker.saveFile(
         fileName:
             'fldanplay_config_${DateTime.now().millisecondsSinceEpoch}.zip',
-        allowedExtensions: ['zip'],
         bytes: await file.readAsBytes(),
       );
       await file.delete();

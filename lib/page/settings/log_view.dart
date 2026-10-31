@@ -12,7 +12,6 @@ class LogViewPage extends StatelessWidget {
     final fileName = file.path.split('/').last;
     await FilePicker.saveFile(
       fileName: fileName,
-      allowedExtensions: ['log'],
       bytes: file.readAsBytesSync(),
     );
   }
