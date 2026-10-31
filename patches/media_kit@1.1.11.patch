@@ -1,42 +1,42 @@
 diff --git a/hook/native_bundles.json b/hook/native_bundles.json
-index 41ae06489637c3f44e54f0b39bda69ee0aa0325a..281b15726053714a772d57327202b6fbcc8a3907 100644
+index c116e3295dfd60b1ea13d55d42f4feff36ba43eb..f7beadf2e02b470b7492569938d931a99e18ee86 100644
 --- a/hook/native_bundles.json
 +++ b/hook/native_bundles.json
 @@ -2,54 +2,54 @@
    "schema": 1,
    "bundles": {
      "android_arm64": {
--      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.0/default-arm64-v8a.jar",
--      "sha256": "30c2d795dbc04355ab389f76e4d6bc5b3ccf57f0251e7aa889055d8ab0406d7e",
-+      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.0/default-arm64-v8a.jar",
-+      "sha256": "91295133adc212f469ccb9a534de5e663cb0835b8668b0658c9a1cf98d001ffe",
+-      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.1/default-arm64-v8a.jar",
+-      "sha256": "3bbceecd7616d5730e19865342a020834f00bdf77c25900e97c91a6e3e8141f8",
++      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.1/default-arm64-v8a.jar",
++      "sha256": "25d42f9c764fe228c3a94e569246df6ef5537d7eb901bb1a8e67f0f4454f6400",
        "format": "zip",
        "root": "lib/arm64-v8a",
        "library": "libmpv.so"
      },
      "android_arm": {
--      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.0/default-armeabi-v7a.jar",
--      "sha256": "4565dafdf761fa3dfccba7ef8bb44e96d19d5e0122c4ad9caa45ab2f7cc6310f",
-+      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.0/default-armeabi-v7a.jar",
-+      "sha256": "747e93f257fb6bf9d2a85c981a332676dfd0575d31e02f97c27487e9d59b2d9c",
+-      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.1/default-armeabi-v7a.jar",
+-      "sha256": "96c37141ef20d1c73da01887f8ad6244aa7fccb44e805457d3eb15d2d71fde20",
++      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.1/default-armeabi-v7a.jar",
++      "sha256": "c9cc827d8fbf824f08a480cbf08da5522cf109537f6b14bd4a4d83156cd9c0c4",
        "format": "zip",
        "root": "lib/armeabi-v7a",
        "library": "libmpv.so"
      },
      "android_x64": {
--      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.0/default-x86_64.jar",
--      "sha256": "a288b17b373e82f4a7d7a48e8b05cbf1521b6098f8e72ff0fbe08e191312ad61",
-+      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.0/default-x86_64.jar",
-+      "sha256": "93927ef8f39090c436ed6d5fdce64ee0ef897e0c5ff6cef165838cc835ecbc39",
+-      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.1/default-x86_64.jar",
+-      "sha256": "f01e9f1890091f4dd856cd37247e442d151b7815a86306581a1e9317ec566136",
++      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.1/default-x86_64.jar",
++      "sha256": "b7ff6e2a47f0e6295c355d07d47b99b1ba907863982cebc818f6841df67a7965",
        "format": "zip",
        "root": "lib/x86_64",
        "library": "libmpv.so"
      },
      "android_ia32": {
--      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.0/default-x86.jar",
--      "sha256": "a22e1d064bb596cc25285c3641225852f58a0fd235f940b78a9736780c2cbb5b",
-+      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.0/default-x86.jar",
-+      "sha256": "db803f83ed1149ba8b1f4ce2d6f7375bf7557d0d12b6ca1e73a0c78ab0c1b45c",
+-      "url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.3.1/default-x86.jar",
+-      "sha256": "29919fb6d0e4cd3855ef4c951f1d1e7784889e8715bad3007e718f18b425d4bd",
++      "url": "https://github.com/huangshi10492/libmpv-android-video-build/releases/download/v1.3.1/default-x86.jar",
++      "sha256": "9284a8eec0a427524e0acc2cb34e990463978ebac462fda5943ca21bc2b41dbc",
        "format": "zip",
        "root": "lib/x86",
        "library": "libmpv.so"
@@ -74,7 +74,7 @@ index 41ae06489637c3f44e54f0b39bda69ee0aa0325a..281b15726053714a772d57327202b6fb
        "library": "libmpv.so.2"
      },
 @@ -88,4 +88,4 @@
-       "library": "libmpv.so.2"
+       "library": "libmpv.so"
      }
    }
 -}

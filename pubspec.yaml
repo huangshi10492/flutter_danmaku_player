@@ -36,19 +36,19 @@ dependencies:
 
   # 架构：状态管理、依赖注入、路由
   get_it: ^9.3.0
-  go_router: ^18.1.0
+  go_router: ^18.1.1
   signals: ^7.1.0
   signals_flutter: ^7.1.0
 
   # 数据与网络
-  crypto: ^3.0.7
+  crypto: ^3.0.8
   dio: ^5.11.1
   dio_smart_retry: ^7.0.1
   hive_ce: ^2.22.0
   hive_ce_flutter: ^2.5.0
   webdav_client_plus: ^1.0.2
   ftpconnect: ^3.0.0
-  dart_smb2: ^0.2.1
+  dart_smb2: ^0.2.3
 
   # 媒体与播放器
   audio_session: ^0.2.4
@@ -57,12 +57,12 @@ dependencies:
   media_kit:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 6b188ae978808a63e5b58b7ce61f7725238c04c5
+      ref: 83b7ca63772856e1ea0158916177e136f7b7b0be
       path: ./media_kit
   media_kit_video:
     git:
       url: https://github.com/Predidit/media-kit.git
-      ref: 6b188ae978808a63e5b58b7ce61f7725238c04c5
+      ref: 83b7ca63772856e1ea0158916177e136f7b7b0be
       path: ./media_kit_video  
   screen_brightness: ^2.1.11
 
@@ -72,11 +72,11 @@ dependencies:
     git:
       url: https://github.com/bggRGjQaUbCoE/flutter_cached_network_image_ce.git
       path: cached_network_image
-      ref: 733d4aae9cadaafa9e16f20a6f6a3682c935de01
+      ref: b1597d6d58ad3bc5bcf2d93022bc893add7ce66b
   cupertino_icons: ^2.0.0
-  fl_chart: ^1.2.0
-  forui: ^0.27.5
-  material_ui: ^1.7.0
+  fl_chart: ^1.3.0
+  forui: ^0.27.7
+  material_ui: ^1.8.0
   skeletonizer: ^3.0.0
   dpad: ^3.1.1
   flutter_markdown_plus: ^1.0.12
@@ -85,7 +85,7 @@ dependencies:
   auto_orientation_v2: ^2.4.7
   battery_plus: ^7.1.2
   device_info_plus: ^13.3.0
-  file_picker: ^13.1.0
+  file_picker: ^13.3.0
   path: ^1.9.1
   path_provider: ^2.1.6
   package_info_plus: ^10.2.2
