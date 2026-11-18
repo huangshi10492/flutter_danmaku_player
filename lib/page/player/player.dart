@@ -89,7 +89,8 @@ class _StandardPlayerViewState extends State<_StandardPlayerView> {
         },
         onDoubleTap: () {
           if (Utils.isDesktop()) {
-            windowManager.setFullScreen(!_uiState.isFullScreen.value);
+            WindowManager.instance.getCurrent()!.isFullScreen =
+                !_uiState.isFullScreen.value;
             _uiState.isFullScreen.value = !_uiState.isFullScreen.value;
           } else {
             if (_uiState.lockPanel.value) return;
@@ -131,7 +132,7 @@ class _StandardPlayerViewState extends State<_StandardPlayerView> {
                 _uiState.hideIndicator();
               }
               if (event.logicalKey == LogicalKeyboardKey.escape) {
-                windowManager.setFullScreen(false);
+                WindowManager.instance.getCurrent()!.isFullScreen = false;
                 _uiState.isFullScreen.value = false;
               }
             } else if (event is KeyRepeatEvent) {
@@ -529,9 +530,8 @@ class _StandardPlayerViewState extends State<_StandardPlayerView> {
                           },
                         ),
                         onPressed: () {
-                          windowManager.setFullScreen(
-                            !_uiState.isFullScreen.value,
-                          );
+                          WindowManager.instance.getCurrent()!.isFullScreen =
+                              !_uiState.isFullScreen.value;
                           _uiState.isFullScreen.value =
                               !_uiState.isFullScreen.value;
                         },

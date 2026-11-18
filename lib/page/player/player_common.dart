@@ -112,7 +112,7 @@ class _PlayerPageHostState extends State<PlayerPageHost> {
     SystemChrome.setEnabledSystemUIMode(.edgeToEdge);
     AutoOrientation.fullAutoMode();
     if (Utils.isDesktop()) {
-      windowManager.setFullScreen(false);
+      WindowManager.instance.getCurrent()!.isFullScreen = false;
     }
     WakelockPlus.disable();
     super.dispose();

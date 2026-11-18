@@ -42,16 +42,11 @@ Future<void> main() async {
 
 Future<void> init() async {
   if (Utils.isDesktop()) {
-    await windowManager.ensureInitialized();
-    WindowOptions windowOptions = WindowOptions(
-      size: const Size(1440, 810),
-      center: true,
-      skipTaskbar: false,
-    );
-    windowManager.waitUntilReadyToShow(windowOptions, () async {
-      await windowManager.show();
-      await windowManager.focus();
-    });
+    final window = WindowManager.instance.getCurrent()!;
+    window.setSize(const Size(1440, 810).toNative(), false);
+    window.center();
+    window.show();
+    window.focus();
   }
   SignalsObserver.instance = null;
   await Hive.initFlutter(

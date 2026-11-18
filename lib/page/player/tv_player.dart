@@ -474,7 +474,7 @@ class _TvPlayerViewState extends State<_TvPlayerView> {
 
   void _toggleFullScreen() {
     final value = !_isFullScreen.value;
-    windowManager.setFullScreen(value);
+    WindowManager.instance.getCurrent()!.isFullScreen = value;
     _isFullScreen.value = value;
     _displayIndicator(
       value ? Icons.fullscreen : Icons.fullscreen_exit,
